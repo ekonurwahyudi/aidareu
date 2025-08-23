@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run:*)",
+      "Bash(php:*)",
+      "Bash(curl:*)",
+      "Bash(cp:*)",
+      "Bash(powershell:*)",
+      "Bash(rmdir:*)",
+      "Bash(rm:*)",
+      "Bash(npx tsc:*)",
+      "Bash(timeout 10s npm run dev)",
+      "Bash(timeout 15s npm run dev)",
+      "Bash(npx next build:*)",
+      "Bash(timeout 30s npx next build --no-lint)",
+      "Bash(timeout 10s npx next dev --port 3001)",
+      "Bash(timeout 30s npm run build)",
+      "Bash(composer:*)",
+      "Bash(npm install:*)",
+      "Bash(taskkill:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "D:\\d\\AiDareU"
+    ]
+  }
+}
