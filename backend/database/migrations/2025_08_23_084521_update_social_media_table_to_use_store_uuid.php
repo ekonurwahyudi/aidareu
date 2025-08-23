@@ -23,7 +23,7 @@ return new class extends Migration
             SET store_uuid = (
                 SELECT s.uuid 
                 FROM stores s 
-                WHERE s.id = sm.store_id
+                WHERE s.id::text = sm.store_id::text
             )
         ');
 

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Store;
-use App\Models\Role;
+use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -19,7 +19,7 @@ class StoreController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nama_toko' => 'required|string|min:3|max:50',
-            'sub_domain' => 'required|string|min:3|max:30|regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/|unique:stores,sub_domain',
+            'subdomain' => 'required|string|min:3|max:30|regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/|unique:stores,subdomain',
             'no_hp_toko' => 'required|string|regex:/^(\+62|62|0)[0-9]{9,13}$/',
             'kategori_toko' => 'required|in:fashion,elektronik,makanan,kesehatan,rumah_tangga,olahraga,buku_media,otomotif,mainan_hobi,jasa,lainnya',
             'deskripsi_toko' => 'required|string|min:20|max:500'
@@ -45,12 +45,13 @@ class StoreController extends Controller
             }
 
             $store = Store::create([
-                'nama_toko' => $request->nama_toko,
-                'sub_domain' => strtolower($request->sub_domain),
-                'no_hp_toko' => $request->no_hp_toko,
-                'kategori_toko' => $request->kategori_toko,
-                'deskripsi_toko' => $request->deskripsi_toko,
-                'owner_id' => $user->id,
+                'uuid' => \Illuminate\Support\Str::uuid(),
+                'name' => $request->nama_toko,
+                'subdomain' => strtolower($request->subdomain),
+                'phone' => $request->no_hp_toko,
+                'category' => $request->kategori_toko,
+                'description' => $request->deskripsi_toko,
+                'user_id' => $user->uuid,
                 'is_active' => true,
             ]);
 
@@ -90,7 +91,7 @@ class StoreController extends Controller
         // If not superadmin, only show stores user has access to
         if (!$user->hasRole('superadmin')) {
             $query->where(function($q) use ($user) {
-                $q->where('owner_id', $user->id)
+                $q->where('user_id', $user->uuid)
                   ->orWhereHas('users', function($q2) use ($user) {
                       $q2->where('users.id', $user->id);
                   });
@@ -144,7 +145,7 @@ class StoreController extends Controller
             // Check if user can update this store
             if (!$user->hasRole('superadmin') && 
                 !$user->hasRole('owner', $store->id) && 
-                $store->owner_id !== $user->id) {
+                $store->user_id !== $user->uuid) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized to update store'
@@ -153,7 +154,7 @@ class StoreController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'nama_toko' => 'required|string|min:3|max:50',
-                'sub_domain' => 'required|string|min:3|max:30|regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/|unique:stores,sub_domain,' . $store->id,
+                'subdomain' => 'required|string|min:3|max:30|regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/|unique:stores,subdomain,' . $store->id,
                 'no_hp_toko' => 'required|string|regex:/^(\+62|62|0)[0-9]{9,13}$/',
                 'kategori_toko' => 'required|in:fashion,elektronik,makanan,kesehatan,rumah_tangga,olahraga,buku_media,otomotif,mainan_hobi,jasa,lainnya',
                 'deskripsi_toko' => 'required|string|min:20|max:500',
@@ -169,7 +170,31 @@ class StoreController extends Controller
                 ], 422);
             }
 
-            $store->update($request->validated());
+            // Map frontend field names to database column names
+            $updateData = [];
+            if ($request->has('nama_toko')) {
+                $updateData['name'] = $request->nama_toko;
+            }
+            if ($request->has('subdomain')) {
+                $updateData['subdomain'] = $request->subdomain;
+            }
+            if ($request->has('no_hp_toko')) {
+                $updateData['phone'] = $request->no_hp_toko;
+            }
+            if ($request->has('kategori_toko')) {
+                $updateData['category'] = $request->kategori_toko;
+            }
+            if ($request->has('deskripsi_toko')) {
+                $updateData['description'] = $request->deskripsi_toko;
+            }
+            if ($request->has('alamat')) {
+                $updateData['alamat'] = $request->alamat;
+            }
+            if ($request->has('is_active')) {
+                $updateData['is_active'] = $request->is_active;
+            }
+            
+            $store->update($updateData);
             $store->load('owner');
 
             return response()->json([
@@ -238,7 +263,7 @@ class StoreController extends Controller
             // Check if user can view store users
             if (!$user->hasRole('superadmin') && 
                 !$user->hasRole('owner', $store->id) && 
-                $store->owner_id !== $user->id) {
+                $store->user_id !== $user->uuid) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized to view store users'
@@ -277,7 +302,7 @@ class StoreController extends Controller
             ], 422);
         }
 
-        $exists = Store::where('sub_domain', strtolower($request->subdomain))->exists();
+        $exists = Store::where('subdomain', strtolower($request->subdomain))->exists();
 
         return response()->json([
             'success' => true,

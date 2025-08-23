@@ -15,6 +15,14 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    
+    /**
+     * Use UUID for route model binding.
+     */
+    public function getRouteKeyName()
+    {
+        return 'uuid';
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -86,7 +94,7 @@ class User extends Authenticatable
      */
     public function ownedStores(): HasMany
     {
-        return $this->hasMany(Store::class, 'owner_id');
+        return $this->hasMany(Store::class, 'user_id', 'uuid');
     }
 
     /**

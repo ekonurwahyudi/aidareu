@@ -37,7 +37,7 @@ class SpatieUserSeeder extends Seeder
 
         // Create or find sample store first
         $sampleStore = Store::firstOrCreate(
-            ['sub_domain' => 'contoh-toko'],
+            ['subdomain' => 'contoh-toko'],
             [
                 'nama_toko' => 'Contoh Toko AiDareU',
                 'domain' => 'contoh-toko.aidaru.com',
@@ -46,7 +46,7 @@ class SpatieUserSeeder extends Seeder
                 'deskripsi_toko' => 'Contoh toko untuk testing sistem AiDareU dengan berbagai produk fashion berkualitas.',
                 'alamat' => 'Jl. Contoh No. 123, Jakarta',
                 'is_active' => true,
-                'owner_id' => 0, // Will be updated
+                'user_id' => 0, // Will be updated
             ]
         );
 
@@ -66,8 +66,8 @@ class SpatieUserSeeder extends Seeder
         );
         $storeOwner->syncRoles(['owner']);
 
-        // Update store owner_id
-        $sampleStore->update(['owner_id' => $storeOwner->id]);
+        // Update store user_id
+        $sampleStore->update(['user_id' => $storeOwner->id]);
 
         // Create Admin Toko
         $adminToko = User::firstOrCreate(
