@@ -4,6 +4,8 @@ Thumbs.db
 
 # Env files
 **/.env
+**/.claude
+**/.claude-images
 **/.env.local
 **/.env.*.local
 

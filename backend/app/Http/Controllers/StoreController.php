@@ -88,7 +88,7 @@ class StoreController extends Controller
             $user = Auth::user();
             
             // Check if user already has a store
-            $existingStore = Store::where('owner_id', $user->id)->first();
+            $existingStore = Store::where('user_id', $user->uuid)->first();
             if ($existingStore) {
                 return response()->json([
                     'message' => 'User already has a store'
@@ -108,23 +108,13 @@ class StoreController extends Controller
             // Create store
             $store = Store::create([
                 'uuid' => Str::uuid(),
-                'nama_toko' => $request->nama_toko,
-                'subdomain' => $subdomain, // Only use subdomain field
-                'no_hp_toko' => $request->no_hp_toko,
-                'kategori_toko' => $request->kategori_toko,
-                'deskripsi_toko' => $request->deskripsi_toko,
-                'owner_id' => $user->id,
-                'user_id' => $user->id,
-                'is_active' => true,
-                // Bank Info
-                'bank_account_owner' => $request->bank_account_owner ?? null,
-                'bank_account_number' => $request->bank_account_number ?? null,
-                'bank_name' => $request->bank_name ?? null,
-                // Social Media
-                'instagram_url' => $request->instagram_url ?? null,
-                'facebook_url' => $request->facebook_url ?? null,
-                'tiktok_url' => $request->tiktok_url ?? null,
-                'youtube_url' => $request->youtube_url ?? null
+                'name' => $request->nama_toko,
+                'subdomain' => $subdomain,
+                'phone' => $request->no_hp_toko,
+                'category' => $request->kategori_toko,
+                'description' => $request->deskripsi_toko,
+                'user_id' => $user->uuid,
+                'is_active' => true
             ]);
 
             DB::commit();
@@ -134,11 +124,11 @@ class StoreController extends Controller
                 'store' => [
                     'id' => $store->id,
                     'uuid' => $store->uuid,
-                    'nama_toko' => $store->nama_toko,
+                    'name' => $store->name,
                     'subdomain' => $store->subdomain,
-                    'no_hp_toko' => $store->no_hp_toko,
-                    'kategori_toko' => $store->kategori_toko,
-                    'deskripsi_toko' => $store->deskripsi_toko,
+                    'phone' => $store->phone,
+                    'category' => $store->category,
+                    'description' => $store->description,
                     'is_active' => $store->is_active,
                     'url' => 'https://' . $store->subdomain . '.aidareu.com'
                 ]
@@ -180,7 +170,7 @@ class StoreController extends Controller
             $user = Auth::user();
             
             // Check if user already has a store
-            $existingStore = Store::where('owner_id', $user->id)->first();
+            $existingStore = Store::where('user_id', $user->uuid)->first();
             if ($existingStore) {
                 return response()->json([
                     'message' => 'User already has a store'
@@ -189,7 +179,7 @@ class StoreController extends Controller
 
             // Double check subdomain availability
             $subdomain = strtolower($request->subdomain);
-            if (Store::where('sub_domain', $subdomain)->exists()) {
+            if (Store::where('subdomain', $subdomain)->exists()) {
                 return response()->json([
                     'message' => 'Subdomain is already taken'
                 ], 400);
@@ -201,13 +191,11 @@ class StoreController extends Controller
             $store = Store::create([
                 'uuid' => \Illuminate\Support\Str::uuid(),
                 'nama_toko' => $request->nama_toko,
-                'sub_domain' => $subdomain,
                 'subdomain' => $subdomain,
                 'no_hp_toko' => $request->no_hp_toko,
                 'kategori_toko' => $request->kategori_toko,
                 'deskripsi_toko' => $request->deskripsi_toko,
-                'owner_id' => $user->id,
-                'user_id' => $user->id,
+                'user_id' => $user->uuid,
                 'is_active' => true
             ]);
 
@@ -218,12 +206,12 @@ class StoreController extends Controller
                 'store' => [
                     'id' => $store->id,
                     'nama_toko' => $store->nama_toko,
-                    'subdomain' => $store->sub_domain,
+                    'subdomain' => $store->subdomain,
                     'no_hp_toko' => $store->no_hp_toko,
                     'kategori_toko' => $store->kategori_toko,
                     'deskripsi_toko' => $store->deskripsi_toko,
                     'is_active' => $store->is_active,
-                    'url' => 'https://' . $store->sub_domain . '.aidareu.com'
+                    'url' => 'https://' . $store->subdomain . '.aidareu.com'
                 ]
             ], 201);
 
@@ -245,17 +233,17 @@ class StoreController extends Controller
         try {
             $user = Auth::user();
             
-            $stores = Store::where('owner_id', $user->id)
+            $stores = Store::where('user_id', $user->uuid)
                           ->orderBy('created_at', 'desc')
                           ->get()
                           ->map(function ($store) {
                     return [
                         'id' => $store->id,
-                        'nama_toko' => $store->nama_toko,
+                        'name' => $store->name,
                         'subdomain' => $store->subdomain,
-                        'no_hp_toko' => $store->no_hp_toko,
-                        'kategori_toko' => $store->kategori_toko,
-                        'deskripsi_toko' => $store->deskripsi_toko,
+                        'phone' => $store->phone,
+                        'category' => $store->category,
+                        'description' => $store->description,
                         'is_active' => $store->is_active,
                         'url' => 'https://' . $store->subdomain . '.aidareu.com',
                         'created_at' => $store->created_at,
@@ -296,7 +284,7 @@ class StoreController extends Controller
             $user = Auth::user();
             
             $store = Store::where('uuid', $uuid)
-                ->where('user_id', $user->id)
+                ->where('user_id', $user->uuid)
                 ->with(['socialMedia', 'bankAccounts'])
                 ->first();
 
@@ -356,7 +344,7 @@ class StoreController extends Controller
             $user = Auth::user();
             
             $store = Store::where('uuid', $uuid)
-                ->where('user_id', $user->id)
+                ->where('user_id', $user->uuid)
                 ->first();
 
             if (!$store) {
@@ -415,7 +403,7 @@ class StoreController extends Controller
             $user = Auth::user();
             
             $store = Store::where('uuid', $uuid)
-                ->where('user_id', $user->id)
+                ->where('user_id', $user->uuid)
                 ->first();
 
             if (!$store) {
@@ -456,7 +444,6 @@ class StoreController extends Controller
                 'max:50',
                 'regex:/^[a-z0-9-]+$/',
                 'unique:stores,subdomain,NULL,id',
-                'unique:stores,sub_domain,NULL,id',
                 'not_regex:/^(www|api|admin|app|mail|ftp|blog|shop|store|dashboard)$/i'
             ],
             'phoneNumber' => 'required|string|min:10|max:15',
@@ -484,7 +471,7 @@ class StoreController extends Controller
             $user = Auth::user();
             
             // Check if user already has a store
-            $existingStore = Store::where('owner_id', $user->id)->first();
+            $existingStore = Store::where('user_id', $user->uuid)->first();
             if ($existingStore) {
                 return response()->json([
                     'message' => 'User already has a store',
@@ -498,7 +485,7 @@ class StoreController extends Controller
             // Log subdomain check
             Log::info('Checking subdomain availability: ' . $subdomain);
             
-            if (Store::where('sub_domain', $subdomain)->orWhere('subdomain', $subdomain)->exists()) {
+            if (Store::where('subdomain', $subdomain)->exists()) {
                 Log::info('Subdomain is already taken: ' . $subdomain);
                 return response()->json([
                     'message' => 'Subdomain is already taken'
@@ -516,11 +503,12 @@ class StoreController extends Controller
                 'phoneNumber' => $request->phoneNumber,
                 'category' => $request->category,
                 'description' => $request->description,
-                'user_id' => $user->id
+                'user_id' => $user->uuid
             ]);
             
             // Map frontend category to database enum value
             $categoryMap = [
+                'Produk Digital' => 'digital',
                 'Fashion & Pakaian' => 'fashion',
                 'Elektronik & Gadget' => 'elektronik',
                 'Makanan & Minuman' => 'makanan',
@@ -538,25 +526,38 @@ class StoreController extends Controller
             // Create store
             $store = Store::create([
                 'uuid' => Str::uuid(),
-                'nama_toko' => $request->storeName,
-                'sub_domain' => $subdomain,
-                'subdomain' => $subdomain, // Add both fields for compatibility
-                'no_hp_toko' => $request->phoneNumber,
-                'kategori_toko' => $kategoriToko,
-                'deskripsi_toko' => $request->description,
-                'owner_id' => $user->id,
-                'user_id' => $user->id,
-                'is_active' => true,
-                // Bank Info
-                'bank_account_owner' => $request->accountOwner,
-                'bank_account_number' => $request->accountNumber,
-                'bank_name' => $request->bankName,
-                // Social Media
-                'instagram_url' => $request->instagram,
-                'facebook_url' => $request->facebook,
-                'tiktok_url' => $request->tiktok,
-                'youtube_url' => $request->youtube
+                'name' => $request->storeName,
+                'subdomain' => $subdomain,
+                'phone' => $request->phoneNumber,
+                'category' => $kategoriToko,
+                'description' => $request->description,
+                'user_id' => $user->uuid,
+                'is_active' => true
             ]);
+
+            // Create bank account if provided
+            if ($request->accountOwner && $request->accountNumber && $request->bankName) {
+                $store->bankAccounts()->create([
+                    'uuid' => Str::uuid(),
+                    'account_holder_name' => $request->accountOwner,
+                    'account_number' => $request->accountNumber,
+                    'bank_name' => $request->bankName,
+                    'is_primary' => true,
+                    'is_active' => true
+                ]);
+            }
+
+            // Create social media entry if provided
+            if ($request->instagram || $request->facebook || $request->tiktok || $request->youtube) {
+                $store->socialMedia()->create([
+                    'uuid' => Str::uuid(),
+                    'instagram_url' => $request->instagram,
+                    'facebook_url' => $request->facebook,
+                    'tiktok_url' => $request->tiktok,
+                    'youtube_url' => $request->youtube,
+                    'is_active' => true
+                ]);
+            }
 
             DB::commit();
 
@@ -565,11 +566,11 @@ class StoreController extends Controller
                 'store' => [
                     'id' => $store->id,
                     'uuid' => $store->uuid,
-                    'nama_toko' => $store->nama_toko,
+                    'name' => $store->name,
                     'subdomain' => $store->subdomain,
-                    'no_hp_toko' => $store->no_hp_toko,
-                    'kategori_toko' => $store->kategori_toko,
-                    'deskripsi_toko' => $store->deskripsi_toko,
+                    'phone' => $store->phone,
+                    'category' => $store->category,
+                    'description' => $store->description,
                     'is_active' => $store->is_active,
                     'url' => 'https://' . $store->subdomain . '.aidareu.com'
                 ]
@@ -594,7 +595,7 @@ class StoreController extends Controller
         try {
             $user = Auth::user();
             
-            $store = Store::where('owner_id', $user->id)->first();
+            $store = Store::where('user_id', $user->uuid)->first();
             
             return response()->json([
                 'has_store' => !is_null($store),

@@ -12,6 +12,14 @@ use Illuminate\Support\Str;
 class Store extends Model
 {
     use HasFactory;
+    
+    /**
+     * Use UUID for route model binding.
+     */
+    public function getRouteKeyName()
+    {
+        return 'uuid';
+    }
 
     protected $fillable = [
         'uuid',
@@ -45,7 +53,6 @@ class Store extends Model
         // Legacy fields for backward compatibility
         'domain',
         'alamat',
-        'owner_id',
         'settings',
     ];
 
@@ -72,28 +79,21 @@ class Store extends Model
         });
     }
 
-    /**
-     * Get the route key for the model.
-     */
-    public function getRouteKeyName(): string
-    {
-        return 'uuid';
-    }
 
     /**
      * Get the user that owns the store.
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id', 'uuid');
     }
 
     /**
-     * Get the owner of the store (legacy).
+     * Get the owner of the store (legacy - maps to user relationship).
      */
     public function owner(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'owner_id');
+        return $this->belongsTo(User::class, 'user_id', 'uuid');
     }
 
     /**
@@ -119,7 +119,7 @@ class Store extends Model
      */
     public function socialMedia(): HasMany
     {
-        return $this->hasMany(SocialMedia::class);
+        return $this->hasMany(SocialMedia::class, 'store_uuid', 'uuid');
     }
 
     /**
@@ -127,7 +127,7 @@ class Store extends Model
      */
     public function bankAccounts(): HasMany
     {
-        return $this->hasMany(BankAccount::class);
+        return $this->hasMany(BankAccount::class, 'store_uuid', 'uuid');
     }
 
     /**
@@ -180,7 +180,7 @@ class Store extends Model
      */
     public function hasUser(User $user): bool
     {
-        return $this->owner_id === $user->id || 
+        return $this->user_id === $user->id || 
                $this->users()->where('users.id', $user->id)->exists();
     }
 
@@ -252,7 +252,7 @@ class Store extends Model
      */
     public function scopeByOwner($query, $ownerId)
     {
-        return $query->where('owner_id', $ownerId);
+        return $query->where('user_id', $ownerId);
     }
 
     /**

@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
-use App\Models\Role;
+use Spatie\Permission\Models\Role;
 use App\Models\Store;
 use Illuminate\Support\Facades\Hash;
 
@@ -53,14 +53,14 @@ class SuperAdminSeeder extends Seeder
 
         // Create Sample Store
         $store = Store::updateOrCreate(
-            ['sub_domain' => 'contoh-toko'],
+            ['subdomain' => 'contoh-toko'],
             [
-                'nama_toko' => 'Contoh Toko Online',
-                'no_hp_toko' => '08123456787',
-                'kategori_toko' => 'fashion',
-                'deskripsi_toko' => 'Ini adalah contoh toko online untuk testing sistem. Menjual berbagai produk fashion terkini dengan kualitas terbaik.',
+                'name' => 'Contoh Toko Online',
+                'phone' => '08123456787',
+                'category' => 'fashion',
+                'description' => 'Ini adalah contoh toko online untuk testing sistem. Menjual berbagai produk fashion terkini dengan kualitas terbaik.',
                 'alamat' => 'Jl. Contoh No. 123, Jakarta',
-                'owner_id' => $storeOwner->id,
+                'user_id' => $storeOwner->id,
                 'is_active' => true,
             ]
         );

@@ -18,7 +18,8 @@
       "Bash(timeout 30s npm run build)",
       "Bash(composer:*)",
       "Bash(npm install:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(timeout 30s npm run dev -- -p 3005)"
     ],
     "deny": [],
     "ask": [],

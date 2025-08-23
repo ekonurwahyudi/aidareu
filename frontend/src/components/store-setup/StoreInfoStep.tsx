@@ -43,6 +43,7 @@ const schema = yup.object().shape({
 })
 
 const categories = [
+  'Produk Digital',
   'Fashion & Pakaian',
   'Elektronik & Gadget', 
   'Makanan & Minuman',
