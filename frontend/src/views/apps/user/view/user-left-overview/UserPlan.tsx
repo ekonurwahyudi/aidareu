@@ -1,71 +1,68 @@
+'use client'
+
 // MUI Imports
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
-import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
-import LinearProgress from '@mui/material/LinearProgress'
-import Button from '@mui/material/Button'
+import MuiButton from '@mui/material/Button'
+import { styled } from '@mui/material/styles'
 import type { ButtonProps } from '@mui/material/Button'
 
 // Component Imports
 import UpgradePlan from '@components/dialogs/upgrade-plan'
 import OpenDialogOnElementClick from '@components/dialogs/OpenDialogOnElementClick'
+import Link from 'next/link'
+
+const Button = styled(MuiButton)<ButtonProps>(() => ({
+  backgroundColor: 'var(--mui-palette-common-white) !important',
+  color: 'var(--mui-palette-primary-main) !important'
+}))
 
 const UserPlan = () => {
   // Vars
   const buttonProps: ButtonProps = {
     variant: 'contained',
-    children: 'Upgrade Plan'
+    children: 'Coming Soon'
   }
 
   return (
-    <>
-      <Card className='border-2 border-primary rounded shadow-primarySm'>
-        <CardContent className='flex flex-col gap-6'>
-          <div className='flex justify-between'>
-            <Chip label='Standard' size='small' color='primary' variant='tonal' />
-            <div className='flex justify-center'>
-              <Typography variant='h5' component='sup' className='self-start' color='primary.main'>
-                $
+    // <Card>
+    //   <CardContent className='flex flex-col gap-6 bg-gradient-to-tr	from-primary to-[#9E95F5]'>
+    //     <div className='flex items-center justify-between'>
+    //       <div className='flex flex-col gap-4'>
+    //         <Typography variant='h5' color='common.white'>
+    //           Upgrade to premium
+    //         </Typography>
+    //         <Typography color='common.white'>Upgrade customer to premium membership to access pro features.</Typography>
+    //       </div>
+    //       <img src='/images/apps/ecommerce/3d-rocket.png' className='-mis-7 -mbe-7' />
+    //     </div>
+    //     <OpenDialogOnElementClick element={Button} elementProps={buttonProps} dialog={UpgradePlan} />
+    //   </CardContent>
+    // </Card>
+   
+      <Card>
+        <CardContent className='flex flex-col gap-6 bg-gradient-to-tr from-primary to-[#9E95F5]'>
+          <div className='flex items-center justify-between'>
+            <div className='flex flex-col gap-4'>
+              <Typography variant='h5' color='common.white'>
+                Upgrade to premium
               </Typography>
-              <Typography component='span' variant='h1' color='primary.main'>
-                99
-              </Typography>
-              <Typography component='sub' className='self-end' color='text.primary'>
-                /month
+              <Typography color='common.white'>
+                Upgrade customer to premium membership to access pro features.
               </Typography>
             </div>
+            <img src='/images/apps/ecommerce/3d-rocket.png' className='-mis-7 -mbe-7' />
           </div>
-          <div className='flex flex-col gap-2'>
-            <div className='flex items-center gap-2'>
-              <i className='tabler-circle-filled text-[10px] text-secondary' />
-              <Typography component='span'>10 Users</Typography>
-            </div>
-            <div className='flex items-center gap-2'>
-              <i className='tabler-circle-filled text-[10px] text-secondary' />
-              <Typography component='span'>Up to 10 GB storage</Typography>
-            </div>
-            <div className='flex items-center gap-2'>
-              <i className='tabler-circle-filled text-[10px] text-secondary' />
-              <Typography component='span'>Basic Support</Typography>
-            </div>
-          </div>
-          <div className='flex flex-col gap-1'>
-            <div className='flex items-center justify-between'>
-              <Typography className='font-medium' color='text.primary'>
-                Days
-              </Typography>
-              <Typography className='font-medium' color='text.primary'>
-                26 of 30 Days
-              </Typography>
-            </div>
-            <LinearProgress variant='determinate' value={65} />
-            <Typography variant='body2'>4 days remaining</Typography>
-          </div>
-          <OpenDialogOnElementClick element={Button} elementProps={buttonProps} dialog={UpgradePlan} />
+
+          <Link href="#" className='text-center'>
+            <Button variant="contained" color="primary">
+              Coming Soon
+            </Button>
+          </Link>
         </CardContent>
       </Card>
-    </>
+
   )
 }
 

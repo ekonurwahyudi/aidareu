@@ -11,6 +11,7 @@ import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import type { ButtonProps } from '@mui/material/Button'
+import Divider from '@mui/material/Divider'
 
 // Type Imports
 import type { ThemeColor } from '@core/types'
@@ -23,8 +24,6 @@ type DataType = {
   name: string
   imgSrc: string
   imgAlt: string
-  cardCvv: string
-  expiryDate: string
   cardNumber: string
   cardStatus?: string
   badgeColor?: ThemeColor
@@ -33,33 +32,13 @@ type DataType = {
 // Vars
 const data: DataType[] = [
   {
-    cardCvv: '587',
-    name: 'Tom McBride',
-    expiryDate: '12/24',
+    name: 'Eko Wahyudi',
     imgAlt: 'Mastercard',
     badgeColor: 'primary',
     cardStatus: 'Primary',
     cardNumber: '5577 0000 5577 9865',
-    imgSrc: '/images/logos/mastercard.png'
+    imgSrc: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Bank_Central_Asia.svg/1199px-Bank_Central_Asia.svg.png'
   },
-  {
-    cardCvv: '681',
-    imgAlt: 'Visa card',
-    expiryDate: '02/24',
-    name: 'Mildred Wagner',
-    cardNumber: '4532 3616 2070 5678',
-    imgSrc: '/images/logos/visa.png'
-  },
-  {
-    cardCvv: '3845',
-    expiryDate: '08/20',
-    badgeColor: 'error',
-    cardStatus: 'Expired',
-    name: 'Lester Jennings',
-    imgAlt: 'American Express card',
-    cardNumber: '3700 000000 00002',
-    imgSrc: '/images/logos/american-express.png'
-  }
 ]
 
 const PaymentMethod = () => {
@@ -77,7 +56,7 @@ const PaymentMethod = () => {
   // Vars
   const addButtonProps: ButtonProps = {
     variant: 'contained',
-    children: 'Add Card',
+    children: 'Tambah Rekening',
     size: 'small',
     color: 'primary',
     startIcon: <i className='tabler-plus' />,
@@ -95,9 +74,13 @@ const PaymentMethod = () => {
     <>
       <Card>
         <CardHeader
-          title='Payment Methods'
+           title="Domain Toko"
+        subheader="Pengaturan Toko agar lebih mudah dikenali."
+        sx={{ pb: 1 }}
+      
           action={<OpenDialogOnElementClick element={Button} elementProps={addButtonProps} dialog={BillingCard} />}
         />
+      <Divider className="mlb-4" />
         <CardContent className='flex flex-col gap-4'>
           {data.map((item, index) => (
             <div
@@ -130,7 +113,7 @@ const PaymentMethod = () => {
                     Delete
                   </Button>
                 </div>
-                <Typography variant='body2'>Card expires at {item.expiryDate}</Typography>
+
               </div>
             </div>
           ))}

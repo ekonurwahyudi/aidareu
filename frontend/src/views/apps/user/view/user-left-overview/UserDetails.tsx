@@ -18,17 +18,12 @@ import CustomAvatar from '@core/components/mui/Avatar'
 
 // Vars
 const userData = {
-  firstName: 'Seth',
-  lastName: 'Hallam',
-  userName: '@shallamb',
-  billingEmail: 'shallamb@gmail.com',
+  name: 'Eko Wahyudi',
+  no_hp: '08121555423',
+  email: 'eko@gmail.com',
   status: 'active',
-  role: 'Subscriber',
-  taxId: 'Tax-8894',
-  contact: '+1 (234) 464-0600',
-  language: ['English'],
-  country: 'France',
-  useAsBillingAddress: true
+  role: 'owner',
+  bergabung: '24 Agustus 2025'
 }
 
 const UserDetails = () => {
@@ -47,27 +42,27 @@ const UserDetails = () => {
             <div className='flex items-center justify-center flex-col gap-4'>
               <div className='flex flex-col items-center gap-4'>
                 <CustomAvatar alt='user-profile' src='/images/avatars/1.png' variant='rounded' size={120} />
-                <Typography variant='h5'>{`${userData.firstName} ${userData.lastName}`}</Typography>
+                <Typography variant='h5'>{`${userData.name}`}</Typography>
               </div>
-              <Chip label='Author' color='secondary' size='small' variant='tonal' />
+              <Chip label='Owner' color='warning' size='small' variant='tonal' />
             </div>
             <div className='flex items-center justify-around flex-wrap gap-4'>
               <div className='flex items-center gap-4'>
                 <CustomAvatar variant='rounded' color='primary' skin='light'>
-                  <i className='tabler-checkbox' />
+                  <i className='tabler-box' />
                 </CustomAvatar>
                 <div>
-                  <Typography variant='h5'>1.23k</Typography>
-                  <Typography>Task Done</Typography>
+                  <Typography variant='h5' className='text-center'>10</Typography>
+                  <Typography>Product</Typography>
                 </div>
               </div>
               <div className='flex items-center gap-4'>
-                <CustomAvatar variant='rounded' color='primary' skin='light'>
-                  <i className='tabler-briefcase' />
+                <CustomAvatar variant='rounded' color='success' skin='light'>
+                  <i className='tabler-cash-register' />
                 </CustomAvatar>
                 <div>
-                  <Typography variant='h5'>568</Typography>
-                  <Typography>Project Done</Typography>
+                  <Typography variant='h5' className='text-center'>Rp. 4.762.200</Typography>
+                  <Typography>Billing Revenue</Typography>
                 </div>
               </div>
             </div>
@@ -78,64 +73,52 @@ const UserDetails = () => {
             <div className='flex flex-col gap-2'>
               <div className='flex items-center flex-wrap gap-x-1.5'>
                 <Typography className='font-medium' color='text.primary'>
-                  Username:
+                  Nama Lengkap:
                 </Typography>
-                <Typography>{userData.userName}</Typography>
+                <Typography>{userData.name}</Typography>
               </div>
               <div className='flex items-center flex-wrap gap-x-1.5'>
                 <Typography className='font-medium' color='text.primary'>
-                  Billing Email:
+                  No Hp:
                 </Typography>
-                <Typography>{userData.billingEmail}</Typography>
+                <Typography>{userData.no_hp}</Typography>
               </div>
               <div className='flex items-center flex-wrap gap-x-1.5'>
                 <Typography className='font-medium' color='text.primary'>
-                  Status
+                  Email:
                 </Typography>
-                <Typography color='text.primary'>{userData.status}</Typography>
+                <Typography color='text.primary'>{userData.email}</Typography>
               </div>
+              <div className='flex items-center gap-1'>
+              <Typography color='text.primary' className='font-medium'>
+                Status:
+              </Typography>
+              <Chip label='Active' variant='tonal' color='success' size='small' />
+            </div>
               <div className='flex items-center flex-wrap gap-x-1.5'>
                 <Typography className='font-medium' color='text.primary'>
-                  Role:
+                  Bergabung Sejak:
                 </Typography>
-                <Typography color='text.primary'>{userData.role}</Typography>
-              </div>
-              <div className='flex items-center flex-wrap gap-x-1.5'>
-                <Typography className='font-medium' color='text.primary'>
-                  Tax ID:
-                </Typography>
-                <Typography color='text.primary'>{userData.taxId}</Typography>
-              </div>
-              <div className='flex items-center flex-wrap gap-x-1.5'>
-                <Typography className='font-medium' color='text.primary'>
-                  Contact:
-                </Typography>
-                <Typography color='text.primary'>{userData.contact}</Typography>
-              </div>
-              <div className='flex items-center flex-wrap gap-x-1.5'>
-                <Typography className='font-medium' color='text.primary'>
-                  Language:
-                </Typography>
-                <Typography color='text.primary'>{userData.language}</Typography>
-              </div>
-              <div className='flex items-center flex-wrap gap-x-1.5'>
-                <Typography className='font-medium' color='text.primary'>
-                  Country:
-                </Typography>
-                <Typography color='text.primary'>{userData.country}</Typography>
+                <Typography color='text.primary'>{userData.bergabung}</Typography>
               </div>
             </div>
           </div>
           <div className='flex gap-4 justify-center'>
             <OpenDialogOnElementClick
               element={Button}
-              elementProps={buttonProps('Edit', 'primary', 'contained')}
+              elementProps={{
+                ...buttonProps('Edit', 'primary', 'tonal'),
+                startIcon: <i className='tabler-user-edit' />
+              }}
               dialog={EditUserInfo}
               dialogProps={{ data: userData }}
             />
-            <OpenDialogOnElementClick
+            <OpenDialogOnElementClick 
               element={Button}
-              elementProps={buttonProps('Suspend', 'error', 'tonal')}
+              elementProps={{
+                ...buttonProps('Ganti Password', 'warning', 'tonal'),
+                startIcon: <i className='tabler-password-fingerprint' />
+              }}
               dialog={ConfirmationDialog}
               dialogProps={{ type: 'suspend-account' }}
             />
