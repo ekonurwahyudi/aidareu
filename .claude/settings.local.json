@@ -24,7 +24,8 @@
     "deny": [],
     "ask": [],
     "additionalDirectories": [
-      "D:\\d\\AiDareU"
+      "D:\\d\\AiDareU",
+      "D:\\mnt\\d\\AiDareU"
     ]
   }
 }

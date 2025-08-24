@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -24,9 +23,9 @@ class AuthController extends Controller
         
         $validator = Validator::make($request->all(), [
             'nama_lengkap' => 'required|string|min:2|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,NULL,id,deleted_at,NULL',
-            'no_hp' => 'required|string|regex:/^(\+62|62|0)[0-9]{9,13}$/',
-            'password' => 'required|string|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/',
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'no_hp' => 'required|string|min:10|max:15',
+            'password' => 'required|string|min:8',
             'alasan_gabung' => 'required|string|min:10|max:1000',
             'info_dari' => 'required|in:sosial_media,grup_komunitas,iklan,google,teman_saudara,lainnya'
         ], [
@@ -55,6 +54,7 @@ class AuthController extends Controller
                 'alasan_gabung' => $request->alasan_gabung,
                 'info_dari' => $request->info_dari,
                 'is_active' => true,
+                'paket' => 'Freemium',
             ]);
 
             // Generate and send verification code
@@ -111,10 +111,7 @@ class AuthController extends Controller
             
             if ($user->verifyEmailWithCode($request->code)) {
                 // Assign default role (owner for new registrations)
-                $ownerRole = Role::where('name', 'owner')->first();
-                if ($ownerRole) {
-                    $user->assignRole($ownerRole);
-                }
+                $user->assignRole('owner');
 
                 // Generate token
                 $token = $user->createToken('auth_token')->plainTextToken;

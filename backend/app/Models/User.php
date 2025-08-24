@@ -39,6 +39,7 @@ class User extends Authenticatable
         'info_dari',
         'avatar',
         'is_active',
+        'paket',
         'email_verification_code',
         'email_verification_code_expires_at',
         'uuid',

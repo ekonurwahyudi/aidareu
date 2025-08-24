@@ -52,11 +52,14 @@ export const SettingsContext = createContext<SettingsContextProps | null>(null)
 // Settings Provider
 export const SettingsProvider = (props: Props) => {
   // Initial Settings
+  const normalizeMode = (mode?: Mode): Mode => (mode === 'system' ? 'light' : mode || 'light')
+  const normalizeLayout = (layout?: Layout): Layout => 'horizontal'
+
   const initialSettings: Settings = {
-    mode: themeConfig.mode,
+    mode: normalizeMode(themeConfig.mode),
     skin: themeConfig.skin,
     semiDark: themeConfig.semiDark,
-    layout: themeConfig.layout,
+    layout: normalizeLayout(themeConfig.layout),
     navbarContentWidth: themeConfig.navbar.contentWidth,
     contentWidth: themeConfig.contentWidth,
     footerContentWidth: themeConfig.footer.contentWidth,
@@ -65,7 +68,7 @@ export const SettingsProvider = (props: Props) => {
 
   const updatedInitialSettings = {
     ...initialSettings,
-    mode: props.mode || themeConfig.mode
+    mode: normalizeMode(props.mode || themeConfig.mode)
   }
 
   // Cookies
@@ -76,16 +79,21 @@ export const SettingsProvider = (props: Props) => {
 
   // State
   const [_settingsState, _updateSettingsState] = useState<Settings>(
-    JSON.stringify(settingsCookie) !== '{}' ? settingsCookie : updatedInitialSettings
+    JSON.stringify(settingsCookie) !== '{}'
+      ? { ...settingsCookie, mode: normalizeMode(settingsCookie.mode), layout: normalizeLayout(settingsCookie.layout as Layout) }
+      : updatedInitialSettings
   )
 
   const updateSettings = (settings: Partial<Settings>, options?: UpdateSettingsOptions) => {
     const { updateCookie = true } = options || {}
 
     _updateSettingsState(prev => {
+      // Normalisasi agar tidak pernah menyimpan 'system' & paksa layout horizontal
       const newSettings = { ...prev, ...settings }
+      newSettings.mode = normalizeMode(newSettings.mode as Mode)
+      newSettings.layout = normalizeLayout(newSettings.layout as Layout)
 
-      // Update cookie if needed
+      // Update cookie jika diperlukan
       if (updateCookie) updateSettingsCookie(newSettings)
 
       return newSettings
