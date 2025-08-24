@@ -289,19 +289,7 @@ const Customizer = ({ breakpoint = 'lg', dir = 'ltr', disableDirection = false }
                       Dark
                     </p>
                   </div>
-                  <div className='flex flex-col items-start gap-0.5'>
-                    <div
-                      className={classnames(styles.itemWrapper, styles.modeWrapper, {
-                        [styles.active]: settings.mode === 'system'
-                      })}
-                      onClick={() => handleChange('mode', 'system')}
-                    >
-                      <i className='tabler-device-laptop text-[30px]' />
-                    </div>
-                    <p className={styles.itemLabel} onClick={() => handleChange('mode', 'system')}>
-                      System
-                    </p>
-                  </div>
+                  {/* Opsi System dihapus agar tidak dapat dipilih */}
                 </div>
               </div>
               <div className='flex flex-col gap-2'>
@@ -375,15 +363,18 @@ const Customizer = ({ breakpoint = 'lg', dir = 'ltr', disableDirection = false }
                     </p>
                   </div>
                   <div className='flex flex-col items-start gap-0.5'>
-                    <div
-                      className={classnames(styles.itemWrapper, { [styles.active]: settings.layout === 'horizontal' })}
-                      onClick={() => handleChange('layout', 'horizontal')}
-                    >
-                      <LayoutHorizontal />
+                    {/* Hanya tampilkan Horizontal */}
+                    <div className='flex flex-col items-start gap-0.5'>
+                      <div
+                        className={classnames(styles.itemWrapper, { [styles.active]: settings.layout === 'horizontal' })}
+                        onClick={() => handleChange('layout', 'horizontal')}
+                      >
+                        <LayoutHorizontal />
+                      </div>
+                      <p className={styles.itemLabel} onClick={() => handleChange('layout', 'horizontal')}>
+                        Horizontal
+                      </p>
                     </div>
-                    <p className={styles.itemLabel} onClick={() => handleChange('layout', 'horizontal')}>
-                      Horizontal
-                    </p>
                   </div>
                 </div>
               </div>
