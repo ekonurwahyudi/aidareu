@@ -5,22 +5,22 @@ import Grid from '@mui/material/Grid2'
 import type { PricingPlanType } from '@/types/pages/pricingTypes'
 
 // Component Imports
-import CurrentPlan from './CurrentPlan'
-import PaymentMethod from './PaymentMethod'
-import BillingAddress from './BillingAddress'
+// import CurrentPlan from './CurrentPlan'
+import RekeningBank from './RekeningBank'
+// import BillingAddress from './BillingAddress'
 
 const BillingPlans = ({ data }: { data?: PricingPlanType[] }) => {
   return (
     <Grid container spacing={6}>
-      <Grid size={{ xs: 12 }}>
+      {/* <Grid size={{ xs: 12 }}>
         <CurrentPlan data={data} />
-      </Grid>
+      </Grid> */}
       <Grid size={{ xs: 12 }}>
-        <PaymentMethod />
+        <RekeningBank />
       </Grid>
-      <Grid size={{ xs: 12 }}>
+      {/* <Grid size={{ xs: 12 }}>
         <BillingAddress />
-      </Grid>
+      </Grid> */}
     </Grid>
   )
 }

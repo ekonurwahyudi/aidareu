@@ -1,7 +1,7 @@
 'use client'
 
 // Next Imports
-import Link from 'next/link'
+import { useState } from 'react'
 
 // MUI Imports
 import Card from '@mui/material/Card'
@@ -9,147 +9,98 @@ import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid2'
 import Typography from '@mui/material/Typography'
-import Switch from '@mui/material/Switch'
-
-// Third-party Imports
-import classnames from 'classnames'
+import Button from '@mui/material/Button'
+import Box from '@mui/material/Box'
 
 // Component Imports
-import CustomIconButton from '@core/components/mui/IconButton'
+import CustomTextField from '@core/components/mui/TextField'
 
-type ConnectedAccountsType = {
-  title: string
-  logo: string
-  checked: boolean
-  subtitle: string
-}
-
-type SocialAccountsType = {
-  title: string
-  logo: string
-  username?: string
-  isConnected: boolean
-  href?: string
-}
-
-// Vars
-const connectedAccountsArr: ConnectedAccountsType[] = [
+// Vars: mapping platform ke icon + warna
+const socialAccountsArr = [
   {
-    checked: true,
-    title: 'Google',
-    logo: '/images/logos/google.png',
-    subtitle: 'Calendar and Contacts'
+    title: 'Instagram',
+    icon: 'tabler-brand-instagram',
+    color: '#E4405F', // Instagram pink
+    placeholder: 'https://instagram.com/username'
   },
-  {
-    checked: false,
-    title: 'Slack',
-    logo: '/images/logos/slack.png',
-    subtitle: 'Communications'
-  },
-  {
-    checked: true,
-    title: 'Github',
-    logo: '/images/logos/github.png',
-    subtitle: 'Manage your Git repositories'
-  },
-  {
-    checked: true,
-    title: 'Mailchimp',
-    subtitle: 'Email marketing service',
-    logo: '/images/logos/mailchimp.png'
-  },
-  {
-    title: 'Asana',
-    checked: false,
-    subtitle: 'Task Communication',
-    logo: '/images/logos/asana.png'
-  }
-]
-
-const socialAccountsArr: SocialAccountsType[] = [
   {
     title: 'Facebook',
-    isConnected: false,
-    logo: '/images/logos/facebook.png'
+    icon: 'tabler-brand-facebook',
+    color: '#1877F2', // Facebook blue
+    placeholder: 'https://facebook.com/username'
   },
   {
-    title: 'Twitter',
-    isConnected: true,
-    username: '@Pixinvent',
-    logo: '/images/logos/twitter.png',
-    href: 'https://twitter.com/pixinvents'
+    title: 'TikTok',
+    icon: 'tabler-brand-tiktok',
+    color: '#000000', // TikTok black
+    placeholder: 'https://tiktok.com/@username'
   },
   {
-    title: 'Linkedin',
-    isConnected: true,
-    username: '@Pixinvent',
-    logo: '/images/logos/linkedin.png',
-    href: 'https://www.linkedin.com/company/pixinvent'
-  },
-  {
-    title: 'Dribbble',
-    isConnected: false,
-    logo: '/images/logos/dribbble.png'
-  },
-  {
-    title: 'Behance',
-    isConnected: false,
-    logo: '/images/logos/behance.png'
+    title: 'YouTube',
+    icon: 'tabler-brand-youtube',
+    color: '#FF0000', // YouTube red
+    placeholder: 'https://youtube.com/@channel'
   }
 ]
 
 const ConnectionsTab = () => {
+  // State untuk URL tiap akun
+  const [urls, setUrls] = useState<Record<string, string>>({})
+
+  const handleChange = (platform: string, value: string) => {
+    setUrls({ ...urls, [platform]: value })
+  }
+
+  const handleSubmit = (platform: string) => {
+    console.log(`Submit ${platform}:`, urls[platform] || '')
+    // TODO: panggil API untuk simpan url akun
+  }
+
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12 }}>
         <Card>
           <CardHeader
-            title='Connected Accounts'
-            subheader='Display content from your connected accounts on your site'
+            title="Social Accounts"
+            subheader="Tambahkan URL akun sosial media Anda"
           />
-          <CardContent className='flex flex-col gap-4'>
-            {connectedAccountsArr.map((item, index) => (
-              <div key={index} className='flex items-center justify-between gap-4'>
-                <div className='flex flex-grow items-center gap-4'>
-                  <img height={36} width={36} src={item.logo} alt={item.title} />
-                  <div className='flex flex-col flex-grow gap-0.5'>
-                    <Typography className='font-medium' color='text.primary'>
-                      {item.title}
-                    </Typography>
-                    <Typography>{item.subtitle}</Typography>
-                  </div>
-                </div>
-                <Switch defaultChecked={item.checked} />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </Grid>
-      <Grid size={{ xs: 12 }}>
-        <Card>
-          <CardHeader title='Social Accounts' subheader='Display content from social accounts on your site' />
-          <CardContent className='flex flex-col gap-4'>
+          <CardContent className="flex flex-col gap-4">
             {socialAccountsArr.map((item, index) => (
-              <div key={index} className='flex items-center justify-between gap-4'>
-                <div className='flex flex-grow items-center gap-4'>
-                  <img height={36} width={36} src={item.logo} alt={item.title} />
-                  <div className='flex flex-col flex-grow gap-0.5'>
-                    <Typography className='font-medium' color='text.primary'>
-                      {item.title}
-                    </Typography>
-                    {item.isConnected ? (
-                      <Typography color='primary.main' component={Link} href={item.href || '/'} target='_blank'>
-                        {item.username}
-                      </Typography>
-                    ) : (
-                      <Typography>Not Connected</Typography>
-                    )}
-                  </div>
+              <Box
+                key={index}
+                className="flex items-center justify-between gap-4"
+              >
+                {/* Icon + nama */}
+                <div className="flex items-center gap-3 w-1/4">
+                  <i
+                    className={`${item.icon}`}
+                    style={{ fontSize: 28, color: item.color }}
+                  />
+                  <Typography className="font-medium" color="text.primary">
+                    {item.title}
+                  </Typography>
                 </div>
-                <CustomIconButton variant='tonal' color={item.isConnected ? 'error' : 'secondary'}>
-                  <i className={classnames(item.isConnected ? 'tabler-trash text-error' : 'tabler-link')} />
-                </CustomIconButton>
-              </div>
+
+                {/* Input URL */}
+                <div className="flex-grow">
+                  <CustomTextField
+                    fullWidth
+                    type="url"
+                    placeholder={item.placeholder}
+                    value={urls[item.title] || ''}
+                    onChange={(e) => handleChange(item.title, e.target.value)}
+                  />
+                </div>
+
+                {/* Tombol Submit */}
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={() => handleSubmit(item.title)}
+                >
+                  Submit
+                </Button>
+              </Box>
             ))}
           </CardContent>
         </Card>
