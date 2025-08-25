@@ -19,13 +19,16 @@
       "Bash(composer:*)",
       "Bash(npm install:*)",
       "Bash(taskkill:*)",
-      "Bash(timeout 30s npm run dev -- -p 3005)"
+      "Bash(timeout 30s npm run dev -- -p 3005)",
+      "Bash(mv:*)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": [],
     "additionalDirectories": [
       "D:\\d\\AiDareU",
-      "D:\\mnt\\d\\AiDareU"
+      "D:\\mnt\\d\\AiDareU",
+      "D:\\d\\aidareu"
     ]
   }
 }

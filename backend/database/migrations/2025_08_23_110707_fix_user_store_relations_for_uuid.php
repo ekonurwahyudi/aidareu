@@ -12,14 +12,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // First, update existing data to use UUID references
-        DB::statement("
-            UPDATE stores 
-            SET user_id = users.uuid::uuid 
-            FROM users 
-            WHERE stores.user_id::text = users.id::text
-        ");
-        
         Schema::table('stores', function (Blueprint $table) {
             // Drop existing foreign key constraint if it exists
             try {
@@ -27,11 +19,32 @@ return new class extends Migration
             } catch (Exception $e) {
                 // Foreign key might not exist, continue
             }
+        });
+        
+        // Add a temporary UUID column
+        Schema::table('stores', function (Blueprint $table) {
+            $table->uuid('user_uuid_temp')->nullable();
+        });
+        
+        // Update the temporary column with UUID values from users table
+        DB::statement("
+            UPDATE stores 
+            SET user_uuid_temp = users.uuid 
+            FROM users 
+            WHERE stores.user_id = users.id
+        ");
+        
+        Schema::table('stores', function (Blueprint $table) {
+            // Drop the old user_id column
+            $table->dropColumn('user_id');
             
-            // Change user_id to UUID type to match users.uuid (if not already UUID)
-            // Skip this if already UUID type
-            
-            // Recreate the foreign key constraint to reference users.uuid instead of users.id
+            // Rename the temporary column to user_id
+            $table->renameColumn('user_uuid_temp', 'user_id');
+        });
+        
+        Schema::table('stores', function (Blueprint $table) {
+            // Make user_id not nullable and add foreign key
+            $table->uuid('user_id')->nullable(false)->change();
             $table->foreign('user_id')->references('uuid')->on('users')->onDelete('cascade');
         });
     }

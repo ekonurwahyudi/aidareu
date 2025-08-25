@@ -1,5 +1,5 @@
 // Component Imports
-import EcommerceDashboard from '../../apps/ecommerce/dashboard/page'
+import EcommerceDashboard from '../../apps/tokoku/dashboard/page'
 import StoreSetupChecker from '@components/store-setup/StoreSetupChecker'
 
 const DashboardECommerce = () => {

@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Permission;
+use Spatie\Permission\Models\Permission;
 
 class PermissionSeeder extends Seeder
 {
@@ -65,8 +65,8 @@ class PermissionSeeder extends Seeder
 
         foreach ($permissions as $permission) {
             Permission::updateOrCreate(
-                ['name' => $permission['name']],
-                array_merge($permission, ['is_system' => true])
+                ['name' => $permission['name'], 'guard_name' => 'web'],
+                array_merge($permission, ['guard_name' => 'web', 'is_system' => true])
             );
         }
     }
