@@ -58,7 +58,7 @@ const StyledHeader = styled.header<StyledHeaderProps>`
     }
 
     &.${verticalLayoutClasses.headerDetached}.scrolled .${verticalLayoutClasses.navbar} {
-      box-shadow: var(--mui-customShadows-sm);
+      box-shadow: 0px 2px 8px rgba(58, 53, 65, 0.04);
 
       [data-skin='bordered'] & {
         box-shadow: none;
@@ -114,7 +114,7 @@ const StyledHeader = styled.header<StyledHeaderProps>`
     }
 
     &.${verticalLayoutClasses.headerAttached}.scrolled {
-      box-shadow: var(--mui-customShadows-sm);
+      box-shadow: 0px 2px 8px rgba(58, 53, 65, 0.04);
 
       [data-skin='bordered'] & {
         box-shadow: none;
@@ -145,7 +145,7 @@ const StyledHeader = styled.header<StyledHeaderProps>`
       background-color: var(--mui-palette-background-paper);
       border-radius: var(--border-radius);
       padding-inline: 16px;
-      box-shadow: var(--mui-customShadows-sm);
+      box-shadow: 0px 2px 8px rgba(58, 53, 65, 0.04);
 
       [data-skin='bordered'] & {
         box-shadow: none;
