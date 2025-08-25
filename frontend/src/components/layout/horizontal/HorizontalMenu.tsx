@@ -151,7 +151,7 @@ const HorizontalMenu = () => {
             </MenuItem>
           </SubMenu>
           
-          <SubMenu label="Tokoku"
+          <SubMenu label="Tokoku" 
           icon={
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
               <path opacity="0.3" d="M18 10V20C18 20.6 18.4 21 19 21C19.6 21 20 20.6 20 20V10H18Z" fill="currentColor"/>
@@ -168,8 +168,8 @@ const HorizontalMenu = () => {
             <MenuItem href="#" icon={<i className='tabler-package' />}>
               My Order
             </MenuItem>
-            <MenuItem href="#" icon={<i className='tabler-plus' />}>
-              Add Product
+            <MenuItem href="/apps/tokoku/products" activeUrl='apps/tokoku/' exactMatch={false}  icon={<i className='tabler-augmented-reality' />}>
+              My Product
             </MenuItem>
             <MenuItem href="#" icon={<i className='tabler-users' />}>
               List Customer
