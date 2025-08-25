@@ -53,14 +53,16 @@ class SuperAdminSeeder extends Seeder
 
         // Create Sample Store
         $store = Store::updateOrCreate(
-            ['subdomain' => 'contoh-toko'],
+            ['sub_domain' => 'contoh-toko'],
             [
-                'name' => 'Contoh Toko Online',
-                'phone' => '08123456787',
-                'category' => 'fashion',
-                'description' => 'Ini adalah contoh toko online untuk testing sistem. Menjual berbagai produk fashion terkini dengan kualitas terbaik.',
+                'nama_toko' => 'Contoh Toko Online',
+                'sub_domain' => 'contoh-toko',
+                'no_hp_toko' => '08123456787',
+                'kategori_toko' => 'fashion',
+                'deskripsi_toko' => 'Ini adalah contoh toko online untuk testing sistem. Menjual berbagai produk fashion terkini dengan kualitas terbaik.',
                 'alamat' => 'Jl. Contoh No. 123, Jakarta',
-                'user_id' => $storeOwner->id,
+                'owner_id' => $storeOwner->id,
+                'user_id' => $storeOwner->uuid,
                 'is_active' => true,
             ]
         );

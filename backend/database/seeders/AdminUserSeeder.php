@@ -12,7 +12,16 @@ class AdminUserSeeder extends Seeder
     {
         User::updateOrCreate(
             ['email' => 'admin@vuexy.com'],
-            ['name' => 'Admin', 'password' => Hash::make('admin')]
+            [
+                'name' => 'Admin',
+                'nama_lengkap' => 'Administrator Vuexy',
+                'no_hp' => '08123456780',
+                'password' => Hash::make('admin'),
+                'email_verified_at' => now(),
+                'alasan_gabung' => 'Admin system',
+                'info_dari' => 'lainnya',
+                'is_active' => true,
+            ]
         );
     }
 }

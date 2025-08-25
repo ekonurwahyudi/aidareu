@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -22,8 +23,13 @@ return new class extends Migration
             $table->timestamp('verified_at')->nullable()->after('theme_settings');
         });
 
-        // Generate UUIDs for existing records
-        DB::statement('UPDATE stores SET uuid = gen_random_uuid() WHERE uuid IS NULL');
+        // Generate UUIDs for existing records using Laravel's UUID generator
+        $stores = DB::table('stores')->whereNull('uuid')->get();
+        foreach ($stores as $store) {
+            DB::table('stores')
+                ->where('id', $store->id)
+                ->update(['uuid' => Str::uuid()]);
+        }
         
         // Copy owner_id to user_id for existing records
         DB::statement('UPDATE stores SET user_id = owner_id WHERE user_id IS NULL');

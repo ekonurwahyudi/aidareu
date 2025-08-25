@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Role;
-use App\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class RoleSeeder extends Seeder
 {
@@ -15,8 +15,9 @@ class RoleSeeder extends Seeder
     {
         // Create System Roles
         $superadmin = Role::updateOrCreate(
-            ['name' => 'superadmin'],
+            ['name' => 'superadmin', 'guard_name' => 'web'],
             [
+                'guard_name' => 'web',
                 'display_name' => 'Super Administrator',
                 'description' => 'Full system access with all permissions',
                 'level' => 100,
@@ -25,8 +26,9 @@ class RoleSeeder extends Seeder
         );
 
         $owner = Role::updateOrCreate(
-            ['name' => 'owner'],
+            ['name' => 'owner', 'guard_name' => 'web'],
             [
+                'guard_name' => 'web',
                 'display_name' => 'Store Owner',
                 'description' => 'Store owner with management privileges',
                 'level' => 80,
@@ -35,8 +37,9 @@ class RoleSeeder extends Seeder
         );
 
         $adminToko = Role::updateOrCreate(
-            ['name' => 'admin_toko'],
+            ['name' => 'admin_toko', 'guard_name' => 'web'],
             [
+                'guard_name' => 'web',
                 'display_name' => 'Admin Toko',
                 'description' => 'Store admin with content management access',
                 'level' => 60,
@@ -52,7 +55,7 @@ class RoleSeeder extends Seeder
     {
         // Superadmin gets all permissions
         $allPermissions = Permission::all();
-        $superadmin->permissions()->sync($allPermissions->pluck('id'));
+        $superadmin->syncPermissions($allPermissions);
 
         // Owner permissions (store management)
         $ownerPermissions = Permission::whereIn('name', [
@@ -97,7 +100,7 @@ class RoleSeeder extends Seeder
             'content.delete',
         ])->get();
 
-        $owner->permissions()->sync($ownerPermissions->pluck('id'));
+        $owner->syncPermissions($ownerPermissions);
 
         // Admin Toko permissions (content management only)
         $adminTokoPermissions = Permission::whereIn('name', [
@@ -120,6 +123,6 @@ class RoleSeeder extends Seeder
             'settings.read',
         ])->get();
 
-        $adminToko->permissions()->sync($adminTokoPermissions->pluck('id'));
+        $adminToko->syncPermissions($adminTokoPermissions);
     }
 }
