@@ -103,10 +103,10 @@ const TambahKaryawan = () => {
               />
             </Grid>
 
-            {/* Tombol Submit */}
+            {/* Tombol Tambah */}
             <Grid size={{ xs: 12 }} className="flex gap-4 justify-end">
               <Button variant="contained" type="submit">
-                Submit
+                Tambah Karyawan
               </Button>
             </Grid>
           </Grid>

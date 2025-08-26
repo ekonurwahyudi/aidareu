@@ -255,7 +255,7 @@ const AddUserDrawer = (props: Props) => {
           />
           <div className='flex items-center gap-4'>
             <Button variant='contained' type='submit'>
-              Submit
+              Add User
             </Button>
             <Button variant='tonal' color='error' type='reset' onClick={() => handleReset()}>
               Cancel

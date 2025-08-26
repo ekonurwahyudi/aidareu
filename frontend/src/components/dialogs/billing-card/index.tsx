@@ -20,13 +20,18 @@ import Box from '@mui/material/Box'
 import DialogCloseButton from '../DialogCloseButton'
 import CustomTextField from '@core/components/mui/TextField'
 
+// Third-party Imports
+import { toast } from 'react-toastify'
+
 // Types
 import type { ThemeColor } from '@core/types'
 
 type BillingCardData = {
+  uuid?: string
   cardNumber?: string
   name?: string
   bank?: string
+  is_primary?: boolean
   badgeColor?: ThemeColor
 }
 
@@ -34,12 +39,14 @@ type BillingCardProps = {
   open: boolean
   setOpen: (open: boolean) => void
   data?: BillingCardData
+  onSuccess?: () => void
 }
 
 const initialCardData: BillingCardData = {
   cardNumber: '',
   name: '',
   bank: '',
+  is_primary: false,
   badgeColor: 'primary'
 }
 
@@ -51,12 +58,63 @@ const bankOptions = [
   { name: 'Mandiri', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Bank_Mandiri_logo_2016.svg/320px-Bank_Mandiri_logo_2016.svg.png' }
 ]
 
-const BillingCard = ({ open, setOpen, data }: BillingCardProps) => {
+const BillingCard = ({ open, setOpen, data, onSuccess }: BillingCardProps) => {
   const [cardData, setCardData] = useState(initialCardData)
+  const [loading, setLoading] = useState(false)
 
   const handleClose = () => {
     setOpen(false)
     setCardData(initialCardData)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!cardData.cardNumber || !cardData.name || !cardData.bank) {
+      toast.error('Mohon lengkapi semua field')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const payload = {
+        account_number: cardData.cardNumber,
+        account_name: cardData.name,
+        bank_name: cardData.bank,
+        is_primary: cardData.is_primary || false
+      }
+
+      const url = data?.uuid 
+        ? `/api/bank-accounts/${data.uuid}` 
+        : '/api/bank-accounts'
+      
+      const method = data?.uuid ? 'PUT' : 'POST'
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      })
+
+      const result = await response.json()
+      
+      if (response.ok && result.success) {
+        toast.success(data?.uuid ? 'Rekening berhasil diperbarui' : 'Rekening berhasil ditambahkan')
+        handleClose()
+        onSuccess?.()
+      } else {
+        toast.error(result.message || 'Terjadi kesalahan')
+      }
+    } catch (error) {
+      console.error('Error saving bank account:', error)
+      toast.error('Terjadi kesalahan saat menyimpan')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -80,16 +138,17 @@ const BillingCard = ({ open, setOpen, data }: BillingCardProps) => {
             : 'Tambahkan rekening untuk penarikan dana'}
         </Typography>
       </DialogTitle>
-      <form onSubmit={(e) => e.preventDefault()}>
+      <form onSubmit={handleSubmit}>
         <DialogContent className="p-6">
           <Grid container spacing={6}>
             <Grid size={{ xs: 12 }}>
               <CustomTextField
                 fullWidth
                 label="Nomor Rekening"
-                placeholder="0000 0000 0000 0000"
+                placeholder="1234567890"
                 value={cardData.cardNumber}
                 onChange={(e) => setCardData({ ...cardData, cardNumber: e.target.value })}
+                required
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -99,6 +158,7 @@ const BillingCard = ({ open, setOpen, data }: BillingCardProps) => {
                 placeholder="John Doe"
                 value={cardData.name}
                 onChange={(e) => setCardData({ ...cardData, name: e.target.value })}
+                required
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -108,6 +168,7 @@ const BillingCard = ({ open, setOpen, data }: BillingCardProps) => {
                 label="Pilih Bank"
                 value={cardData.bank}
                 onChange={(e) => setCardData({ ...cardData, bank: e.target.value })}
+                required
               >
                 <MenuItem value="">-- Pilih Bank --</MenuItem>
                 {bankOptions.map((bank, idx) => (
@@ -131,17 +192,26 @@ const BillingCard = ({ open, setOpen, data }: BillingCardProps) => {
             </Grid>
             <Grid size={{ xs: 12 }}>
               <FormControlLabel
-                control={<Switch defaultChecked />}
+                control={
+                  <Switch 
+                    checked={cardData.is_primary} 
+                    onChange={(e) => setCardData({ ...cardData, is_primary: e.target.checked })}
+                  />
+                }
                 label="Simpan sebagai rekening utama?"
               />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions className="justify-center p-6">
-          <Button variant="contained" type="submit" onClick={handleClose}>
-            {data ? 'Update' : 'Submit'}
+          <Button 
+            variant="contained" 
+            type="submit" 
+            disabled={loading}
+          >
+            {loading ? 'Menyimpan...' : (data ? 'Update' : 'Tambah')}
           </Button>
-          <Button variant="tonal" color="secondary" onClick={handleClose}>
+          <Button variant="tonal" color="secondary" onClick={handleClose} disabled={loading}>
             Cancel
           </Button>
         </DialogActions>
