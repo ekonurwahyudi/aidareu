@@ -10,10 +10,11 @@ class BankAccount extends Model
 {
     protected $fillable = [
         'uuid',
-        'store_id',
-        'account_holder_name',
+        'store_uuid',
+        'account_name',
         'account_number',
         'bank_name',
+        'account_holder_name',
         'bank_code',
         'branch_name',
         'account_type',
@@ -41,6 +42,6 @@ class BankAccount extends Model
     
     public function store(): BelongsTo
     {
-        return $this->belongsTo(Store::class);
+        return $this->belongsTo(Store::class, 'store_uuid', 'uuid');
     }
 }

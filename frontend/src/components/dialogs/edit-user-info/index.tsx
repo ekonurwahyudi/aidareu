@@ -523,7 +523,7 @@ const EditUserInfo = ({ open, setOpen, data, onSuccess }: EditUserInfoProps) => 
         </DialogContent>
         <DialogActions className='justify-center pbs-0 sm:pbe-16 sm:pli-16'>
           <Button variant='contained' type='submit'>
-            Submit
+            Update
           </Button>
           <Button variant='tonal' color='secondary' type='button' onClick={handleClose}>
             Cancel

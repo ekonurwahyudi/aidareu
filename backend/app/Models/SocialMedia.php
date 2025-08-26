@@ -12,7 +12,9 @@ class SocialMedia extends Model
     
     protected $fillable = [
         'uuid',
-        'store_id',
+        'store_uuid',
+        'platform',
+        'url',
         'tiktok_url',
         'instagram_url',
         'facebook_url',
@@ -43,6 +45,6 @@ class SocialMedia extends Model
     
     public function store(): BelongsTo
     {
-        return $this->belongsTo(Store::class);
+        return $this->belongsTo(Store::class, 'store_uuid', 'uuid');
     }
 }

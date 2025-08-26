@@ -117,6 +117,17 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
         Route::post('/{bankAccount}/set-primary', [BankAccountController::class, 'setPrimary']);
     });
     
+    // Direct routes for current user's store (simpler for frontend)
+    Route::get('/social-media', [SocialMediaController::class, 'userIndex']);
+    Route::post('/social-media', [SocialMediaController::class, 'userStore']);
+    Route::put('/social-media/{socialMedia}', [SocialMediaController::class, 'userUpdate']);
+    Route::delete('/social-media/{socialMedia}', [SocialMediaController::class, 'userDestroy']);
+    
+    Route::get('/bank-accounts', [BankAccountController::class, 'userIndex']);
+    Route::post('/bank-accounts', [BankAccountController::class, 'userStore']);
+    Route::put('/bank-accounts/{bankAccount}', [BankAccountController::class, 'userUpdate']);
+    Route::delete('/bank-accounts/{bankAccount}', [BankAccountController::class, 'userDestroy']);
+
     // Utility Routes
     Route::get('/social-media/platforms', [SocialMediaController::class, 'getPlatforms']);
     Route::get('/bank-accounts/banks', [BankAccountController::class, 'getBanks']);

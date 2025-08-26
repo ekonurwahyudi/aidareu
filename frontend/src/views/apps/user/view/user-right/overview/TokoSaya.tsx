@@ -382,7 +382,7 @@ const TokoSaya = () => {
               disabled={isSaving || subdomainAvailable === false || subdomainChecking}
               endIcon={<i className="tabler-arrow-right" />}
             >
-              {isSaving ? 'Menyimpan...' : 'Simpan'}
+              {isSaving ? 'Mengupdate...' : 'Update'}
             </Button>
           </Box>
         </Box>
