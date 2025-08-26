@@ -25,6 +25,7 @@ import Divider from '@mui/material/Divider'
 import { useForm, Controller } from 'react-hook-form'
 import * as yup from 'yup'
 import { yupResolver } from '@hookform/resolvers/yup'
+import { toast } from 'react-toastify'
 
 // Validation Schema
 const schema = yup.object().shape({
@@ -39,26 +40,59 @@ const schema = yup.object().shape({
   description: yup.string().required('Deskripsi toko wajib diisi').min(10, 'Deskripsi minimal 10 karakter')
 })
 
-const categories = [
-  'Produk Digital',
-  'Fashion & Pakaian',
-  'Elektronik & Gadget',
-  'Makanan & Minuman',
-  'Kesehatan & Kecantikan',
-  'Rumah & Taman',
-  'Olahraga & Outdoor',
-  'Buku & Alat Tulis',
-  'Mainan & Bayi',
-  'Otomotif',
-  'Lainnya'
-]
+// Category mapping between UI labels and backend enum slugs
+const CATEGORY_LABEL_TO_SLUG: Record<string, string> = {
+  'Produk Digital': 'digital',
+  'Fashion & Pakaian': 'fashion',
+  'Elektronik & Gadget': 'elektronik',
+  'Makanan & Minuman': 'makanan',
+  'Kesehatan & Kecantikan': 'kesehatan',
+  'Rumah & Taman': 'rumah_tangga',
+  'Olahraga & Outdoor': 'olahraga',
+  'Buku & Alat Tulis': 'buku_media',
+  'Mainan & Bayi': 'mainan_hobi',
+  'Otomotif': 'otomotif',
+  'Jasa': 'jasa',
+  'Lainnya': 'lainnya'
+}
+
+const CATEGORY_SLUG_TO_LABEL: Record<string, string> = Object.fromEntries(
+  Object.entries(CATEGORY_LABEL_TO_SLUG).map(([label, slug]) => [slug, label])
+)
+
+const categories = Object.keys(CATEGORY_LABEL_TO_SLUG)
+
+// Types
+type StoreItem = {
+  id: number
+  uuid?: string
+  name: string
+  subdomain: string
+  phone: string
+  category: string
+  description: string
+  url?: string
+}
+
+// Form values type aligned with form field names
+type FormValues = {
+  storeName: string
+  subdomain: string
+  phoneNumber: string
+  category: string
+  description: string
+}
 
 const TokoSaya = () => {
   // States
-  const [storeData, setStoreData] = useState<any>({})
+  const [storeData, setStoreData] = useState<Partial<StoreItem>>({})
+  const [selectedStoreUuid, setSelectedStoreUuid] = useState<string | null>(null)
+  const [initialSubdomain, setInitialSubdomain] = useState<string>('')
+  const [loadingStore, setLoadingStore] = useState<boolean>(true)
   const [subdomainChecking, setSubdomainChecking] = useState(false)
   const [subdomainAvailable, setSubdomainAvailable] = useState<boolean | null>(null)
   const [checkTimeout, setCheckTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
 
   // Form
   const {
@@ -70,20 +104,58 @@ const TokoSaya = () => {
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      storeName: storeData.storeName || '',
-      subdomain: storeData.subdomain || '',
-      phoneNumber: storeData.phoneNumber || '',
-      category: storeData.category || '',
-      description: storeData.description || ''
+      storeName: '',
+      subdomain: '',
+      phoneNumber: '',
+      category: '',
+      description: ''
     }
   })
 
   const watchedSubdomain = watch('subdomain')
 
+  // Fetch current user's store(s) and prefill form
+  useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        setLoadingStore(true)
+        const res = await fetch('/api/stores', { cache: 'no-store' })
+        const json = await res.json()
+        const stores: StoreItem[] = json?.data || json?.stores || []
+        if (Array.isArray(stores) && stores.length > 0) {
+          const s = stores[0]
+          setStoreData(s)
+          if ((s as any).uuid) setSelectedStoreUuid((s as any).uuid as string)
+          setInitialSubdomain(s.subdomain)
+          // Prefill form values
+          setValue('storeName', s.name || '')
+          setValue('subdomain', s.subdomain || '')
+          setValue('phoneNumber', s.phone || '')
+          setValue('category', CATEGORY_SLUG_TO_LABEL[s.category as string] || CATEGORY_SLUG_TO_LABEL[(s as any).kategori_toko as string] || '')
+          setValue('description', s.description || '')
+          // For existing subdomain, mark as available to avoid false error
+          setSubdomainAvailable(true)
+        }
+      } catch (err) {
+        console.error('Failed to fetch stores:', err)
+      } finally {
+        setLoadingStore(false)
+      }
+    }
+
+    fetchStores()
+  }, [setValue])
+
   // Check subdomain availability
   const checkSubdomainAvailability = async (subdomain: string) => {
     if (!subdomain || subdomain.length < 3) {
       setSubdomainAvailable(null)
+      return
+    }
+
+    // If user hasn't changed the original subdomain, consider it valid
+    if (initialSubdomain && subdomain === initialSubdomain) {
+      setSubdomainAvailable(true)
       return
     }
 
@@ -124,10 +196,52 @@ const TokoSaya = () => {
   }
 
   // Submit
-  const onSubmit = (data: any) => {
-    console.log('Data toko:', data)
-    setStoreData(data)
-    // TODO: simpan ke backend Laravel
+  const onSubmit = async (values: FormValues) => {
+    if (!selectedStoreUuid) return
+
+    try {
+      setIsSaving(true)
+
+      // Prevent submit if subdomain invalid or taken
+      if (values.subdomain && (!/^[a-z0-9-]+$/.test(values.subdomain) || values.subdomain.length < 3)) {
+        toast.error('Subdomain tidak valid')
+        setIsSaving(false)
+        return
+      }
+      if (values.subdomain && subdomainAvailable === false && values.subdomain !== initialSubdomain) {
+        toast.error('Subdomain sudah digunakan')
+        setIsSaving(false)
+        return
+      }
+
+      const payload: any = {
+        nama_toko: values.storeName,
+        subdomain: values.subdomain,
+        no_hp_toko: values.phoneNumber,
+        kategori_toko: CATEGORY_LABEL_TO_SLUG[values.category] || 'lainnya',
+        deskripsi_toko: values.description
+      }
+
+      const res = await fetch(`/api/stores/${selectedStoreUuid}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.message || 'Gagal menyimpan perubahan')
+      } else {
+        toast.success(data.message || 'Berhasil menyimpan perubahan')
+        // Update initial subdomain if changed
+        if (values.subdomain) setInitialSubdomain(values.subdomain)
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error('Terjadi kesalahan server')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -265,10 +379,10 @@ const TokoSaya = () => {
             <Button
               variant="contained"
               type="submit"
-              disabled={subdomainAvailable === false || subdomainChecking}
+              disabled={isSaving || subdomainAvailable === false || subdomainChecking}
               endIcon={<i className="tabler-arrow-right" />}
             >
-              Simpan
+              {isSaving ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </Box>
         </Box>

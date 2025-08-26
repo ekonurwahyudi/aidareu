@@ -57,8 +57,9 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${session.accessToken}`
       },
       body: JSON.stringify({
+        // Backend expects `subdomain` not `sub_domain`
         nama_toko,
-        sub_domain: subdomain,
+        subdomain, 
         no_hp_toko,
         kategori_toko,
         deskripsi_toko

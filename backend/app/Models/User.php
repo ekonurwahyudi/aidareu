@@ -40,6 +40,8 @@ class User extends Authenticatable
         'avatar',
         'is_active',
         'paket',
+        'location',
+        'address',
         'email_verification_code',
         'email_verification_code_expires_at',
         'uuid',
@@ -78,6 +80,13 @@ class User extends Authenticatable
         static::creating(function ($model) {
             if (empty($model->uuid)) {
                 $model->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+
+        // Assign default role after user is created
+        static::created(function ($model) {
+            if (!$model->hasAnyRole()) {
+                $model->assignRole('owner');
             }
         });
     }
