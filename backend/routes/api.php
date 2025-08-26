@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\LandingPageController;
 use App\Http\Controllers\Api\RBACController;
 use App\Http\Controllers\Api\SocialMediaController;
 use App\Http\Controllers\Api\BankAccountController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\LocationController;
 
 // Test endpoint
 Route::get('/test', function () {
@@ -33,6 +35,14 @@ Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 // Public: Subdomain availability (no auth required)
 Route::get('/stores/check-subdomain', [StoreController::class, 'checkSubdomain']);
 
+// Public: Location API (no auth required)
+Route::get('/locations/cities', [LocationController::class, 'getCities']);
+Route::get('/locations/provinces', [LocationController::class, 'getProvinces']);
+
+// Public: User API for testing (no auth required)
+Route::get('/users/me', [UserController::class, 'me']);
+Route::put('/users/{uuid}', [UserController::class, 'update']);
+
 // Auth (session-based) - Legacy
 Route::middleware('web')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('api.login');
@@ -48,6 +58,11 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
     // Legacy user route
     Route::get('/user', function (Request $request) {
         return $request->user();
+    });
+    
+    // User management routes
+    Route::prefix('users')->group(function () {
+        Route::get('/{uuid}', [UserController::class, 'show']);
     });
 
     // User store status
@@ -105,6 +120,7 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
     // Utility Routes
     Route::get('/social-media/platforms', [SocialMediaController::class, 'getPlatforms']);
     Route::get('/bank-accounts/banks', [BankAccountController::class, 'getBanks']);
+    
 
     // Landing Page Routes
     Route::post('/generate-landing', [LandingPageController::class, 'generate']);

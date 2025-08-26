@@ -239,6 +239,7 @@ class StoreController extends Controller
                           ->map(function ($store) {
                     return [
                         'id' => $store->id,
+                        'uuid' => $store->uuid,
                         'name' => $store->name,
                         'subdomain' => $store->subdomain,
                         'phone' => $store->phone,
@@ -328,8 +329,17 @@ class StoreController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nama_toko' => 'sometimes|required|string|min:2|max:255',
+            'subdomain' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:3',
+                'max:50',
+                'regex:/^[a-z0-9-]+$/',
+                'not_regex:/^(www|api|admin|app|mail|ftp|blog|shop|store|dashboard)$/i'
+            ],
             'no_hp_toko' => 'sometimes|required|string|regex:/^(\+62|62|0)[0-9]{9,13}$/',
-            'kategori_toko' => 'sometimes|required|string|in:fashion,elektronik,makanan,kesehatan,rumah_tangga,olahraga,buku_media,otomotif,mainan_hobi,jasa,lainnya',
+            'kategori_toko' => 'sometimes|required|string|in:digital,fashion,elektronik,makanan,kesehatan,rumah_tangga,olahraga,buku_media,otomotif,mainan_hobi,jasa,lainnya',
             'deskripsi_toko' => 'sometimes|required|string|min:10|max:1000'
         ]);
 
@@ -353,10 +363,23 @@ class StoreController extends Controller
                 ], 404);
             }
 
+            // Additional unique check for subdomain when changed
+            if ($request->has('subdomain')) {
+                $sub = strtolower($request->subdomain);
+                if ($sub !== $store->subdomain && Store::where('subdomain', $sub)->exists()) {
+                    return response()->json([
+                        'message' => 'Subdomain is already taken'
+                    ], 422);
+                }
+            }
+
             // Update store
             $updateData = [];
             if ($request->has('nama_toko')) {
                 $updateData['name'] = $request->nama_toko;
+            }
+            if ($request->has('subdomain')) {
+                $updateData['subdomain'] = strtolower($request->subdomain);
             }
             if ($request->has('no_hp_toko')) {
                 $updateData['phone'] = $request->no_hp_toko;

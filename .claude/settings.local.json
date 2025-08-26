@@ -22,7 +22,8 @@
       "Bash(timeout 30s npm run dev -- -p 3005)",
       "Bash(mv:*)",
       "Bash(psql:*)",
-      "WebFetch(domain:modernize-nextjs.adminmart.com)"
+      "WebFetch(domain:modernize-nextjs.adminmart.com)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": [],
