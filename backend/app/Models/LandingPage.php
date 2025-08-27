@@ -14,6 +14,17 @@ class LandingPage extends Model
         'slug',
         'data',
         'uuid',
+        'store_uuid',
+        'nama_halaman',
+        'favicon',
+        'logo',
+        'subdomain',
+        'domain',
+        'meta_description',
+        'keywords',
+        'facebook_pixel_uuid',
+        'tiktok_pixel_uuid',
+        'google_tag_manager_uuid',
     ];
 
     protected $casts = [
@@ -23,6 +34,41 @@ class LandingPage extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the store associated with this landing page.
+     */
+    public function store()
+    {
+        return $this->belongsTo(Store::class, 'store_uuid', 'uuid');
+    }
+
+    /**
+     * Get the Facebook pixel associated with this landing page.
+     */
+    public function facebookPixel()
+    {
+        return $this->belongsTo(PixelStore::class, 'facebook_pixel_uuid', 'uuid')
+                   ->where('pixel_type', 'facebook_pixel');
+    }
+
+    /**
+     * Get the TikTok pixel associated with this landing page.
+     */
+    public function tiktokPixel()
+    {
+        return $this->belongsTo(PixelStore::class, 'tiktok_pixel_uuid', 'uuid')
+                   ->where('pixel_type', 'tiktok_pixel');
+    }
+
+    /**
+     * Get the Google Tag Manager associated with this landing page.
+     */
+    public function googleTagManager()
+    {
+        return $this->belongsTo(PixelStore::class, 'google_tag_manager_uuid', 'uuid')
+                   ->where('pixel_type', 'google_tag_manager');
     }
 
     public static function boot(): void
