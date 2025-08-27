@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Store UUID</title>
+</head>
+<body>
+    <h2>Store UUID Test</h2>
+    <button id="testStores">Test Stores API</button>
+    <button id="testProducts">Test Products API with UUID</button>
+    <div id="results"></div>
+
+    <script>
+    const resultsDiv = document.getElementById('results');
+
+    document.getElementById('testStores').addEventListener('click', async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/public/stores');
+            const data = await response.json();
+            
+            resultsDiv.innerHTML = '<h3>Stores API Response:</h3><pre>' + 
+                JSON.stringify(data, null, 2) + '</pre>';
+            
+            if (data.stores && data.stores.length > 0) {
+                const store = data.stores[0];
+                resultsDiv.innerHTML += '<p><strong>Store ID:</strong> ' + store.id + '</p>';
+                resultsDiv.innerHTML += '<p><strong>Store UUID:</strong> ' + store.uuid + '</p>';
+            }
+        } catch (error) {
+            resultsDiv.innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+        }
+    });
+
+    document.getElementById('testProducts').addEventListener('click', async () => {
+        try {
+            // First get the store UUID
+            const storesResponse = await fetch('http://127.0.0.1:8000/api/public/stores');
+            const storesData = await storesResponse.json();
+            
+            if (storesData.stores && storesData.stores.length > 0) {
+                const storeUuid = storesData.stores[0].uuid;
+                
+                // Then test products API
+                const productsResponse = await fetch(
+                    `http://127.0.0.1:8000/api/public/products?store_uuid=${storeUuid}`
+                );
+                const productsData = await productsResponse.json();
+                
+                resultsDiv.innerHTML = '<h3>Products API Response:</h3><pre>' + 
+                    JSON.stringify(productsData, null, 2) + '</pre>';
+            }
+        } catch (error) {
+            resultsDiv.innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+        }
+    });
+    </script>
+</body>
+</html>

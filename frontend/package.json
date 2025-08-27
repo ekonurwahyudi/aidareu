@@ -83,6 +83,7 @@
     "recharts": "2.15.0",
     "server-only": "0.0.1",
     "valibot": "0.42.1",
+    "xlsx": "^0.18.5",
     "yup": "^1.7.0"
   },
   "devDependencies": {
@@ -96,6 +97,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "@types/xlsx": "^0.0.35",
     "@typescript-eslint/eslint-plugin": "7.18.0",
     "@typescript-eslint/parser": "7.18.0",
     "autoprefixer": "10.4.20",

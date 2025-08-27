@@ -11,9 +11,9 @@ import Alert from '@mui/material/Alert'
 // Context Imports
 import { useProductForm } from '@/contexts/ProductFormContext'
 
-const ProductAddHeader = () => {
+const ProductEditHeader = () => {
   const router = useRouter()
-  const { submitForm, isSubmitting, setFormData, errors } = useProductForm()
+  const { submitForm, isSubmitting, setFormData, errors, formData } = useProductForm()
 
   const handleBack = () => {
     router.push('/apps/tokoku/products')
@@ -29,13 +29,17 @@ const ProductAddHeader = () => {
     await submitForm()
   }
 
+  const handleUpdate = async () => {
+    await submitForm()
+  }
+
   return (
     <div className='flex flex-wrap sm:items-center justify-between max-sm:flex-col gap-6'>
       <div>
         <Typography variant='h4' className='mbe-1'>
-          Tambah Produk
+          Edit Produk
         </Typography>
-        <Typography>Tambahkan produk kamu disini</Typography>
+        <Typography>Edit produk {formData.nama_produk || 'Anda'} disini</Typography>
       </div>
       
       {errors.submit && (
@@ -57,7 +61,7 @@ const ProductAddHeader = () => {
         <Button 
           variant='outlined' 
           color='warning' 
-          startIcon={isSubmitting ? <i className="tabler-loader animate-spin" /> : <i className="tabler-file-plus" />}
+          startIcon={isSubmitting ? <i className="tabler-loader animate-spin" /> : <i className="tabler-device-floppy" />}
           onClick={handleSaveDraft}
           disabled={isSubmitting}
         >
@@ -66,15 +70,15 @@ const ProductAddHeader = () => {
         <Button 
           variant='contained' 
           color='success' 
-          startIcon={isSubmitting ? <i className="tabler-loader animate-spin" /> : <i className="tabler-rocket" />}
-          onClick={handlePublish}
+          startIcon={isSubmitting ? <i className="tabler-loader animate-spin" /> : <i className="tabler-check" />}
+          onClick={handleUpdate}
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Mempublish...' : 'Publish Product'}
+          {isSubmitting ? 'Memperbarui...' : 'Update Product'}
         </Button>
       </div>
     </div>
   )
 }
 
-export default ProductAddHeader
+export default ProductEditHeader

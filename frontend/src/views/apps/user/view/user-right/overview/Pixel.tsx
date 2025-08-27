@@ -324,7 +324,7 @@ const RecentKeterangan = () => {
                       </Tooltip>
                       {item.data && (
                         <Tooltip title="Hapus">
-                          <IconButton size="small" color="error" onClick={() => handleDelete(item)}>
+                          <IconButton size="small" color="error" onClick={() => handleDeleteClick(item)}>
                             <i className="tabler-trash" />
                           </IconButton>
                         </Tooltip>
@@ -422,6 +422,41 @@ const RecentKeterangan = () => {
             disabled={!selectedPixelType}
           >
             Lanjut
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          <div className="flex items-center gap-2">
+            <i className="tabler-alert-triangle text-warning text-xl" />
+            Konfirmasi Hapus
+          </div>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Apakah Anda yakin ingin menghapus pixel <strong>{pixelToDelete?.Keterangan}</strong>?
+            <br />
+            Tindakan ini tidak dapat dibatalkan.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions className="p-4 pt-0">
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)} 
+            disabled={deleting}
+            variant="outlined"
+          >
+            Batal
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error"
+            variant="contained"
+            disabled={deleting}
+            startIcon={deleting ? <i className="tabler-loader animate-spin" /> : <i className="tabler-trash" />}
+          >
+            {deleting ? 'Menghapus...' : 'Hapus'}
           </Button>
         </DialogActions>
       </Dialog>

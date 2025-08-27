@@ -82,31 +82,29 @@ const UserDropdown = () => {
 
   const handleUserLogout = async () => {
     try {
-      // Get auth token for logout API call
+      // Clear localStorage and redirect immediately for better UX
       const authToken = localStorage.getItem('auth_token')
-      
-      // Backend API logout to clear Laravel session/token
-      try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000'
-        await fetch(`${backendUrl}/api/auth/logout`, {
-          method: 'POST',
-          headers: { 
-            'Accept': 'application/json',
-            'Authorization': authToken ? `Bearer ${authToken}` : ''
-          },
-          credentials: 'include'
-        })
-      } catch (error) {
-        console.log('Backend logout error (non-critical):', error)
-      }
-      
-      // Clear localStorage and redirect
       localStorage.removeItem('auth_token')
       localStorage.removeItem('user_data')
       localStorage.removeItem('unverified_user')
       
-      // Redirect to root/login
+      // Redirect first for immediate response
       router.push('/')
+      
+      // Backend API logout to clear Laravel session/token (non-blocking)
+      if (authToken) {
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000'
+        fetch(`${backendUrl}/api/auth/logout`, {
+          method: 'POST',
+          headers: { 
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          credentials: 'include'
+        }).catch(error => {
+          console.log('Backend logout error (non-critical):', error)
+        })
+      }
       
     } catch (error) {
       console.error('Logout error:', error)

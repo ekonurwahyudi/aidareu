@@ -1,44 +1,62 @@
+'use client'
+
+// React Imports
+import { Suspense, useState, useEffect } from 'react'
+
 // MUI Imports
 import Grid from '@mui/material/Grid2'
+import CircularProgress from '@mui/material/CircularProgress'
+
+// Context Imports
+import { RBACProvider } from '@/contexts/rbacContext'
 
 // Component Imports
 import ProductListTable from '@/views/apps/tokoku/products/list/ProductListTable'
 import ProductCard from '@/views/apps/tokoku/products/list/ProductCard'
 
-// Data Imports
-import { getEcommerceData } from '@/app/server/actions'
+const eCommerceProductsList = () => {
+  const [refreshKey, setRefreshKey] = useState(0)
 
-/**
- * ! If you need data using an API call, uncomment the below API code, update the `process.env.API_URL` variable in the
- * ! `.env` file found at root of your project and also update the API endpoints like `/apps/ecommerce` in below example.
- * ! Also, remove the above server action import and the action itself from the `src/app/server/actions.ts` file to clean up unused code
- * ! because we've used the server action for getting our static data.
- */
+  // Refresh component when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page visible, forcing component refresh...')
+        setRefreshKey(prev => prev + 1)
+      }
+    }
 
-/* const getEcommerceData = async () => {
-  // Vars
-  const res = await fetch(`${process.env.API_URL}/apps/ecommerce`)
+    const handleFocus = () => {
+      console.log('Window focused, forcing component refresh...')
+      setRefreshKey(prev => prev + 1)
+    }
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch ecommerce data')
-  }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
 
-  return res.json()
-} */
-
-const eCommerceProductsList = async () => {
-  // Vars
-  const data = await getEcommerceData()
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [])
 
   return (
-    <Grid container spacing={6}>
-      {/* <Grid size={{ xs: 12 }}>
-        <ProductCard />
-      </Grid> */}
-      <Grid size={{ xs: 12 }}>
-        <ProductListTable productData={data?.products} />
+    <RBACProvider>
+      <Grid container spacing={6}>
+        {/* <Grid size={{ xs: 12 }}>
+          <ProductCard />
+        </Grid> */}
+        <Grid size={{ xs: 12 }}>
+          <Suspense fallback={
+            <div className="flex justify-center items-center p-8">
+              <CircularProgress />
+            </div>
+          }>
+            <ProductListTable key={refreshKey} />
+          </Suspense>
+        </Grid>
       </Grid>
-    </Grid>
+    </RBACProvider>
   )
 }
 
