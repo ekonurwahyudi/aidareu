@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\CategoryController;
@@ -106,6 +107,26 @@ Route::get('/stores/check-subdomain', [StoreController::class, 'checkSubdomain']
 // Public: Location API (no auth required)
 Route::get('/locations/cities', [LocationController::class, 'getCities']);
 Route::get('/locations/provinces', [LocationController::class, 'getProvinces']);
+
+// Public: Image serving endpoint
+Route::get('/storage/{path}', function ($path) {
+    try {
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404, 'Image not found');
+        }
+        
+        $file = Storage::disk('public')->get($path);
+        $fullPath = Storage::disk('public')->path($path);
+        $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
+        
+        return response($file)
+            ->header('Content-Type', $mimeType)
+            ->header('Cache-Control', 'public, max-age=86400')
+            ->header('Access-Control-Allow-Origin', '*');
+    } catch (\Exception $e) {
+        abort(404, 'Image not found');
+    }
+})->where('path', '.*');
 
 // Public: Categories API (no auth required)
 Route::get('/public/categories', [CategoryController::class, 'getActiveCategories']);

@@ -3,6 +3,24 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\LandingPageController;
 use App\Http\Controllers\TenantController;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Response;
+
+// Storage route to serve uploaded files when symbolic link doesn't work
+Route::get('/storage/{path}', function ($path) {
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404, 'File not found');
+    }
+    
+    $file = Storage::disk('public')->get($path);
+    $fullPath = Storage::disk('public')->path($path);
+    $type = mime_content_type($fullPath) ?: 'application/octet-stream';
+    
+    return Response::make($file, 200, [
+        'Content-Type' => $type,
+        'Cache-Control' => 'public, max-age=86400', // Cache for 24 hours
+    ]);
+})->where('path', '.*');
 
 // Main domain routes (when no subdomain/custom domain)
 Route::domain(config('app.domain', 'localhost'))->group(function () {

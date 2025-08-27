@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { Suspense, useState, useEffect } from 'react'
+import { Suspense } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid2'
@@ -15,31 +15,6 @@ import ProductListTable from '@/views/apps/tokoku/products/list/ProductListTable
 import ProductCard from '@/views/apps/tokoku/products/list/ProductCard'
 
 const eCommerceProductsList = () => {
-  const [refreshKey, setRefreshKey] = useState(0)
-
-  // Refresh component when page becomes visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('Page visible, forcing component refresh...')
-        setRefreshKey(prev => prev + 1)
-      }
-    }
-
-    const handleFocus = () => {
-      console.log('Window focused, forcing component refresh...')
-      setRefreshKey(prev => prev + 1)
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [])
-
   return (
     <RBACProvider>
       <Grid container spacing={6}>
@@ -52,7 +27,7 @@ const eCommerceProductsList = () => {
               <CircularProgress />
             </div>
           }>
-            <ProductListTable key={refreshKey} />
+            <ProductListTable />
           </Suspense>
         </Grid>
       </Grid>

@@ -68,6 +68,28 @@ import OptionMenu from '@core/components/option-menu'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import { ProductPlaceholder } from '@/components/ProductPlaceholder'
 
+// Utility function to generate proper image URLs
+const getImageUrl = (imagePath: string): string => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+  return `${baseUrl}/storage/${imagePath}`
+}
+
+// Utility function to extract images from product data
+const getProductImages = (imageData: any): string[] => {
+  if (!imageData) return []
+  
+  if (typeof imageData === 'string') {
+    try {
+      const parsed = JSON.parse(imageData)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return [imageData]
+    }
+  }
+  
+  return Array.isArray(imageData) ? imageData : []
+}
+
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
 
@@ -172,6 +194,10 @@ const ProductListTable = () => {
     pageSize: 10
   })
   const [totalRows, setTotalRows] = useState(0)
+  // States for smart refresh management
+  const [lastFetchTime, setLastFetchTime] = useState(0)
+  const [isUserActive, setIsUserActive] = useState(true)
+  const [hasBeenAway, setHasBeenAway] = useState(false)
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState('all')
@@ -182,12 +208,22 @@ const ProductListTable = () => {
   const debouncedStatusFilter = useDebounce(statusFilter, 300)
   const debouncedCategoryFilter = useDebounce(categoryFilter, 300)
 
-  // Fetch products from API
-  const fetchProducts = useCallback(async () => {
+  // Fetch products from API with smart caching
+  const fetchProducts = useCallback(async (forceRefresh = false) => {
     // Check for store UUID - prioritize uuid field over id
     const storeUuid = currentStore?.uuid || currentStore?.id
     if (!storeUuid) {
       console.warn('No current store UUID available for fetching products')
+      return
+    }
+
+    // Implement smart caching - don't fetch if data is fresh (less than 10 seconds old)
+    const now = Date.now()
+    const timeSinceLastFetch = now - lastFetchTime
+    const cacheTimeout = 10000 // 10 seconds (reduced from 30 for better responsiveness)
+    
+    if (!forceRefresh && timeSinceLastFetch < cacheTimeout && products.length > 0) {
+      console.log('Using cached data, last fetch was', Math.round(timeSinceLastFetch / 1000), 'seconds ago')
       return
     }
 
@@ -215,9 +251,19 @@ const ProductListTable = () => {
         }
       })
 
-      const response = await fetch(`/api/public/products?${queryParams.toString()}&_t=${Date.now()}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      
+      // Add cache busting only when forcing refresh, otherwise allow browser caching
+      const cacheBuster = forceRefresh ? `&_t=${Date.now()}` : ''
+      const cacheControl = forceRefresh ? 'no-cache' : 'default'
+      
+      const response = await fetch(`${apiUrl}/public/products?${queryParams.toString()}${cacheBuster}`, {
         credentials: 'include',
-        cache: 'no-cache' // Disable caching to ensure fresh data
+        cache: cacheControl as RequestCache,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
       })
       
       if (!response.ok) {
@@ -230,6 +276,7 @@ const ProductListTable = () => {
       if (result.status === 'success') {
         setProducts(result.data.data || [])
         setTotalRows(result.data.total || 0)
+        setLastFetchTime(now) // Track successful fetch time
       } else {
         throw new Error(result.message || 'Failed to fetch products')
       }
@@ -241,12 +288,22 @@ const ProductListTable = () => {
     }
   }, [currentStore?.uuid, currentStore?.id, debouncedSearch, debouncedStatusFilter, debouncedCategoryFilter, pagination])
 
-  // Fetch categories
+  // Fetch categories (cached for session)
   const fetchCategories = useCallback(async () => {
+    // Check if categories are already loaded
+    if (categories.length > 0) {
+      return
+    }
+    
     try {
-      const response = await fetch(`/api/public/categories?_t=${Date.now()}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const response = await fetch(`${apiUrl}/public/categories`, {
         credentials: 'include',
-        cache: 'no-cache'
+        cache: 'default', // Allow browser caching for categories
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
       })
       if (response.ok) {
         const result = await response.json()
@@ -257,7 +314,7 @@ const ProductListTable = () => {
     } catch (err) {
       console.error('Error fetching categories:', err)
     }
-  }, [])
+  }, [categories.length])
 
   // Initialize data
   useEffect(() => {
@@ -271,49 +328,91 @@ const ProductListTable = () => {
     }
   }, [fetchProducts, currentStore, rbacLoading])
 
-  // Refresh data when window gains focus (user returns from edit page)
+  // Smart refresh logic - only refresh when user returns after being away
   useEffect(() => {
-    const handleFocus = () => {
-      if (currentStore && !rbacLoading) {
-        console.log('Window focused, refreshing products...')
-        fetchProducts()
-      }
-    }
-
+    let activityTimer: NodeJS.Timeout
+    
     const handleVisibilityChange = () => {
-      if (!document.hidden && currentStore && !rbacLoading) {
-        console.log('Page visible, refreshing products...')
-        fetchProducts()
+      if (document.hidden) {
+        setIsUserActive(false)
+        setHasBeenAway(true)
+      } else {
+        setIsUserActive(true)
+        // Only refresh if user has been away and data is older than 1 minute
+        const timeSinceLastFetch = Date.now() - lastFetchTime
+        if (hasBeenAway && timeSinceLastFetch > 60000 && currentStore && !rbacLoading) {
+          console.log('User returned after being away, refreshing products...')
+          fetchProducts(true) // Force refresh
+          setHasBeenAway(false)
+        }
       }
     }
 
-    window.addEventListener('focus', handleFocus)
+    const handleFocus = () => {
+      if (!isUserActive) {
+        setIsUserActive(true)
+        // Only refresh if user has been away and data is older than 2 minutes
+        const timeSinceLastFetch = Date.now() - lastFetchTime
+        if (timeSinceLastFetch > 120000 && currentStore && !rbacLoading) {
+          console.log('Window focused after long absence, refreshing products...')
+          fetchProducts(true) // Force refresh
+        }
+      }
+      
+      // Reset activity timer
+      clearTimeout(activityTimer)
+      activityTimer = setTimeout(() => {
+        setIsUserActive(false)
+      }, 300000) // Consider user inactive after 5 minutes
+    }
+
+    const handleActivity = () => {
+      setIsUserActive(true)
+      clearTimeout(activityTimer)
+      activityTimer = setTimeout(() => {
+        setIsUserActive(false)
+      }, 300000) // Consider user inactive after 5 minutes
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    window.addEventListener('mousemove', handleActivity)
+    window.addEventListener('keydown', handleActivity)
+    window.addEventListener('click', handleActivity)
 
     return () => {
-      window.removeEventListener('focus', handleFocus)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('mousemove', handleActivity)
+      window.removeEventListener('keydown', handleActivity)
+      window.removeEventListener('click', handleActivity)
+      clearTimeout(activityTimer)
     }
-  }, [currentStore, rbacLoading, fetchProducts])
+  }, [currentStore, rbacLoading, fetchProducts, lastFetchTime, hasBeenAway, isUserActive])
 
-  // Auto refresh every 30 seconds to keep data fresh
+  // Smart auto refresh - only refresh if user is active and data is old
   useEffect(() => {
     if (!currentStore || rbacLoading) return
 
     const interval = setInterval(() => {
-      console.log('Auto refreshing products...')
-      fetchProducts()
-    }, 30000) // 30 seconds
+      const timeSinceLastFetch = Date.now() - lastFetchTime
+      const isDataStale = timeSinceLastFetch > 300000 // 5 minutes
+      
+      if (isUserActive && isDataStale) {
+        console.log('Background refresh: data is stale and user is active')
+        fetchProducts(false) // Don't force refresh, respect cache
+      }
+    }, 120000) // Check every 2 minutes instead of 30 seconds
 
     return () => clearInterval(interval)
-  }, [currentStore, rbacLoading, fetchProducts])
+  }, [currentStore, rbacLoading, fetchProducts, lastFetchTime, isUserActive])
 
   // Handle status update
-  const handleStatusUpdate = async (product: Product, newStatus: 'active' | 'inactive') => {
+  const handleStatusUpdate = async (product: Product, newStatus: 'active' | 'inactive' | 'draft') => {
     try {
       await productApi.updateProductStatus(product.uuid, newStatus)
-      // Refresh products
-      fetchProducts()
+      // Force refresh since user made a change
+      fetchProducts(true)
     } catch (err) {
       console.error('Error updating product status:', err)
     }
@@ -331,7 +430,8 @@ const ProductListTable = () => {
     try {
       setDeleting(true)
       
-      const response = await fetch(`/api/public/products/${productToDelete.uuid}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const response = await fetch(`${apiUrl}/public/products/${productToDelete.uuid}`, {
         method: 'DELETE',
         credentials: 'include'
       })
@@ -343,8 +443,8 @@ const ProductListTable = () => {
       const result = await response.json()
       
       if (result.status === 'success') {
-        // Refresh products
-        fetchProducts()
+        // Force refresh since user deleted a product
+        fetchProducts(true)
         setDeleteDialogOpen(false)
         setProductToDelete(null)
       } else {
@@ -357,6 +457,11 @@ const ProductListTable = () => {
       setDeleting(false)
     }
   }
+
+  // Handle manual refresh
+  const handleManualRefresh = useCallback(() => {
+    fetchProducts(true) // Force refresh ignoring cache
+  }, [fetchProducts])
 
   // Handle Excel export
   const handleExcelExport = () => {
@@ -447,27 +552,10 @@ const ProductListTable = () => {
     columnHelper.accessor('nama_produk', {
       header: 'Produk',
       cell: ({ row }) => {
-        // Handle different image data formats
-        let imageUrl = null
-        const imageData = row.original.upload_gambar_produk
-        
-        if (imageData) {
-          if (typeof imageData === 'string') {
-            // If it's a string, it might be JSON or a single path
-            try {
-              const parsed = JSON.parse(imageData)
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                imageUrl = `http://127.0.0.1:8000/storage/${parsed[0]}`
-              }
-            } catch {
-              // If parsing fails, treat as single path
-              imageUrl = `http://127.0.0.1:8000/storage/${imageData}`
-            }
-          } else if (Array.isArray(imageData) && imageData.length > 0) {
-            // If it's already an array
-            imageUrl = `http://127.0.0.1:8000/storage/${imageData[0]}`
-          }
-        }
+        // Get product images using utility function
+        const images = getProductImages(row.original.upload_gambar_produk)
+        const mainImagePath = images.length > 0 ? images[0] : null
+        const imageUrl = mainImagePath ? getImageUrl(mainImagePath) : null
 
         return (
           <div className="flex items-center gap-4">
@@ -481,7 +569,7 @@ const ProductListTable = () => {
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
                   target.style.display = 'none'
-                  // Show placeholder on error by finding it
+                  // Show placeholder on error
                   const parent = target.parentElement
                   const placeholder = parent?.querySelector('.product-placeholder')
                   if (placeholder) {
@@ -561,14 +649,28 @@ const ProductListTable = () => {
     columnHelper.accessor('status_produk', {
       header: 'Status',
       cell: ({ row }) => {
-        const isActive = row.original.status_produk === 'active'
+        const status = row.original.status_produk
+        const statusConfig = productStatusObj[status] || productStatusObj.draft
+        
         return (
-          <Switch 
-            checked={isActive}
-            onChange={(e) => handleStatusUpdate(
-              row.original, 
-              e.target.checked ? 'active' : 'inactive'
-            )}
+          <Chip
+            variant="tonal"
+            size="small"
+            color={statusConfig.color}
+            label={statusConfig.title}
+            className="cursor-pointer"
+            onClick={() => {
+              // Cycle through statuses: active -> inactive -> draft -> active
+              let nextStatus: 'active' | 'inactive' | 'draft'
+              if (status === 'active') {
+                nextStatus = 'inactive'
+              } else if (status === 'inactive') {
+                nextStatus = 'draft'
+              } else {
+                nextStatus = 'active'
+              }
+              handleStatusUpdate(row.original, nextStatus)
+            }}
           />
         )
       },
@@ -642,6 +744,14 @@ const ProductListTable = () => {
         title="My Products"
         action={
           <div className="flex gap-3">
+            <Button 
+              variant="outlined" 
+              startIcon={<i className="tabler-refresh" />}
+              onClick={handleManualRefresh}
+              disabled={loading}
+            >
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </Button>
             <Button 
               color="success" 
               variant="tonal" 
