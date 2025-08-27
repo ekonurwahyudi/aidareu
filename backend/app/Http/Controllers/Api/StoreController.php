@@ -19,7 +19,7 @@ class StoreController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nama_toko'     => 'required|string|min:3|max:50',
-            'subdomain'     => 'required|string|min:3|max:30|regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/|unique:stores,subdomain,' . $store->id,
+            'subdomain'     => 'required|string|min:3|max:30|regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/|unique:stores,subdomain',
             'no_hp_toko' => [
                                 'required',
                                 'string',

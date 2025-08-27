@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ProductController extends Controller
@@ -160,7 +161,7 @@ class ProductController extends Controller
     {
         try {
             // Log the incoming request for debugging
-            \Log::info('Product update request', [
+            Log::info('Product update request', [
                 'product_id' => $product->id,
                 'product_uuid' => $product->uuid,
                 'method' => $request->method(),
@@ -247,7 +248,7 @@ class ProductController extends Controller
             $updated = $product->update($updateData);
             $product->load(['category:id,judul_kategori', 'store:uuid,name']);
 
-            \Log::info('Product update result', [
+            Log::info('Product update result', [
                 'updated' => $updated,
                 'product_after_update' => $product->fresh()->toArray()
             ]);

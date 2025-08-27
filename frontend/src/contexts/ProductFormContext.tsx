@@ -14,6 +14,7 @@ export interface ProductFormData {
   category_id: number | ''
   status_produk: 'active' | 'inactive' | 'draft'
   images: File[]
+  existingImages: string[] // Add support for existing images
   stock?: number | ''
 }
 
@@ -43,6 +44,7 @@ const initialFormData: ProductFormData = {
   category_id: '',
   status_produk: 'draft',
   images: [],
+  existingImages: [],
   stock: 0
 }
 
@@ -208,7 +210,10 @@ export const ProductFormProvider = ({ children, productUuid, isEdit = false }: P
       const url = isEdit && productUuid ? `/api/public/products/${productUuid}` : '/api/public/products'
       const method = 'POST' // Always POST for FormData, Laravel will handle _method
       
-      const response = await fetch(url, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const fullUrl = url.startsWith('/api/') ? `${apiUrl.replace('/api', '')}${url}` : url
+      
+      const response = await fetch(fullUrl, {
         method,
         body: submitData,
         credentials: 'include'
@@ -253,7 +258,8 @@ export const ProductFormProvider = ({ children, productUuid, isEdit = false }: P
       const loadProductData = async () => {
         setIsLoading(true)
         try {
-          const response = await fetch(`/api/public/products/${productUuid}`, {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+          const response = await fetch(`${apiUrl}/public/products/${productUuid}`, {
             credentials: 'include'
           })
           
@@ -261,6 +267,22 @@ export const ProductFormProvider = ({ children, productUuid, isEdit = false }: P
             const result = await response.json()
             if (result.status === 'success' && result.data) {
               const product = result.data
+              
+              // Process existing images
+              let existingImages: string[] = []
+              if (product.upload_gambar_produk) {
+                if (typeof product.upload_gambar_produk === 'string') {
+                  try {
+                    const parsed = JSON.parse(product.upload_gambar_produk)
+                    existingImages = Array.isArray(parsed) ? parsed : []
+                  } catch {
+                    existingImages = [product.upload_gambar_produk]
+                  }
+                } else if (Array.isArray(product.upload_gambar_produk)) {
+                  existingImages = product.upload_gambar_produk
+                }
+              }
+              
               setFormDataState({
                 nama_produk: product.nama_produk || '',
                 deskripsi: product.deskripsi || '',
@@ -270,7 +292,8 @@ export const ProductFormProvider = ({ children, productUuid, isEdit = false }: P
                 harga_diskon: product.harga_diskon || '',
                 category_id: product.category_id || '',
                 status_produk: product.status_produk || 'draft',
-                images: [], // Images will be handled separately
+                images: [], // New uploaded images
+                existingImages: existingImages, // Existing images from database
                 stock: product.stock || 0
               })
               
