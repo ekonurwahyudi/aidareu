@@ -16,6 +16,72 @@ Route::get('/test', function () {
     return response()->json(['message' => 'API is working!']);
 });
 
+// Debug stores endpoint
+Route::get('/debug/stores', function () {
+    try {
+        $user = \App\Models\User::where('uuid', 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8')->first();
+        if (!$user) {
+            return response()->json(['error' => 'User not found']);
+        }
+        
+        $stores = \App\Models\Store::where('user_id', $user->uuid)->get();
+        return response()->json([
+            'user' => $user->uuid,
+            'stores' => $stores
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()]);
+    }
+});
+
+// Debug social media endpoint
+Route::get('/debug/social-media', function () {
+    try {
+        $user = \App\Models\User::where('uuid', 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8')->first();
+        if (!$user) {
+            return response()->json(['error' => 'User not found']);
+        }
+        
+        $store = \App\Models\Store::where('user_id', $user->uuid)->first();
+        if (!$store) {
+            return response()->json(['error' => 'Store not found']);
+        }
+        
+        $socialMedia = \App\Models\SocialMedia::where('store_uuid', $store->uuid)->get();
+        return response()->json([
+            'user' => $user->uuid,
+            'store' => $store->uuid,
+            'social_media' => $socialMedia
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()]);
+    }
+});
+
+// Debug bank accounts endpoint
+Route::get('/debug/bank-accounts', function () {
+    try {
+        $user = \App\Models\User::where('uuid', 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8')->first();
+        if (!$user) {
+            return response()->json(['error' => 'User not found']);
+        }
+        
+        $store = \App\Models\Store::where('user_id', $user->uuid)->first();
+        if (!$store) {
+            return response()->json(['error' => 'Store not found']);
+        }
+        
+        $bankAccounts = \App\Models\BankAccount::where('store_uuid', $store->uuid)->get();
+        return response()->json([
+            'user' => $user->uuid,
+            'store' => $store->uuid,
+            'bank_accounts' => $bankAccounts
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()]);
+    }
+});
+
 // Test registration endpoint
 Route::post('/test-register', function (Request $request) {
     return response()->json([
@@ -43,13 +109,30 @@ Route::get('/locations/provinces', [LocationController::class, 'getProvinces']);
 Route::get('/users/me', [UserController::class, 'me']);
 Route::put('/users/{uuid}', [UserController::class, 'update']);
 
+// Public: Alternative API endpoints for frontend (no auth required)
+Route::get('/public/stores', [\App\Http\Controllers\StoreController::class, 'index']);
+Route::get('/public/social-media', [\App\Http\Controllers\Api\SocialMediaController::class, 'userIndex']);
+Route::get('/public/bank-accounts', [\App\Http\Controllers\Api\BankAccountController::class, 'userIndex']);
+Route::post('/public/social-media', [\App\Http\Controllers\Api\SocialMediaController::class, 'userStore']);
+Route::put('/public/social-media/{socialMedia}', [\App\Http\Controllers\Api\SocialMediaController::class, 'userUpdate']);
+Route::post('/public/bank-accounts', [\App\Http\Controllers\Api\BankAccountController::class, 'userStore']);
+Route::put('/public/bank-accounts/{bankAccount}', [\App\Http\Controllers\Api\BankAccountController::class, 'userUpdate']);
+Route::delete('/public/bank-accounts/{bankAccount}', [\App\Http\Controllers\Api\BankAccountController::class, 'userDestroy']);
+
+// Public: Pixel Store API (no auth required)
+Route::get('/public/pixel-stores', [\App\Http\Controllers\Api\PixelStoreController::class, 'index']);
+Route::post('/public/pixel-stores', [\App\Http\Controllers\Api\PixelStoreController::class, 'store']);
+Route::put('/public/pixel-stores/{pixelUuid}', [\App\Http\Controllers\Api\PixelStoreController::class, 'update']);
+Route::delete('/public/pixel-stores/{pixelUuid}', [\App\Http\Controllers\Api\PixelStoreController::class, 'destroy']);
+Route::put('/public/stores/{uuid}', [\App\Http\Controllers\StoreController::class, 'update']);
+
 // Auth (session-based) - Legacy
 Route::middleware('web')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('api.login');
     Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
 });
 
-// Authenticated routes (mendukung baik web session ATAU sanctum token)
+// Authenticated routes (with development fallback)
 Route::middleware(['auth:sanctum,web'])->group(function () {
     // User info
     Route::get('/auth/me', [AuthController::class, 'me']);

@@ -18,12 +18,19 @@ class StoreController extends Controller
     public function create(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'nama_toko' => 'required|string|min:3|max:50',
-            'subdomain' => 'required|string|min:3|max:30|regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/|unique:stores,subdomain',
-            'no_hp_toko' => 'required|string|regex:/^(\+62|62|0)[0-9]{9,13}$/',
+            'nama_toko'     => 'required|string|min:3|max:50',
+            'subdomain'     => 'required|string|min:3|max:30|regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/|unique:stores,subdomain,' . $store->id,
+            'no_hp_toko' => [
+                                'required',
+                                'string',
+                                'regex:/^(?:\+62|62|0|8)[0-9]{8,13}$/'
+                            ],
             'kategori_toko' => 'required|in:fashion,elektronik,makanan,kesehatan,rumah_tangga,olahraga,buku_media,otomotif,mainan_hobi,jasa,lainnya',
-            'deskripsi_toko' => 'required|string|min:20|max:500'
+            'deskripsi_toko'=> 'required|string|min:20|max:500',
+            'alamat'        => 'nullable|string|max:500',
+            'is_active'     => 'boolean'
         ]);
+
 
         if ($validator->fails()) {
             return response()->json([
@@ -153,14 +160,19 @@ class StoreController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                'nama_toko' => 'required|string|min:3|max:50',
-                'subdomain' => 'required|string|min:3|max:30|regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/|unique:stores,subdomain,' . $store->id,
-                'no_hp_toko' => 'required|string|regex:/^(\+62|62|0)[0-9]{9,13}$/',
+                'nama_toko'     => 'required|string|min:3|max:50',
+                'subdomain'     => 'required|string|min:3|max:30|regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/|unique:stores,subdomain,' . $store->id,
+                'no_hp_toko' => [
+                                    'required',
+                                    'string',
+                                    'regex:/^(?:\+62|62|0|8)[0-9]{8,13}$/'
+                                ],
                 'kategori_toko' => 'required|in:fashion,elektronik,makanan,kesehatan,rumah_tangga,olahraga,buku_media,otomotif,mainan_hobi,jasa,lainnya',
-                'deskripsi_toko' => 'required|string|min:20|max:500',
-                'alamat' => 'nullable|string|max:500',
-                'is_active' => 'boolean'
+                'deskripsi_toko'=> 'required|string|min:20|max:500',
+                'alamat'        => 'nullable|string|max:500',
+                'is_active'     => 'boolean'
             ]);
+
 
             if ($validator->fails()) {
                 return response()->json([

@@ -85,8 +85,8 @@ const BillingCard = ({ open, setOpen, data, onSuccess }: BillingCardProps) => {
       }
 
       const url = data?.uuid 
-        ? `/api/bank-accounts/${data.uuid}` 
-        : '/api/bank-accounts'
+        ? `/api/public/bank-accounts/${data.uuid}` 
+        : '/api/public/bank-accounts'
       
       const method = data?.uuid ? 'PUT' : 'POST'
       

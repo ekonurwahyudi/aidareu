@@ -69,7 +69,7 @@ const ConnectionsTab = () => {
   const fetchSocialMedia = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/social-media', {
+      const response = await fetch('/api/public/social-media', {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
@@ -126,8 +126,8 @@ const ConnectionsTab = () => {
       }
 
       const apiUrl = existingAccount 
-        ? `/api/social-media/${existingAccount.uuid}` 
-        : '/api/social-media'
+        ? `/api/public/social-media/${existingAccount.uuid}` 
+        : '/api/public/social-media'
       
       const method = existingAccount ? 'PUT' : 'POST'
       
