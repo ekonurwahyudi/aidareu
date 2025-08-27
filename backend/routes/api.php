@@ -145,6 +145,11 @@ Route::put('/users/{uuid}', [UserController::class, 'update']);
 
 // Public: Alternative API endpoints for frontend (no auth required)
 Route::get('/public/stores', [\App\Http\Controllers\StoreController::class, 'index']);
+
+// Frontend-expected endpoints (for authenticated use)
+Route::get('/stores', [\App\Http\Controllers\StoreController::class, 'index']);
+Route::get('/pixel-stores', [\App\Http\Controllers\Api\PixelStoreController::class, 'index']);
+Route::get('/landing-pages/{id}', [LandingPageController::class, 'showById']);
 Route::get('/public/social-media', [\App\Http\Controllers\Api\SocialMediaController::class, 'userIndex']);
 Route::get('/public/bank-accounts', [\App\Http\Controllers\Api\BankAccountController::class, 'userIndex']);
 Route::post('/public/social-media', [\App\Http\Controllers\Api\SocialMediaController::class, 'userStore']);

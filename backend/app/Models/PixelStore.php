@@ -13,6 +13,7 @@ class PixelStore extends Model
         'uuid',
         'store_uuid',
         'pixel_type',
+        'nama_pixel',
         'pixel_id',
         'convention_event',
         'test_code',

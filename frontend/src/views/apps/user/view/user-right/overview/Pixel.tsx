@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { ReactElement } from 'react'
 
 // MUI Imports
@@ -34,6 +34,7 @@ type PixelStore = {
   uuid: string
   store_uuid: string
   pixel_type: string
+  nama_pixel: string | null
   pixel_id: string | null
   convention_event: string | null
   test_code: string | null
@@ -42,6 +43,7 @@ type PixelStore = {
 
 type DataType = {
   Keterangan: string
+  namaPixel: string
   convention: string
   pixel: string
   KodeTesting: string
@@ -61,6 +63,7 @@ const RecentKeterangan = () => {
   const [pixelToDelete, setPixelToDelete] = useState<DataType | null>(null)
   const [selectedPixelType, setSelectedPixelType] = useState<string>('')
   const [formData, setFormData] = useState({
+    nama_pixel: '',
     pixel_id: '',
     convention_event: '',
     test_code: ''
@@ -88,10 +91,11 @@ const RecentKeterangan = () => {
   ]
 
   // Create display data from actual database entries
-  const displayData: DataType[] = pixelStores.map(pixelStore => {
+  const displayData: DataType[] = [...pixelStores.map(pixelStore => {
     const pixelTypeConfig = pixelTypes.find(pt => pt.pixelType === pixelStore.pixel_type)
     return {
       Keterangan: pixelTypeConfig?.Keterangan || pixelStore.pixel_type,
+      namaPixel: pixelStore.nama_pixel || '',
       pixel: pixelStore.pixel_id || '',
       convention: pixelStore.convention_event || '',
       KodeTesting: pixelStore.test_code || '',
@@ -99,7 +103,7 @@ const RecentKeterangan = () => {
       pixelType: pixelStore.pixel_type,
       data: pixelStore
     }
-  })
+  })]
 
   // Add empty rows for pixel types that don't exist yet (for visual consistency)
   pixelTypes.forEach(pixelType => {
@@ -107,6 +111,7 @@ const RecentKeterangan = () => {
     if (!exists) {
       displayData.push({
         Keterangan: pixelType.Keterangan,
+        namaPixel: '',
         pixel: '',
         convention: '',
         KodeTesting: '',
@@ -118,7 +123,7 @@ const RecentKeterangan = () => {
   })
 
   // Fetch pixel stores data
-  const fetchPixelStores = async () => {
+  const fetchPixelStores = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch('/api/public/pixel-stores')
@@ -133,13 +138,14 @@ const RecentKeterangan = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   // Handle add new pixel
   const handleAddPixel = () => {
     setAddDialogOpen(true)
     setSelectedPixelType('')
     setFormData({
+      nama_pixel: '',
       pixel_id: '',
       convention_event: '',
       test_code: ''
@@ -159,6 +165,7 @@ const RecentKeterangan = () => {
     // Always create new pixel entry, even if the type already exists
     const pixelItem: DataType = {
       Keterangan: pixelTypeConfig.Keterangan,
+      namaPixel: '',
       pixel: '',
       convention: '',
       KodeTesting: '',
@@ -176,6 +183,7 @@ const RecentKeterangan = () => {
   const handleEdit = (item: DataType) => {
     setEditingPixel(item)
     setFormData({
+      nama_pixel: item.namaPixel || '',
       pixel_id: item.pixel || '',
       convention_event: item.convention || '',
       test_code: item.KodeTesting || ''
@@ -216,7 +224,18 @@ const RecentKeterangan = () => {
       if (result.success) {
         toast.success(isUpdate ? 'Pixel berhasil diperbarui' : 'Pixel berhasil ditambahkan')
         setDialogOpen(false)
-        fetchPixelStores() // Refresh data
+        setEditingPixel(null)
+        // Clear form data
+        setFormData({
+          nama_pixel: '',
+          pixel_id: '',
+          convention_event: '',
+          test_code: ''
+        })
+        // Small delay to ensure backend processing, then refresh data
+        setTimeout(() => {
+          fetchPixelStores()
+        }, 100)
       } else {
         toast.error(result.message || 'Gagal menyimpan pixel')
       }
@@ -252,7 +271,10 @@ const RecentKeterangan = () => {
         toast.success('Pixel berhasil dihapus')
         setDeleteDialogOpen(false)
         setPixelToDelete(null)
-        fetchPixelStores() // Refresh data
+        // Small delay to ensure backend processing, then refresh data
+        setTimeout(() => {
+          fetchPixelStores()
+        }, 100)
       } else {
         toast.error(result.message || 'Gagal menghapus pixel')
       }
@@ -291,6 +313,7 @@ const RecentKeterangan = () => {
             <thead>
               <tr>
                 <th>Keterangan</th>
+                <th>Nama Pixel</th>
                 <th>Pixel Id</th>
                 <th>Convention/Event</th>
                 <th>Kode Testing</th>
@@ -299,12 +322,15 @@ const RecentKeterangan = () => {
             </thead>
             <tbody>
               {displayData.map((item, index) => (
-                <tr key={index}>
+                <tr key={item.data?.uuid || `${item.pixelType}-${index}`}>
                   <td>
                     <div className="flex items-center gap-4">
                       {item.conventionIcon}
                       <Typography color="text.primary">{item.Keterangan}</Typography>
                     </div>
+                  </td>
+                  <td>
+                    <Typography>{item.namaPixel || '-'}</Typography>
                   </td>
                   <td>
                     <Typography>{item.pixel || '-'}</Typography>
@@ -345,6 +371,14 @@ const RecentKeterangan = () => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Nama Pixel"
+                value={formData.nama_pixel}
+                onChange={(e) => setFormData({ ...formData, nama_pixel: e.target.value })}
+              />
+            </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth

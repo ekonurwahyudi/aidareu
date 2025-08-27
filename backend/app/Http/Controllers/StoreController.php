@@ -258,6 +258,7 @@ class StoreController extends Controller
                         'uuid' => $store->uuid,
                         'name' => $store->name,
                         'subdomain' => $store->subdomain,
+                        'domain' => $store->domain,
                         'phone' => $store->phone,
                         'category' => $store->category,
                         'description' => $store->description,
