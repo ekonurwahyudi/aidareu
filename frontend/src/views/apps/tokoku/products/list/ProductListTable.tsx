@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 
 // Next Imports
 import Link from 'next/link'
@@ -18,6 +18,13 @@ import Switch from '@mui/material/Switch'
 import MenuItem from '@mui/material/MenuItem'
 import TablePagination from '@mui/material/TablePagination'
 import Typography from '@mui/material/Typography'
+import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContentText from '@mui/material/DialogContentText'
 import type { TextFieldProps } from '@mui/material/TextField'
 
 // Third-party Imports
@@ -40,13 +47,26 @@ import type { RankingInfo } from '@tanstack/match-sorter-utils'
 
 // Type Imports
 import type { ThemeColor } from '@core/types'
-import type { ProductType } from '@/types/apps/ecommerceTypes'
+import type { Product, Category } from '@/types/product'
+
+// Context Imports
+import { useRBAC } from '@/contexts/rbacContext'
+
+// Hook Imports
+import { useDebounce } from '@/hooks/useDebounce'
+
+// API Imports
+import { productApi } from '@/services/productApi'
+
+// Excel Export
+import * as XLSX from 'xlsx'
 
 // Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'
 import CustomTextField from '@core/components/mui/TextField'
 import OptionMenu from '@core/components/option-menu'
 import TablePaginationComponent from '@components/TablePaginationComponent'
+import { ProductPlaceholder } from '@/components/ProductPlaceholder'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -60,7 +80,7 @@ declare module '@tanstack/table-core' {
   }
 }
 
-type ProductWithActionsType = ProductType & {
+type ProductWithActionsType = Product & {
   actions?: string
 }
 
@@ -114,48 +134,291 @@ const DebouncedInput = ({
 
 // Vars
 const productCategoryObj: ProductCategoryType = {
-  Accessories: { icon: 'tabler-headphones', color: 'error' },
-  'Home Decor': { icon: 'tabler-smart-home', color: 'info' },
-  Electronics: { icon: 'tabler-device-laptop', color: 'primary' },
-  Shoes: { icon: 'tabler-shoe', color: 'success' },
-  Office: { icon: 'tabler-briefcase', color: 'warning' },
-  Games: { icon: 'tabler-device-gamepad-2', color: 'secondary' }
+  'Elektronik': { icon: 'tabler-device-laptop', color: 'primary' },
+  'Fashion': { icon: 'tabler-shirt', color: 'secondary' },
+  'Makanan & Minuman': { icon: 'tabler-pizza', color: 'success' },
+  'Kesehatan & Kecantikan': { icon: 'tabler-heart-handshake', color: 'info' },
+  'Rumah & Taman': { icon: 'tabler-smart-home', color: 'warning' },
+  'Olahraga': { icon: 'tabler-ball-football', color: 'error' },
+  'Otomotif': { icon: 'tabler-car', color: 'success' },
+  'Buku & Media': { icon: 'tabler-book', color: 'info' }
 }
 
 const productStatusObj: productStatusType = {
-  Scheduled: { title: 'Scheduled', color: 'warning' },
-  Published: { title: 'Publish', color: 'success' },
-  Inactive: { title: 'Inactive', color: 'error' }
+  active: { title: 'Active', color: 'success' },
+  inactive: { title: 'Inactive', color: 'error' },
+  draft: { title: 'Draft', color: 'warning' }
 }
 
 // Column Definitions
 const columnHelper = createColumnHelper<ProductWithActionsType>()
 
-const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
+const ProductListTable = () => {
+  // RBAC Context
+  const { currentStore, user, isLoading: rbacLoading } = useRBAC()
+
   // States
   const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState(...[productData])
-  const [filteredData, setFilteredData] = useState(data)
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [globalFilter, setGlobalFilter] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10
+  })
+  const [totalRows, setTotalRows] = useState(0)
 
-  // New states for filters
+  // Filter states
   const [statusFilter, setStatusFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
 
-  // Effect to filter data
+  // Debounced values for better API performance
+  const debouncedSearch = useDebounce(globalFilter, 500)
+  const debouncedStatusFilter = useDebounce(statusFilter, 300)
+  const debouncedCategoryFilter = useDebounce(categoryFilter, 300)
+
+  // Fetch products from API
+  const fetchProducts = useCallback(async () => {
+    // Check for store UUID - prioritize uuid field over id
+    const storeUuid = currentStore?.uuid || currentStore?.id
+    if (!storeUuid) {
+      console.warn('No current store UUID available for fetching products')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      const filters = {
+        search: debouncedSearch || undefined,
+        status: debouncedStatusFilter !== 'all' ? debouncedStatusFilter as any : undefined,
+        category_id: debouncedCategoryFilter !== 'all' ? Number(debouncedCategoryFilter) : undefined,
+        page: pagination.pageIndex + 1,
+        per_page: pagination.pageSize
+      }
+
+      console.log('Fetching products for store UUID:', storeUuid, 'with filters:', filters)
+
+      // Use public endpoint to fetch products
+      const queryParams = new URLSearchParams()
+      queryParams.append('store_uuid', storeUuid)
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== 'all') {
+          queryParams.append(key, String(value))
+        }
+      })
+
+      const response = await fetch(`/api/public/products?${queryParams.toString()}&_t=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-cache' // Disable caching to ensure fresh data
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      
+      console.log('Products fetched successfully:', result)
+      if (result.status === 'success') {
+        setProducts(result.data.data || [])
+        setTotalRows(result.data.total || 0)
+      } else {
+        throw new Error(result.message || 'Failed to fetch products')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch products')
+      console.error('Error fetching products for store UUID:', storeUuid, err)
+    } finally {
+      setLoading(false)
+    }
+  }, [currentStore?.uuid, currentStore?.id, debouncedSearch, debouncedStatusFilter, debouncedCategoryFilter, pagination])
+
+  // Fetch categories
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/public/categories?_t=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-cache'
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setCategories(result.data || [])
+      } else {
+        throw new Error('Failed to fetch categories')
+      }
+    } catch (err) {
+      console.error('Error fetching categories:', err)
+    }
+  }, [])
+
+  // Initialize data
   useEffect(() => {
-    let updated = [...(data || [])]
+    fetchCategories()
+  }, [])
 
-    if (statusFilter !== 'all') {
-      updated = updated.filter(item => item.status === statusFilter)
+  // Fetch products when dependencies change
+  useEffect(() => {
+    if (currentStore && !rbacLoading) {
+      fetchProducts()
+    }
+  }, [fetchProducts, currentStore, rbacLoading])
+
+  // Refresh data when window gains focus (user returns from edit page)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (currentStore && !rbacLoading) {
+        console.log('Window focused, refreshing products...')
+        fetchProducts()
+      }
     }
 
-    if (categoryFilter !== 'all') {
-      updated = updated.filter(item => item.category === categoryFilter)
+    const handleVisibilityChange = () => {
+      if (!document.hidden && currentStore && !rbacLoading) {
+        console.log('Page visible, refreshing products...')
+        fetchProducts()
+      }
     }
 
-    setFilteredData(updated)
-  }, [statusFilter, categoryFilter, data])
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [currentStore, rbacLoading, fetchProducts])
+
+  // Auto refresh every 30 seconds to keep data fresh
+  useEffect(() => {
+    if (!currentStore || rbacLoading) return
+
+    const interval = setInterval(() => {
+      console.log('Auto refreshing products...')
+      fetchProducts()
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
+  }, [currentStore, rbacLoading, fetchProducts])
+
+  // Handle status update
+  const handleStatusUpdate = async (product: Product, newStatus: 'active' | 'inactive') => {
+    try {
+      await productApi.updateProductStatus(product.uuid, newStatus)
+      // Refresh products
+      fetchProducts()
+    } catch (err) {
+      console.error('Error updating product status:', err)
+    }
+  }
+
+  // Handle product delete
+  const handleDeleteClick = (product: Product) => {
+    setProductToDelete(product)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!productToDelete) return
+
+    try {
+      setDeleting(true)
+      
+      const response = await fetch(`/api/public/products/${productToDelete.uuid}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      
+      if (result.status === 'success') {
+        // Refresh products
+        fetchProducts()
+        setDeleteDialogOpen(false)
+        setProductToDelete(null)
+      } else {
+        throw new Error(result.message || 'Failed to delete product')
+      }
+    } catch (err) {
+      console.error('Error deleting product:', err)
+      setError(err instanceof Error ? err.message : 'Failed to delete product')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  // Handle Excel export
+  const handleExcelExport = () => {
+    try {
+      // Format data for Excel export
+      const exportData = products.map((product, index) => ({
+        'No': index + 1,
+        'Nama Produk': product.nama_produk,
+        'SKU': product.sku,
+        'Kategori': product.category?.judul_kategori || '-',
+        'Jenis Produk': product.jenis_produk === 'digital' ? 'Digital' : 'Fisik',
+        'Harga': product.harga_produk.toLocaleString('id-ID'),
+        'Harga Diskon': product.harga_diskon ? product.harga_diskon.toLocaleString('id-ID') : '-',
+        'Stock': product.stock,
+        'Status': product.status_produk === 'active' ? 'Aktif' : product.status_produk === 'inactive' ? 'Tidak Aktif' : 'Draft',
+        'Deskripsi': product.deskripsi || '-',
+        'URL Produk': product.url_produk || '-',
+        'Meta Description': product.meta_description || '-',
+        'Meta Keywords': product.meta_keywords || '-',
+        'Dibuat': new Date(product.created_at).toLocaleDateString('id-ID'),
+        'Diperbarui': new Date(product.updated_at).toLocaleDateString('id-ID')
+      }))
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(exportData)
+
+      // Set column widths
+      const colWidths = [
+        { wch: 5 },  // No
+        { wch: 25 }, // Nama Produk
+        { wch: 15 }, // SKU
+        { wch: 20 }, // Kategori
+        { wch: 12 }, // Jenis Produk
+        { wch: 15 }, // Harga
+        { wch: 15 }, // Harga Diskon
+        { wch: 8 },  // Stock
+        { wch: 12 }, // Status
+        { wch: 30 }, // Deskripsi
+        { wch: 25 }, // URL Produk
+        { wch: 30 }, // Meta Description
+        { wch: 30 }, // Meta Keywords
+        { wch: 12 }, // Dibuat
+        { wch: 12 }  // Diperbarui
+      ]
+      ws['!cols'] = colWidths
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Products')
+
+      // Generate filename with current date
+      const today = new Date().toISOString().split('T')[0]
+      const storeName = currentStore?.nama_toko || currentStore?.name || 'Store'
+      const filename = `${storeName}_Products_${today}.xlsx`
+
+      // Save file
+      XLSX.writeFile(wb, filename)
+    } catch (err) {
+      console.error('Error exporting to Excel:', err)
+      setError('Failed to export data to Excel')
+    }
+  }
 
   // Columns
   const columns = useMemo<ColumnDef<ProductWithActionsType, any>[]>(() => [
@@ -181,79 +444,196 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
         />
       )
     },
-    columnHelper.accessor('productName', {
-      header: 'Product',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-4">
-          <img src={row.original.image} width={38} height={38} className="rounded bg-actionHover" />
-          <div className="flex flex-col">
-            <Typography className="font-medium" color="text.primary">
-              {row.original.productName}
-            </Typography>
-            <Typography variant="body2">{row.original.productBrand}</Typography>
+    columnHelper.accessor('nama_produk', {
+      header: 'Produk',
+      cell: ({ row }) => {
+        // Handle different image data formats
+        let imageUrl = null
+        const imageData = row.original.upload_gambar_produk
+        
+        if (imageData) {
+          if (typeof imageData === 'string') {
+            // If it's a string, it might be JSON or a single path
+            try {
+              const parsed = JSON.parse(imageData)
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                imageUrl = `http://127.0.0.1:8000/storage/${parsed[0]}`
+              }
+            } catch {
+              // If parsing fails, treat as single path
+              imageUrl = `http://127.0.0.1:8000/storage/${imageData}`
+            }
+          } else if (Array.isArray(imageData) && imageData.length > 0) {
+            // If it's already an array
+            imageUrl = `http://127.0.0.1:8000/storage/${imageData[0]}`
+          }
+        }
+
+        return (
+          <div className="flex items-center gap-4">
+            {imageUrl ? (
+              <img 
+                src={imageUrl}
+                width={38} 
+                height={38} 
+                className="rounded bg-actionHover object-cover" 
+                alt={row.original.nama_produk}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  // Show placeholder on error by finding it
+                  const parent = target.parentElement
+                  const placeholder = parent?.querySelector('.product-placeholder')
+                  if (placeholder) {
+                    (placeholder as HTMLElement).style.display = 'block'
+                  }
+                }}
+              />
+            ) : null}
+            <ProductPlaceholder 
+              width={38} 
+              height={38} 
+              className={`product-placeholder ${imageUrl ? 'hidden' : ''}`}
+            />
+            <div className="flex flex-col">
+              <Typography className="font-medium" color="text.primary">
+                {row.original.nama_produk}
+              </Typography>
+            </div>
           </div>
-        </div>
-      )
+        )
+      }
+    }),
+    columnHelper.accessor('jenis_produk', {
+      header: 'Jenis Produk',
+      cell: ({ row }) => {
+        const productType = row.original.jenis_produk
+        const isDigital = productType === 'digital'
+        
+        return (
+          <div className="flex items-center gap-4">
+            <CustomAvatar skin="light" color={isDigital ? 'info' : 'success'} size={30}>
+              <i className={classnames(isDigital ? 'tabler-cloud' : 'tabler-package', 'text-lg')} />
+            </CustomAvatar>
+            <Typography color="text.primary">
+              {isDigital ? 'Digital' : 'Fisik'}
+            </Typography>
+          </div>
+        )
+      }
     }),
     columnHelper.accessor('category', {
-      header: 'Category',
+      header: 'Kategori',
+      cell: ({ row }) => {
+        const categoryName = row.original.category?.judul_kategori || 'Uncategorized'
+        const categoryIcon = productCategoryObj[categoryName]?.icon || 'tabler-tag'
+        const categoryColor = productCategoryObj[categoryName]?.color || 'secondary'
+        
+        return (
+          <div className="flex items-center gap-4">
+            <CustomAvatar skin="light" color={categoryColor} size={30}>
+              <i className={classnames(categoryIcon, 'text-lg')} />
+            </CustomAvatar>
+            <Typography color="text.primary">{categoryName}</Typography>
+          </div>
+        )
+      }
+    }),
+    columnHelper.accessor('harga_produk', {
+      header: 'Harga Awal',
       cell: ({ row }) => (
-        <div className="flex items-center gap-4">
-          <CustomAvatar skin="light" color={productCategoryObj[row.original.category].color} size={30}>
-            <i className={classnames(productCategoryObj[row.original.category].icon, 'text-lg')} />
-          </CustomAvatar>
-          <Typography color="text.primary">{row.original.category}</Typography>
-        </div>
+        <Typography>
+          Rp {new Intl.NumberFormat('id-ID').format(row.original.harga_produk)}
+        </Typography>
       )
     }),
-    columnHelper.accessor('price', {
-      header: 'Harga Awal',
-      cell: ({ row }) => <Typography>{row.original.price}</Typography>
-    }),
-    columnHelper.accessor('price', {
+    columnHelper.accessor('harga_diskon', {
       header: 'Harga Diskon',
-      cell: ({ row }) => <Typography>{row.original.price}</Typography>
+      cell: ({ row }) => (
+        <Typography>
+          {row.original.harga_diskon 
+            ? `Rp ${new Intl.NumberFormat('id-ID').format(row.original.harga_diskon)}` 
+            : '-'
+          }
+        </Typography>
+      )
     }),
-    columnHelper.accessor('stock', {
+    columnHelper.accessor('status_produk', {
       header: 'Status',
-      cell: ({ row }) => <Switch defaultChecked={row.original.stock} />,
+      cell: ({ row }) => {
+        const isActive = row.original.status_produk === 'active'
+        return (
+          <Switch 
+            checked={isActive}
+            onChange={(e) => handleStatusUpdate(
+              row.original, 
+              e.target.checked ? 'active' : 'inactive'
+            )}
+          />
+        )
+      },
       enableSorting: false
     }),
     columnHelper.accessor('actions', {
-      header: 'Actions',
+      header: 'Aksi',
       cell: ({ row }) => (
         <div className="flex items-center">
-          <IconButton>
+          <IconButton component={Link} href={`/apps/tokoku/products/edit/${row.original.uuid}`}>
             <i className="tabler-edit text-textSecondary" />
           </IconButton>
-          <IconButton>
+          <IconButton onClick={() => handleDeleteClick(row.original)}>
             <i className="tabler-trash text-textSecondary" />
           </IconButton>
         </div>
       ),
       enableSorting: false
     })
-  ], [data, filteredData])
+  ], [products, handleStatusUpdate, handleDeleteClick])
 
-  // Table setup
+  // Table setup with server-side pagination
   const table = useReactTable({
-    data: filteredData as ProductType[],
+    data: products,
     columns,
     filterFns: { fuzzy: fuzzyFilter },
-    state: { rowSelection, globalFilter },
-    initialState: { pagination: { pageSize: 10 } },
+    state: { 
+      rowSelection, 
+      globalFilter,
+      pagination 
+    },
     enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues()
+    manualPagination: true, // Enable server-side pagination
+    manualFiltering: true,  // Enable server-side filtering
+    pageCount: Math.ceil(totalRows / pagination.pageSize)
   })
+
+  // Show loading or error states
+  if (rbacLoading) {
+    return (
+      <Card>
+        <div className="flex justify-center items-center p-8">
+          <CircularProgress />
+          <Typography className="ml-2">Loading user data...</Typography>
+        </div>
+      </Card>
+    )
+  }
+
+  if (!currentStore) {
+    return (
+      <Card>
+        <div className="text-center p-8">
+          <Alert severity="warning">
+            No store found. Please create a store first.
+          </Alert>
+        </div>
+      </Card>
+    )
+  }
 
   return (
     <Card>
@@ -262,7 +642,13 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
         title="My Products"
         action={
           <div className="flex gap-3">
-            <Button color="success" variant="tonal" startIcon={<i className="tabler-file-excel" />}>
+            <Button 
+              color="success" 
+              variant="tonal" 
+              startIcon={<i className="tabler-file-excel" />}
+              onClick={handleExcelExport}
+              disabled={products.length === 0 || loading}
+            >
               Export
             </Button>
             <Button variant="contained" component={Link} href="/apps/tokoku/products/add" startIcon={<i className="tabler-plus" />}>
@@ -274,13 +660,19 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
 
       <Divider />
 
+      {error && (
+        <Alert severity="error" className="m-6">
+          {error}
+        </Alert>
+      )}
+
       {/* Filter Row */}
       <div className="flex flex-wrap justify-between items-center gap-4 p-6">
         {/* Kiri bawah: Show entries */}
         <CustomTextField
           select
-          value={table.getState().pagination.pageSize}
-          onChange={e => table.setPageSize(Number(e.target.value))}
+          value={pagination.pageSize}
+          onChange={e => setPagination(prev => ({ ...prev, pageSize: Number(e.target.value), pageIndex: 0 }))}
           className="w-[80px]"
         >
           <MenuItem value="10">10</MenuItem>
@@ -299,15 +691,15 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
 
           <CustomTextField select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-[150px]">
             <MenuItem value="all">All Status</MenuItem>
-            {Object.keys(productStatusObj).map(s => (
-              <MenuItem key={s} value={s}>{productStatusObj[s].title}</MenuItem>
+            {Object.entries(productStatusObj).map(([key, status]) => (
+              <MenuItem key={key} value={key}>{status.title}</MenuItem>
             ))}
           </CustomTextField>
 
           <CustomTextField select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="w-[150px]">
             <MenuItem value="all">All Categories</MenuItem>
-            {Object.keys(productCategoryObj).map(c => (
-              <MenuItem key={c} value={c}>{c}</MenuItem>
+            {categories.map(category => (
+              <MenuItem key={category.id} value={category.id}>{category.judul_kategori}</MenuItem>
             ))}
           </CustomTextField>
         </div>
@@ -315,64 +707,108 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className={tableStyles.table}>
-          <thead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th key={header.id}>
-                    {header.isPlaceholder ? null : (
-                      <div
-                        className={classnames({
-                          'flex items-center': header.column.getIsSorted(),
-                          'cursor-pointer select-none': header.column.getCanSort()
-                        })}
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {{
-                          asc: <i className="tabler-chevron-up text-xl" />,
-                          desc: <i className="tabler-chevron-down text-xl" />
-                        }[header.column.getIsSorted() as 'asc' | 'desc'] ?? null}
-                      </div>
-                    )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          {table.getFilteredRowModel().rows.length === 0 ? (
-            <tbody>
-              <tr>
-                <td colSpan={table.getVisibleFlatColumns().length} className="text-center">
-                  No data available
-                </td>
-              </tr>
-            </tbody>
-          ) : (
-            <tbody>
-              {table.getRowModel().rows.map(row => (
-                <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+        {loading && (
+          <div className="flex justify-center items-center p-8">
+            <CircularProgress size={24} />
+            <Typography className="ml-2">Loading products...</Typography>
+          </div>
+        )}
+        
+        {!loading && (
+          <table className={tableStyles.table}>
+            <thead>
+              {table.getHeaderGroups().map(headerGroup => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <th key={header.id}>
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={classnames({
+                            'flex items-center': header.column.getIsSorted(),
+                            'cursor-pointer select-none': header.column.getCanSort()
+                          })}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {{
+                            asc: <i className="tabler-chevron-up text-xl" />,
+                            desc: <i className="tabler-chevron-down text-xl" />
+                          }[header.column.getIsSorted() as 'asc' | 'desc'] ?? null}
+                        </div>
+                      )}
+                    </th>
                   ))}
                 </tr>
               ))}
-            </tbody>
-          )}
-        </table>
+            </thead>
+            {products.length === 0 ? (
+              <tbody>
+                <tr>
+                  <td colSpan={table.getVisibleFlatColumns().length} className="text-center">
+                    {loading ? 'Loading...' : 'No products found'}
+                  </td>
+                </tr>
+              </tbody>
+            ) : (
+              <tbody>
+                {table.getRowModel().rows.map(row => (
+                  <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            )}
+          </table>
+        )}
       </div>
 
       {/* Pagination */}
       <TablePagination
         component={() => <TablePaginationComponent table={table} />}
-        count={table.getFilteredRowModel().rows.length}
-        rowsPerPage={table.getState().pagination.pageSize}
-        page={table.getState().pagination.pageIndex}
+        count={totalRows}
+        rowsPerPage={pagination.pageSize}
+        page={pagination.pageIndex}
         onPageChange={(_, page) => {
-          table.setPageIndex(page)
+          setPagination(prev => ({ ...prev, pageIndex: page }))
         }}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          <div className="flex items-center gap-2">
+            <i className="tabler-alert-triangle text-warning text-xl" />
+            Konfirmasi Hapus
+          </div>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Apakah Anda yakin ingin menghapus produk <strong>{productToDelete?.nama_produk}</strong>?
+            <br />
+            Tindakan ini tidak dapat dibatalkan.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions className="p-4 pt-0">
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)} 
+            disabled={deleting}
+            variant="outlined"
+          >
+            Batal
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error"
+            variant="contained"
+            disabled={deleting}
+            startIcon={deleting ? <i className="tabler-loader animate-spin" /> : <i className="tabler-trash" />}
+          >
+            {deleting ? 'Menghapus...' : 'Hapus'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   )
 }

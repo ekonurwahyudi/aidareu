@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StoreController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Api\LandingPageController;
 use App\Http\Controllers\Api\RBACController;
 use App\Http\Controllers\Api\SocialMediaController;
@@ -104,6 +106,17 @@ Route::get('/stores/check-subdomain', [StoreController::class, 'checkSubdomain']
 // Public: Location API (no auth required)
 Route::get('/locations/cities', [LocationController::class, 'getCities']);
 Route::get('/locations/provinces', [LocationController::class, 'getProvinces']);
+
+// Public: Categories API (no auth required)
+Route::get('/public/categories', [CategoryController::class, 'getActiveCategories']);
+
+// Public: Products API (no auth required for testing)
+Route::get('/public/products', [ProductController::class, 'index']);
+Route::post('/public/products', [ProductController::class, 'store']);
+Route::get('/public/products/{product}', [ProductController::class, 'show']);
+Route::put('/public/products/{product}', [ProductController::class, 'update']);
+Route::post('/public/products/{product}', [ProductController::class, 'update']); // Handle POST with _method=PUT
+Route::delete('/public/products/{product}', [ProductController::class, 'destroy']);
 
 // Public: User API for testing (no auth required)
 Route::get('/users/me', [UserController::class, 'me']);
@@ -214,6 +227,30 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
     // Utility Routes
     Route::get('/social-media/platforms', [SocialMediaController::class, 'getPlatforms']);
     Route::get('/bank-accounts/banks', [BankAccountController::class, 'getBanks']);
+    
+    // Category Routes
+    Route::prefix('categories')->group(function () {
+        Route::get('/', [CategoryController::class, 'index']);
+        Route::post('/', [CategoryController::class, 'store']);
+        Route::get('/active', [CategoryController::class, 'getActiveCategories']);
+        Route::get('/search', [CategoryController::class, 'search']);
+        Route::get('/{category}', [CategoryController::class, 'show']);
+        Route::put('/{category}', [CategoryController::class, 'update']);
+        Route::delete('/{category}', [CategoryController::class, 'destroy']);
+        Route::patch('/{category}/toggle-status', [CategoryController::class, 'toggleStatus']);
+    });
+    
+    // Product Routes
+    Route::prefix('products')->group(function () {
+        Route::get('/', [ProductController::class, 'index']);
+        Route::post('/', [ProductController::class, 'store']);
+        Route::get('/store/{storeUuid}', [ProductController::class, 'getByStore']);
+        Route::get('/{product}', [ProductController::class, 'show']);
+        Route::put('/{product}', [ProductController::class, 'update']);
+        Route::delete('/{product}', [ProductController::class, 'destroy']);
+        Route::patch('/{product}/status', [ProductController::class, 'updateStatus']);
+        Route::patch('/{product}/stock', [ProductController::class, 'updateStock']);
+    });
     
 
     // Landing Page Routes

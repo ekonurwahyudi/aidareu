@@ -108,9 +108,17 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the stores the user is associated with.
+     * Get the stores owned by the user (alias for ownedStores).
      */
-    public function stores(): BelongsToMany
+    public function stores(): HasMany
+    {
+        return $this->ownedStores();
+    }
+
+    /**
+     * Get the stores the user is associated with via roles.
+     */
+    public function roleStores(): BelongsToMany
     {
         return $this->belongsToMany(Store::class, 'user_roles')
                    ->withPivot('role_id')

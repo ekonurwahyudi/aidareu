@@ -13,6 +13,11 @@ import Divider from '@mui/material/Divider'
 import MenuItem from '@mui/material/MenuItem'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContentText from '@mui/material/DialogContentText'
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
@@ -40,6 +45,8 @@ const DomainToko = () => {
   const [domain, setDomain] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(true)
   const [saving, setSaving] = useState<boolean>(false)
+  const [deleting, setDeleting] = useState<boolean>(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false)
 
   // Fetch stores
   const fetchStores = async () => {
@@ -117,6 +124,55 @@ const DomainToko = () => {
     }
   }
 
+  // Handle delete click
+  const handleDeleteClick = () => {
+    if (!selectedStoreUuid) {
+      toast.error('Pilih toko terlebih dahulu')
+      return
+    }
+    setDeleteDialogOpen(true)
+  }
+
+  // Handle domain deletion
+  const handleDeleteConfirm = async () => {
+    if (!selectedStoreUuid) return
+
+    try {
+      setDeleting(true)
+      
+      const payload = {
+        domain: ''
+      }
+
+      const res = await fetch(`/api/public/stores/${selectedStoreUuid}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      const data = await res.json()
+      
+      if (res.ok) {
+        toast.success('Domain berhasil dihapus!')
+        // Update local state
+        setStores(stores.map(store => 
+          store.uuid === selectedStoreUuid 
+            ? { ...store, domain: '' }
+            : store
+        ))
+        setDomain('')
+        setDeleteDialogOpen(false)
+      } else {
+        toast.error(data.message || 'Gagal menghapus domain')
+      }
+    } catch (error) {
+      console.error('Error deleting domain:', error)
+      toast.error('Terjadi kesalahan saat menghapus domain')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   useEffect(() => {
     fetchStores()
   }, [])
@@ -124,6 +180,7 @@ const DomainToko = () => {
   const selectedStore = stores.find(store => store.uuid === selectedStoreUuid)
 
   return (
+    <>
     <Card>
       <CardHeader
         title="Domain Toko"
@@ -200,10 +257,21 @@ const DomainToko = () => {
               >
                 Cek Domain
               </Button>
+              {selectedStore?.domain && (
+                <Button 
+                  variant="outlined" 
+                  color="error"
+                  onClick={handleDeleteClick}
+                  disabled={deleting || saving || !selectedStoreUuid}
+                  startIcon={<i className="tabler-trash" />}
+                >
+                  {deleting ? 'Menghapus...' : 'Hapus Domain'}
+                </Button>
+              )}
               <Button 
                 variant="contained" 
                 type="submit"
-                disabled={saving || !selectedStoreUuid}
+                disabled={saving || deleting || !selectedStoreUuid}
                 endIcon={<i className="tabler-check" />}
               >
                 {saving ? 'Menyimpan...' : 'Simpan'}
@@ -213,6 +281,41 @@ const DomainToko = () => {
         </form>
       </CardContent>
     </Card>
+
+    {/* Delete Confirmation Dialog */}
+    <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
+      <DialogTitle>
+        <div className="flex items-center gap-2">
+          <i className="tabler-alert-triangle text-warning text-xl" />
+          Konfirmasi Hapus
+        </div>
+      </DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          Apakah Anda yakin ingin menghapus domain <strong>{selectedStore?.domain}</strong>? 
+          Tindakan ini tidak dapat dibatalkan.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions className="p-4 pt-0">
+        <Button 
+          onClick={() => setDeleteDialogOpen(false)} 
+          disabled={deleting}
+          variant="outlined"
+        >
+          Batal
+        </Button>
+        <Button 
+          onClick={handleDeleteConfirm} 
+          color="error"
+          variant="contained"
+          disabled={deleting}
+          startIcon={deleting ? <i className="tabler-loader animate-spin" /> : <i className="tabler-trash" />}
+        >
+          {deleting ? 'Menghapus...' : 'Hapus'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </>
   )
 }
 

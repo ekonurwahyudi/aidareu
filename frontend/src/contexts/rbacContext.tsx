@@ -29,32 +29,80 @@ export const RBACProvider = ({ children }: RBACProviderProps) => {
     try {
       setIsLoading(true)
       
-      // Get current user data
-      const userResponse = await fetch('/api/auth/me', {
-        credentials: 'include'
-      })
+      // Try to get user data from localStorage first (fallback)
+      const storedUserData = localStorage.getItem('user_data')
+      let userData = null
       
-      if (userResponse.ok) {
-        const userData = await userResponse.json()
-        setUser(userData.data)
-        
-        // Set default store if user has stores
-        if (userData.data.stores && userData.data.stores.length > 0) {
-          setCurrentStore(userData.data.stores[0])
+      if (storedUserData) {
+        try {
+          userData = JSON.parse(storedUserData)
+          console.log('User data loaded from localStorage:', userData)
+        } catch (error) {
+          console.error('Failed to parse stored user data:', error)
         }
-        
-        // Get user permissions
-        await refreshPermissions()
       }
       
-      // Get available roles
-      const rolesResponse = await fetch('/api/rbac/roles', {
-        credentials: 'include'
-      })
+      // Try to fetch fresh user data from API
+      try {
+        const userResponse = await fetch('/api/public/stores', {
+          credentials: 'include'
+        })
+        
+        if (userResponse.ok) {
+          const storesData = await userResponse.json()
+          console.log('Stores data loaded:', storesData)
+          
+          // If we have stored user data, combine it with stores
+          if (userData) {
+            userData.stores = storesData.data || storesData.stores || []
+            setUser(userData)
+            
+            // Set default store if user has stores
+            if (userData.stores && userData.stores.length > 0) {
+              console.log('Setting current store:', userData.stores[0])
+              setCurrentStore(userData.stores[0])
+            } else {
+              console.warn('No stores found for user')
+            }
+          }
+        } else {
+          console.error('Failed to fetch stores data:', userResponse.status, userResponse.statusText)
+          
+          // If API fails but we have stored user data, use it
+          if (userData) {
+            setUser(userData)
+            console.log('Using stored user data due to API failure')
+          }
+        }
+      } catch (apiError) {
+        console.error('API request failed, using stored data if available:', apiError)
+        
+        // If API fails but we have stored user data, use it
+        if (userData) {
+          setUser(userData)
+          console.log('Using stored user data due to API error')
+        }
+      }
       
-      if (rolesResponse.ok) {
-        const rolesData = await rolesResponse.json()
-        setRoles(rolesData.data)
+      // Try to get user permissions (optional)
+      try {
+        await refreshPermissions()
+      } catch (permError) {
+        console.warn('Failed to refresh permissions, continuing without them:', permError)
+      }
+      
+      // Try to get available roles (optional)
+      try {
+        const rolesResponse = await fetch('/api/rbac/roles', {
+          credentials: 'include'
+        })
+        
+        if (rolesResponse.ok) {
+          const rolesData = await rolesResponse.json()
+          setRoles(rolesData.data)
+        }
+      } catch (rolesError) {
+        console.warn('Failed to fetch roles, continuing without them:', rolesError)
       }
       
     } catch (error) {

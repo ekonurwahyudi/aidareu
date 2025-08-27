@@ -12,14 +12,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('stores', function (Blueprint $table) {
-            // Drop existing foreign key constraint if it exists
-            try {
+        // Check if foreign key exists before trying to drop it
+        $foreignKeys = DB::select("SELECT constraint_name FROM information_schema.table_constraints WHERE table_name = 'stores' AND constraint_type = 'FOREIGN KEY' AND constraint_name = 'stores_user_id_foreign'");
+        
+        if (count($foreignKeys) > 0) {
+            Schema::table('stores', function (Blueprint $table) {
                 $table->dropForeign(['user_id']);
-            } catch (Exception $e) {
-                // Foreign key might not exist, continue
-            }
-        });
+            });
+        }
         
         // Add a temporary UUID column
         Schema::table('stores', function (Blueprint $table) {

@@ -38,10 +38,14 @@ export interface User {
 
 export interface Store {
   id: string
+  uuid: string
   nama_toko: string
+  name?: string
   sub_domain: string
+  subdomain?: string
   domain?: string
   no_hp_toko: string
+  phone?: string
   kategori_toko: string
   deskripsi_toko: string
   logo?: string
