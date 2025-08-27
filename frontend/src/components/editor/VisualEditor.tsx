@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
@@ -9,7 +10,7 @@ import CardContent from '@mui/material/CardContent'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import IconButton from '@mui/material/IconButton'
-import CustomIconButton from '@core/components/mui/IconButton'
+
 import TextField from '@mui/material/TextField'
 import Drawer from '@mui/material/Drawer'
 import List from '@mui/material/List'
@@ -33,6 +34,9 @@ import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import { RgbaColorPicker, HexColorInput } from 'react-colorful'
+
+import CustomIconButton from '@core/components/mui/IconButton'
+import TiptapEditor from './TiptapEditor'
 
 // Using emoji icons for now - Material-UI icons package needs to be installed
 // import EditIcon from '@mui/icons-material/Edit'
@@ -168,15 +172,20 @@ const DraggableComponent = ({ type, label, icon, onAdd }: { type: string; label:
 const Canvas = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => {
   // Enable pan/drag of the whole canvas like Notion/Elementor (space+drag)
   const containerRef = useRef<HTMLDivElement | null>(null)
+
   useEffect(() => {
     const el = containerRef.current
+
     if (!el) return
     let isPanning = false
     let startX = 0, startY = 0
     let scrollLeft = 0, scrollTop = 0
+
     const down = (e: MouseEvent) => {
       const isSpace = (e as any).buttons === 1 && (e as any).which === 1 && (e as any).shiftKey === false && (e as any).altKey === false && (e as any).ctrlKey === false && (e as any).metaKey === false && (e as any).button === 0 && (e as any)
+
       if ((e as any).target instanceof HTMLElement && (e as any).target.tagName === 'IFRAME') return
+
       if ((e as any).buttons === 1 && (e as any).button === 0 && (e as any).shiftKey) { // hold Shift to pan
         isPanning = true
         startX = e.clientX
@@ -186,18 +195,24 @@ const Canvas = ({ children, className = '' }: { children: React.ReactNode; class
         el.style.cursor = 'grabbing'
       }
     }
+
     const move = (e: MouseEvent) => {
       if (!isPanning) return
       const dx = e.clientX - startX
       const dy = e.clientY - startY
+
       el.scrollLeft = scrollLeft - dx
       el.scrollTop = scrollTop - dy
     }
+
     const up = () => { isPanning = false; el.style.cursor = 'default' }
+
     el.addEventListener('mousedown', down)
     el.addEventListener('mousemove', move)
     el.addEventListener('mouseup', up)
-    return () => {
+
+    
+return () => {
       el.removeEventListener('mousedown', down)
       el.removeEventListener('mousemove', move)
       el.removeEventListener('mouseup', up)
@@ -566,13 +581,16 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   const [editedHtml, setEditedHtml] = useState(initialData?.html || '<div style="text-align: center; padding: 40px; color: #6b7280; border: 2px dashed #e0e0e0; border-radius: 8px; margin: 20px;"><h2>Welcome to Visual Editor</h2><p>Start by adding components from the sidebar</p></div>')
   const [selectedElement, setSelectedElement] = useState<any>(null)
   const [selectedElementVersion, setSelectedElementVersion] = useState(0)
+  const [lastScrollPosition, setLastScrollPosition] = useState({ top: 0, left: 0 })
   const [elementTree, setElementTree] = useState<any[]>([])
   const [draggedElement, setDraggedElement] = useState<any>(null)
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile' | 'tablet'>('desktop')
+  const [isUpdatingContent, setIsUpdatingContent] = useState(false) // Track content updates
   // Local history for Undo/Redo inside the canvas (HTML snapshots)
   const [htmlHistory, setHtmlHistory] = useState<string[]>([initialData?.html || ''])
   const [historyIndex, setHistoryIndex] = useState<number>(0)
   const applyingHistoryRef = useRef<boolean>(false)
+
   // Original snapshot (first mount) for hard reset
   const originalSnapshotRef = useRef<string>(initialData?.html || '')
   
@@ -604,12 +622,14 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   const [stores, setStores] = useState<Store[]>([])
   const [domains, setDomains] = useState<Domain[]>([])
   const [pixels, setPixels] = useState<PixelStore[]>([])
+
   const [loading, setLoading] = useState({
     stores: false,
     domains: false,
     pixels: false,
     pageData: false
   })
+
   const [errors, setErrors] = useState<string[]>([])
 
   // Data loading functions
@@ -629,8 +649,10 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
       }
       
       const data = await response.json()
+
       // Handle the specific response format from public stores API
       const stores = data.stores || data.data || data || []
+
       setStores(stores)
     } catch (error) {
       console.error('Error loading stores:', error)
@@ -643,7 +665,8 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   const loadDomains = async (storeUuid: string) => {
     if (!storeUuid) {
       setDomains([])
-      return
+      
+return
     }
 
     try {
@@ -651,6 +674,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
       
       // Find selected store to get domain info
       const selectedStore = stores.find(store => store.uuid === storeUuid)
+
       if (!selectedStore) return
 
       const domainList: Domain[] = []
@@ -683,7 +707,8 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   const loadPixels = async (storeUuid: string) => {
     if (!storeUuid) {
       setPixels([])
-      return
+      
+return
     }
 
     try {
@@ -700,6 +725,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
       }
       
       const data = await response.json()
+
       setPixels(data.data || [])
     } catch (error) {
       console.error('Error loading pixels:', error)
@@ -759,6 +785,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     // Load page data if editing existing page
     const urlParams = new URLSearchParams(window.location.search)
     const pageId = urlParams.get('id')
+
     if (pageId) {
       loadPageData(pageId)
     }
@@ -783,6 +810,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   useEffect(() => {
     if (pageSettings.selectedStore && domains.length > 0) {
       const selectedStore = stores.find(store => store.uuid === pageSettings.selectedStore)
+
       if (selectedStore && domains.length === 1) {
         // Auto-select the first (and only) domain option
         setPageSettings(prev => ({
@@ -816,10 +844,12 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   // Unified Color Editor state (solid + gradient + alpha)
   const [colorEditorTab, setColorEditorTab] = useState<'solid' | 'gradient'>('solid')
   const [solidColor, setSolidColor] = useState<{ r: number; g: number; b: number; a: number }>({ r: 239, g: 64, b: 67, a: 1 })
+
   const [gradientStops, setGradientStops] = useState<Array<{ id: string; color: { r: number; g: number; b: number; a: number }; position: number }>>([
     { id: 'g1', color: { r: 239, g: 64, b: 67, a: 1 }, position: 0 },
     { id: 'g2', color: { r: 244, g: 63, b: 94, a: 1 }, position: 100 }
   ])
+
   const [activeStopId, setActiveStopId] = useState<string>('g1')
   const [gradientAngle, setGradientAngle] = useState<number>(135)
   const [gradientType, setGradientType] = useState<'linear' | 'radial'>('linear')
@@ -827,27 +857,35 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   // Helpers for color formatting
   const clamp = (min: number, max: number, v: number) => Math.max(min, Math.min(max, v))
   const rgbaToCss = (c: { r: number; g: number; b: number; a?: number }) => `rgba(${clamp(0, 255, Math.round(c.r))}, ${clamp(0, 255, Math.round(c.g))}, ${clamp(0, 255, Math.round(c.b))}, ${clamp(0, 1, typeof c.a === 'number' ? c.a : 1)})`
+
   const rgbToHex = (r: number, g: number, b: number) => {
     const toHex = (n: number) => clamp(0, 255, Math.round(n)).toString(16).padStart(2, '0').toUpperCase()
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+
+    
+return `#${toHex(r)}${toHex(g)}${toHex(b)}`
   }
+
   const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
     const s = hex.trim().replace('#', '')
+
     if (s.length !== 6) return null
     const r = parseInt(s.slice(0, 2), 16)
     const g = parseInt(s.slice(2, 4), 16)
     const b = parseInt(s.slice(4, 6), 16)
+
     if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null
-    return { r, g, b }
+    
+return { r, g, b }
   }
 
   const applySolid = (c: { r: number; g: number; b: number; a: number }) => {
     if (!selectedElement?.style) return
     const css = rgbaToCss(c)
+
     selectedElement.style.backgroundColor = css as any
     selectedElement.style.background = ''
     selectedElement.style.backgroundImage = ''
-    setEditedHtml(selectedElement.ownerDocument.body.innerHTML)
+    setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML)
   }
 
   const applyGradient = (stops = gradientStops, angle = gradientAngle, type = gradientType) => {
@@ -855,10 +893,11 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     const sorted = [...stops].sort((a, b) => a.position - b.position)
     const stopsCss = sorted.map(s => `${rgbaToCss(s.color)} ${clamp(0, 100, s.position)}%`).join(', ')
     const css = type === 'linear' ? `linear-gradient(${angle}deg, ${stopsCss})` : `radial-gradient(circle at center, ${stopsCss})`
+
     selectedElement.style.background = css as any
     selectedElement.style.backgroundImage = ''
     selectedElement.style.backgroundColor = ''
-    setEditedHtml(selectedElement.ownerDocument.body.innerHTML)
+    setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML)
   }
   
   // Function to clean editor-specific styling for view page
@@ -868,6 +907,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
       .replace(/class="[^"]*editor-component[^"]*"/g, '')
       .replace(/class="editor-component"/g, '')
       .replace(/editor-component\s*/g, '')
+
       // Remove empty class attributes
       .replace(/class=""/g, '')
       .replace(/class="\s*"/g, '')
@@ -879,7 +919,9 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
       const timer = setTimeout(() => {
         updateElementOutline();
       }, 300);
-      return () => clearTimeout(timer);
+
+      
+return () => clearTimeout(timer);
     }
   }, [editedHtml]);
 
@@ -889,14 +931,19 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
       // Cleanup any created object URLs when component unmounts
       if (pageSettings.favicon) {
         const url = URL.createObjectURL(pageSettings.favicon)
+
         URL.revokeObjectURL(url)
       }
+
       if (pageSettings.logo) {
         const url = URL.createObjectURL(pageSettings.logo)
+
         URL.revokeObjectURL(url)
       }
+
       if (pageSettings.metaImage) {
         const url = URL.createObjectURL(pageSettings.metaImage)
+
         URL.revokeObjectURL(url)
       }
     }
@@ -907,6 +954,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     return name
       .toLowerCase()
       .trim()
+
       // Replace Indonesian characters
       .replace(/[àáäâèéëêìíïîòóöôùúüûñç]/g, (match) => {
         const map: { [key: string]: string } = {
@@ -917,7 +965,9 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
           'ù': 'u', 'ú': 'u', 'ü': 'u', 'û': 'u',
           'ñ': 'n', 'ç': 'c'
         }
-        return map[match] || match
+
+        
+return map[match] || match
       })
       .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
       .replace(/\s+/g, '-') // Replace spaces with hyphens
@@ -928,10 +978,12 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   // Handle page name change and auto-generate slug
   const handlePageNameChange = (name: string) => {
     const newSlug = generateSlug(name)
+
     setPageSettings(prev => ({
       ...prev,
       pageName: name,
       slugUrl: newSlug,
+
       // Set titleTag to pageName if titleTag is empty
       titleTag: prev.titleTag || name
     }))
@@ -942,6 +994,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     if (!pageSettings.selectedStore || !pageSettings.slugUrl) return ''
     
     const selectedStore = stores.find(store => store.uuid === pageSettings.selectedStore)
+
     if (!selectedStore) return ''
     
     // Use domain if available, otherwise use subdomain
@@ -959,6 +1012,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     if (!pageSettings.selectedStore || !pageSettings.slugUrl) return 'https://example.com/page'
     
     const selectedStore = stores.find(store => store.uuid === pageSettings.selectedStore)
+
     if (!selectedStore) return 'https://example.com/page'
     
     // Use domain if available, otherwise use subdomain
@@ -978,12 +1032,14 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     
     if (!allowedTypes.includes(file.type)) {
       alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
-      return false
+      
+return false
     }
     
     if (file.size > maxSizeBytes) {
       alert(`File size must be less than ${maxSize}MB`)
-      return false
+      
+return false
     }
     
     return true
@@ -994,19 +1050,33 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     if (applyingHistoryRef.current) return
     setHtmlHistory(prev => {
       const current = prev[historyIndex]
+
       if (current === editedHtml) return prev
       const next = prev.slice(0, historyIndex + 1)
+
       next.push(editedHtml)
       setHistoryIndex(next.length - 1)
-      return next
+      
+return next
     })
+
     // Keep parent informed (so server-side autosave & external buttons still reflect)
     onSave?.({ components: [], sections: [], html: editedHtml, css: initialData?.css || '' })
   }, [editedHtml])
 
   const applyHtmlToIframe = (html: string) => {
-    setEditedHtml(html)
     const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement
+
+    if (iframe?.contentWindow) {
+      // Save current scroll position before applying HTML
+      setLastScrollPosition({
+        top: iframe.contentWindow.scrollY || 0,
+        left: iframe.contentWindow.scrollX || 0
+      });
+    }
+
+    setEditedHtml(html)
+
     if (iframe?.contentDocument) {
       iframe.contentDocument.body.innerHTML = html
       updateElementOutline()
@@ -1017,8 +1087,10 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     if (historyIndex <= 0) return
     applyingHistoryRef.current = true
     const newIndex = historyIndex - 1
+
     setHistoryIndex(newIndex)
     const html = htmlHistory[newIndex]
+
     applyHtmlToIframe(html)
     applyingHistoryRef.current = false
     onUndo?.()
@@ -1028,8 +1100,10 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     if (historyIndex >= htmlHistory.length - 1) return
     applyingHistoryRef.current = true
     const newIndex = historyIndex + 1
+
     setHistoryIndex(newIndex)
     const html = htmlHistory[newIndex]
+
     applyHtmlToIframe(html)
     applyingHistoryRef.current = false
     onRedo?.()
@@ -1038,6 +1112,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   const handleLocalReset = () => {
     applyingHistoryRef.current = true
     const html = originalSnapshotRef.current || ''
+
     applyHtmlToIframe(html)
     setHtmlHistory([html])
     setHistoryIndex(0)
@@ -1060,6 +1135,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
           html: htmlToSave,
           css: initialData?.css || generateCSSFromData(components, sections)
         }
+
         onSave?.(data)
       }, 2000); // Auto-save after 2 seconds of inactivity
       
@@ -1067,11 +1143,13 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     }
   }, [editedHtml, components, sections]);
   
-  // Update iframe content when editedHtml changes
+  // Update iframe content when editedHtml changes without scroll interference
   useEffect(() => {
     const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
     if (iframe && iframe.contentDocument && editedHtml) {
       const doc = iframe.contentDocument;
+
       if (doc.body && doc.body.innerHTML !== editedHtml) {
         // Add basic styles to iframe body
         doc.head.innerHTML = `
@@ -1079,7 +1157,11 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
           <meta name="viewport" content="width=device-width, initial-scale=1"/>
           <style>
             ${(initialData && (initialData as any).css) ? (initialData as any).css : ''}
-            body { margin: 0; padding: 0; font-family: system-ui; }
+            body { 
+              margin: 0; 
+              padding: 0; 
+              font-family: system-ui;
+            }
             .editor-component {
               border: 2px dashed #e0e0e0 !important;
               border-radius: 8px !important;
@@ -1092,10 +1174,36 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
               outline-offset: 2px !important;
               background-color: rgba(139, 92, 246, 0.05) !important;
             }
+            /* Ensure images display properly without transparency grid */
+            img {
+              max-width: 100%;
+              height: auto;
+              display: block;
+              background: transparent !important;
+            }
+            /* Full width images */
+            .editor-component[data-component-type="full_width_image"] {
+              width: 100% !important;
+              margin: 20px 0 !important;
+              padding: 0 !important;
+            }
+            .editor-component[data-component-type="full_width_image"] img {
+              width: 100% !important;
+              height: auto !important;
+              object-fit: cover;
+              border-radius: 0;
+            }
+            /* Regular images */
+            .editor-component[data-component-type="image"] img {
+              max-width: 100%;
+              height: auto;
+            }
           </style>
         `;
         
+        // Update content without any scroll manipulation
         doc.body.innerHTML = editedHtml;
+        
         updateElementOutline();
       }
     }
@@ -1104,12 +1212,15 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   // Re-attach handles after updates so properties panel sees latest values
   useEffect(() => {
     const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
     if (iframe && iframe.contentDocument) {
       const doc = iframe.contentDocument;
       const curr = doc.querySelector('.selected-element') as HTMLElement | null;
+
       if (curr) {
         // Ensure inline styles reflect layout box
         const rect = curr.getBoundingClientRect();
+
         (curr as any).style.width = rect.width + 'px';
         (curr as any).style.height = rect.height + 'px';
       }
@@ -1118,22 +1229,27 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   
   const addNewSection = () => {
     const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
     if (iframe?.contentDocument) {
       const doc = iframe.contentDocument;
-      const newSection = doc.createElement('section');
-      newSection.innerHTML = '<h2>New Section</h2><p>Click to edit content</p>';
-      newSection.style.padding = '40px 20px';
-      newSection.style.margin = '20px 0';
-      newSection.style.border = '2px dashed #ccc';
-      newSection.style.borderRadius = '8px';
-      doc.body.appendChild(newSection);
-      setEditedHtml(doc.body.innerHTML);
+      const newContainer = doc.createElement('div');
+
+      newContainer.className = 'editor-container';
+      newContainer.innerHTML = '<h2>New Container</h2><p>Click to edit content or drag components here</p>';
+      newContainer.style.padding = '40px 20px';
+      newContainer.style.margin = '20px 0';
+      newContainer.style.border = '2px dashed #ccc';
+      newContainer.style.borderRadius = '8px';
+      newContainer.style.minHeight = '150px';
+      doc.body.appendChild(newContainer);
+      setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
       updateElementOutline();
     }
   };
   
   const updateElementOutline = () => {
     const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
     if (iframe?.contentDocument) {
       const doc = iframe.contentDocument;
       const body = doc.body;
@@ -1174,6 +1290,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
       // Auto-expand sections with children on first load
       if (expandedSections.size === 0) {
         const newExpanded = new Set<string>();
+
         outline.forEach(section => {
           if (section.children.length > 0) {
             newExpanded.add(section.id);
@@ -1186,10 +1303,13 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   
   const getElementPreview = (element: any) => {
     const text = element.textContent?.replace(/\s+/g, ' ').trim() || '';
+
     if (text.length > 30) {
       return text.substring(0, 30) + '...';
     }
-    return text || element.tagName.toLowerCase();
+
+    
+return text || element.tagName.toLowerCase();
   };
   
   const getElementIcon = (tagName: string) => {
@@ -1207,21 +1327,26 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
       'article': '📄',
       'aside': '📋'
     };
-    return icons[tagName] || '📦';
+
+    
+return icons[tagName] || '📦';
   };
 
   const toggleSectionExpanded = (sectionId: string) => {
     const newExpanded = new Set(expandedSections);
+
     if (newExpanded.has(sectionId)) {
       newExpanded.delete(sectionId);
     } else {
       newExpanded.add(sectionId);
     }
+
     setExpandedSections(newExpanded);
   };
 
   const handleElementAction = (element: any, action: 'select' | 'duplicate' | 'delete') => {
     const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
     if (iframe?.contentDocument) {
       const doc = iframe.contentDocument;
       const targetElement = element.element;
@@ -1232,6 +1357,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
           doc.querySelectorAll('.selected-element').forEach((el: any) => {
             el.classList.remove('selected-element');
           });
+
           // Select element
           targetElement.classList.add('selected-element');
           setSelectedElement(targetElement);
@@ -1240,23 +1366,28 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
           
         case 'duplicate':
           const clone = targetElement.cloneNode(true);
+
           // Remove any controls from clone
           const controls = clone.querySelectorAll('.element-controls');
+
           controls.forEach((control: any) => control.remove());
           
           targetElement.parentNode.insertBefore(clone, targetElement.nextSibling);
-          setEditedHtml(doc.body.innerHTML);
+          setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
           break;
           
         case 'delete':
           if (confirm(`Delete ${element.tagName.toUpperCase()} element?`)) {
             targetElement.remove();
-            setEditedHtml(doc.body.innerHTML);
+            setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
+
+
             // Clear selection if deleted element was selected
             if (selectedElement === targetElement) {
               setSelectedElement(null);
             }
           }
+
           break;
       }
     }
@@ -1264,6 +1395,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   
   const handleElementDrag = (element: any, targetElement: any, position: 'before' | 'after' | 'inside') => {
     const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
     if (iframe?.contentDocument && element.element && targetElement.element) {
       const doc = iframe.contentDocument;
       const draggedEl = element.element;
@@ -1281,7 +1413,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
         targetEl.appendChild(draggedEl);
       }
       
-      setEditedHtml(doc.body.innerHTML);
+      setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
       updateElementOutline();
     }
   };
@@ -1313,6 +1445,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
             <Box
               onClick={(e) => {
                 e.stopPropagation();
+
                 if (section.children.length > 0) {
                   toggleSectionExpanded(section.id);
                 }
@@ -1335,9 +1468,11 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
+
                 if (draggedElement && draggedElement.id !== section.id) {
                   handleElementDrag(draggedElement, section, 'before');
                 }
+
                 setDraggedElement(null);
               }}
               sx={{ fontSize: '10px', color: '#ccc', cursor: 'move', minWidth: '16px' }}
@@ -1469,9 +1604,11 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
+
                   if (draggedElement && draggedElement.id !== child.id) {
                     handleElementDrag(draggedElement, child, 'before');
                   }
+
                   setDraggedElement(null);
                 }}
                 sx={{ fontSize: '8px', color: '#ddd', cursor: 'move', minWidth: '12px' }}
@@ -1575,9 +1712,11 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
   
   const updateElementTree = () => {
     const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
     if (iframe?.contentDocument) {
       const doc = iframe.contentDocument;
       const elements = doc.querySelectorAll('div, section, header, footer, article, aside');
+
       const treeData = Array.from(elements).map((el: any, index) => ({
         id: `element-${index}`,
         element: el,
@@ -1586,14 +1725,17 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
         classes: el.className,
         children: el.children.length
       }));
+
       setElementTree(treeData);
       
       // Update the element tree UI
       const treeContainer = document.getElementById('element-tree');
+
       if (treeContainer) {
         treeContainer.innerHTML = '';
         treeData.forEach((item, index) => {
           const elementCard = document.createElement('div');
+
           elementCard.style.cssText = `
             border: 1px solid #e0e0e0;
             border-radius: 8px;
@@ -1623,6 +1765,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
           elementCard.addEventListener('click', (e: any) => {
             const action = e.target.dataset.action;
             const index = e.target.dataset.index;
+
             if (action && index) {
               handleElementTreeAction(treeData[parseInt(index)], action);
             }
@@ -1636,6 +1779,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
 
   const handleElementTreeAction = (item: any, action: string) => {
     const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
     if (iframe?.contentDocument) {
       const doc = iframe.contentDocument;
       const element = item.element;
@@ -1646,6 +1790,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
           doc.querySelectorAll('.selected-element').forEach((el: any) => {
             el.classList.remove('selected-element');
           });
+
           // Select element
           element.classList.add('selected-element');
           setSelectedElement(element);
@@ -1654,21 +1799,24 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
           
         case 'duplicate':
           const clone = element.cloneNode(true);
+
           element.parentNode.insertBefore(clone, element.nextSibling);
-          setEditedHtml(doc.body.innerHTML);
+          setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
           updateElementTree(); // Refresh tree
           break;
           
         case 'delete':
           if (confirm(`Delete ${item.tagName} element?`)) {
             element.remove();
-            setEditedHtml(doc.body.innerHTML);
+            setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
             updateElementTree(); // Refresh tree
+
             // Clear selection if deleted element was selected
             if (selectedElement === element) {
               setSelectedElement(null);
             }
           }
+
           break;
       }
     }
@@ -1711,6 +1859,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     
     // Otherwise, add directly to iframe HTML (new system)
     const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
     if (iframe?.contentDocument) {
       const doc = iframe.contentDocument;
       const newElement = createComponentElement(type);
@@ -1725,44 +1874,50 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
       
       // Update both HTML and components state
       const updatedHtml = doc.body.innerHTML;
+
       setEditedHtml(updatedHtml);
       
       // Force manual update of iframe if needed
       setTimeout(() => {
         const checkIframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
         if (checkIframe?.contentDocument) {
           const checkDoc = checkIframe.contentDocument;
+
           if (checkDoc.body.innerHTML !== updatedHtml) {
             checkDoc.body.innerHTML = updatedHtml;
           }
         }
       }, 100);
+
       // Do not push into components array to avoid placeholder canvas mode
     }
   }, [components])
 
   const createComponentElement = (type: string): HTMLElement => {
     const div = document.createElement('div');
+
     div.className = 'editor-component';
-    div.style.cssText = 'margin: 20px 0; padding: 20px; min-height: 80px; position: relative;';
+    div.dataset.componentType = type;
+    div.style.cssText = 'margin: 10px; padding: 15px; min-height: 60px; position: relative; display: inline-block; max-width: 100%; vertical-align: top;';
     
     switch (type) {
       case COMPONENT_TYPES.TEXT:
-        div.innerHTML = '<p style="font-size: 16px; line-height: 1.6; color: #374151;">Click to edit this text. You can add any content here and style it as needed.</p>';
+        div.innerHTML = '<p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0;">Click to edit this text. You can add any content here and style it as needed.</p>';
         break;
       case COMPONENT_TYPES.DYNAMIC_TEXT:
-        div.innerHTML = '<h2 style="font-size: 32px; font-weight: bold; color: #1f2937; margin-bottom: 16px;">Dynamic Heading</h2><p style="color: #6b7280;">This is a subtitle that you can customize</p>';
+        div.innerHTML = '<h2 style="font-size: 32px; font-weight: bold; color: #1f2937; margin: 0 0 8px 0;">Dynamic Heading</h2><p style="color: #6b7280; margin: 0;">This is a subtitle that you can customize</p>';
         break;
       case COMPONENT_TYPES.BUTTON:
-        div.innerHTML = '<div style="text-align: center;"><a href="#" style="display: inline-block; background: #3b82f6; color: white !important; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; cursor: pointer;">Click Me</a></div>';
+        div.innerHTML = '<div style="text-align: center; margin: 0;"><a href="#" style="display: inline-block; background: #3b82f6; color: white !important; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; cursor: pointer;">Click Me</a></div>';
         break;
       case COMPONENT_TYPES.IMAGE:
-        div.innerHTML = '<div style="text-align: center; padding: 20px; border: 2px dashed #e0e0e0; border-radius: 8px; background: #f9fafb;"><img src="https://upload.wikimedia.org/wikipedia/commons/9/9a/Image-icon.png" alt="Click to replace image" style="width: 80px; height: 80px; opacity: 0.6; margin-bottom: 10px;"/><div style="color: #6b7280; font-size: 14px;">Click to replace image</div></div>';
+        div.style.cssText = 'margin: 10px 0; padding: 0; min-height: 200px; position: relative; display: block; width: 100%;';
+        div.innerHTML = '<img src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" alt="Click to replace image" style="width: 100%; height: 250px; object-fit: cover; border-radius: 8px; cursor: pointer;" />';
         break;
       case COMPONENT_TYPES.FULL_WIDTH_IMAGE:
-        div.style.margin = '0';
-        div.style.padding = '0';
-        div.innerHTML = '<div style="text-align: center; padding: 40px; border: 2px dashed #e0e0e0; background: #f9fafb;"><img src="https://upload.wikimedia.org/wikipedia/commons/9/9a/Image-icon.png" alt="Full width image placeholder" style="width: 120px; height: 120px; opacity: 0.6; margin-bottom: 15px;"/><div style="color: #6b7280; font-size: 16px; font-weight: 500;">Cover Image</div><div style="color: #9ca3af; font-size: 14px; margin-top: 5px;">Click to replace with your image</div></div>';
+        div.style.cssText = 'margin: 20px 0; padding: 0; min-height: 300px; position: relative; display: block; width: 100%;';
+        div.innerHTML = '<img src="https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80" alt="Full width cover image" style="width: 100%; height: 300px; object-fit: cover; border-radius: 8px; cursor: pointer;" />';
         break;
       case COMPONENT_TYPES.VIDEO:
         div.innerHTML = '<div style="text-align: center; padding: 20px; border: 2px dashed #e0e0e0; border-radius: 8px; background: #f3f4f6;"><div style="position: relative; width: 100%; height: 200px; background: #e5e7eb; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="font-size: 48px; color: #6b7280; margin-bottom: 10px;">▶️</div><div style="color: #6b7280; font-size: 16px; font-weight: 500;">Video Player</div><div style="color: #9ca3af; font-size: 14px; margin-top: 5px;">Click to add video URL</div></div></div>';
@@ -1880,6 +2035,13 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
     }
   }
 
+  // Helper function to update HTML without scroll interference
+  const setEditedHtmlWithScrollPreservation = (newHtml: string) => {
+    // Simply update HTML content without any scroll preservation
+    // This allows natural scrolling behavior without interference
+    setEditedHtml(newHtml);
+  }
+
   const updateComponent = (id: string, newData: any) => {
     setComponents(prev => prev.map(comp => comp.id === id ? { ...comp, ...newData } : comp))
   }
@@ -1900,6 +2062,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
       html: htmlToSave,
       css: initialData?.css || generateCSSFromData(components, sections)
     }
+
     onSave?.(data)
   }
 
@@ -1929,13 +2092,17 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
       if (section.type === 'hero') {
         return `<section class="hero py-20 text-center"><h1 class="text-4xl font-bold mb-4">${section.title || ''}</h1><p class="text-xl mb-8">${section.subtitle || ''}</p>${section.image ? `<img src="${section.image}" class="mx-auto max-w-md rounded-lg"/>` : ''}</section>`
       }
+
       if (section.type === 'features') {
         return `<section class="features py-16"><div class="container mx-auto"><h2 class="text-3xl font-bold text-center mb-8">Features</h2><div class="grid md:grid-cols-3 gap-6">${(section.items || []).map((item: string) => `<div class="p-6 bg-white rounded-lg shadow"><p>${item}</p></div>`).join('')}</div></div></section>`
       }
+
       if (section.type === 'cta') {
         return `<section class="cta py-16 bg-blue-600 text-white text-center"><div class="container mx-auto"><h2 class="text-3xl font-bold">${section.text || 'Call to Action'}</h2></div></section>`
       }
-      return ''
+
+      
+return ''
     }).join('')
 
     return componentHTML + sectionHTML
@@ -2199,7 +2366,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             }}
                             onChange={(e) => {
                               selectedElement.textContent = e.target.value;
-                              setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                              setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                             }}
                           />
                         </Box>
@@ -2223,7 +2390,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             }}
                             onChange={(e) => {
                               selectedElement.setAttribute('href', e.target.value);
-                              setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                              setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                             }}
                           />
                         </Box>
@@ -2231,7 +2398,259 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                     </Box>
                   )}
                   
-                  {/* Text Content for Text Elements */}
+                  {/* Image Specific Properties */}
+                  {selectedElement.tagName === 'IMG' && (
+                    <Box sx={{ 
+                      background: 'linear-gradient(135deg, #f0fdf4, #ffffff)',
+                      border: '1px solid #86efac',
+                      borderRadius: 2,
+                      p: 3,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    }}>
+                      <Typography variant="h6" sx={{ 
+                        fontWeight: 600, 
+                        mb: 2, 
+                        color: '#15803d',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}>
+                        🖼️ Image Properties
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {/* Current Image Preview */}
+                        <Box sx={{
+                          border: '2px dashed #d1d5db',
+                          borderRadius: 2,
+                          p: 2,
+                          textAlign: 'center',
+                          background: '#f9fafb'
+                        }}>
+                          <Box sx={{
+                            width: '100%',
+                            maxWidth: 200,
+                            height: 120,
+                            margin: '0 auto',
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            border: '1px solid #e5e7eb',
+                            background: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <img 
+                              src={(selectedElement as HTMLImageElement).src || ''}
+                              alt="Current Image"
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+
+                                target.style.display = 'none';
+                                target.nextSibling && ((target.nextSibling as HTMLElement).style.display = 'flex');
+                              }}
+                            />
+                            <Box sx={{
+                              display: 'none',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#6b7280',
+                              fontSize: '12px'
+                            }}>
+                              No Image
+                            </Box>
+                          </Box>
+                        </Box>
+                        
+                        {/* Upload New Image */}
+                        <Button
+                          variant="contained"
+                          component="label"
+                          fullWidth
+                          sx={{
+                            borderRadius: 2,
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            '&:hover': {
+                              background: 'linear-gradient(135deg, #059669, #047857)'
+                            }
+                          }}
+                        >
+                          📁 Upload New Image
+                          <input
+                            type="file"
+                            accept="image/*"
+                            hidden
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+
+                              if (file) {
+                                const reader = new FileReader();
+
+                                reader.onload = () => {
+                                  const dataUrl = reader.result as string;
+
+                                  if (selectedElement && selectedElement.tagName === 'IMG') {
+                                    (selectedElement as HTMLImageElement).src = dataUrl;
+                                    setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
+                                  }
+                                };
+
+                                reader.readAsDataURL(file);
+                              }
+
+
+                              // Reset input so same file can be selected again
+                              (e.target as HTMLInputElement).value = '';
+                            }}
+                          />
+                        </Button>
+                        
+                        {/* Image URL Field */}
+                        <Box>
+                          <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#6b7280' }}>
+                            Image URL
+                          </Typography>
+                          <TextField
+                            value={(selectedElement as HTMLImageElement)?.src || ''}
+                            placeholder="https://images.unsplash.com/photo-..."
+                            size="small"
+                            fullWidth
+                            variant="outlined"
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                borderRadius: 2,
+                                backgroundColor: '#ffffff',
+                                '&:hover': { borderColor: '#10b981' },
+                                '&.Mui-focused': { borderColor: '#10b981' }
+                              }
+                            }}
+                            onChange={(e) => {
+                              if (selectedElement && selectedElement.tagName === 'IMG') {
+                                (selectedElement as HTMLImageElement).src = e.target.value;
+                                setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
+                              }
+                            }}
+                          />
+                        </Box>
+                        
+                        {/* Alt Text Field */}
+                        <Box>
+                          <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#6b7280' }}>
+                            Alt Text (Accessibility)
+                          </Typography>
+                          <TextField
+                            value={(selectedElement as HTMLImageElement)?.alt || ''}
+                            placeholder="Describe the image for screen readers"
+                            size="small"
+                            fullWidth
+                            variant="outlined"
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                borderRadius: 2,
+                                backgroundColor: '#ffffff',
+                                '&:hover': { borderColor: '#10b981' },
+                                '&.Mui-focused': { borderColor: '#10b981' }
+                              }
+                            }}
+                            onChange={(e) => {
+                              if (selectedElement && selectedElement.tagName === 'IMG') {
+                                (selectedElement as HTMLImageElement).alt = e.target.value;
+                                setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
+                              }
+                            }}
+                          />
+                        </Box>
+                        
+                        {/* Quick Size Presets */}
+                        <Box>
+                          <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#6b7280' }}>
+                            Quick Size Options
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            {[
+                              { label: 'Small', width: '150px', height: 'auto' },
+                              { label: 'Medium', width: '300px', height: 'auto' },
+                              { label: 'Large', width: '500px', height: 'auto' },
+                              { label: 'Full Width', width: '100%', height: 'auto' },
+                              { label: 'Square', width: '200px', height: '200px' }
+                            ].map(size => (
+                              <Button
+                                key={size.label}
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                  if (selectedElement?.style) {
+                                    selectedElement.style.width = size.width;
+                                    selectedElement.style.height = size.height;
+                                    selectedElement.style.objectFit = size.height !== 'auto' ? 'cover' : 'initial';
+                                    setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
+                                  }
+                                }}
+                                sx={{
+                                  fontSize: '10px',
+                                  minWidth: 'auto',
+                                  px: 1.5,
+                                  py: 0.5,
+                                  borderRadius: 1.5,
+                                  borderColor: '#10b981',
+                                  color: '#10b981',
+                                  '&:hover': { 
+                                    bgcolor: '#f0fdf4',
+                                    borderColor: '#059669'
+                                  }
+                                }}
+                              >
+                                {size.label}
+                              </Button>
+                            ))}
+                          </Box>
+                        </Box>
+                        
+                        {/* Object Fit Options */}
+                        <Box>
+                          <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#6b7280' }}>
+                            Image Fit
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            {['cover', 'contain', 'fill', 'scale-down', 'none'].map(fit => (
+                              <Button
+                                key={fit}
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                  if (selectedElement?.style) {
+                                    selectedElement.style.objectFit = fit;
+                                    setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
+                                  }
+                                }}
+                                sx={{
+                                  fontSize: '10px',
+                                  minWidth: 'auto',
+                                  px: 1,
+                                  py: 0.5,
+                                  borderRadius: 1,
+                                  borderColor: '#10b981',
+                                  color: '#10b981',
+                                  '&:hover': { 
+                                    bgcolor: '#f0fdf4',
+                                    borderColor: '#059669'
+                                  }
+                                }}
+                              >
+                                {fit}
+                              </Button>
+                            ))}
+                          </Box>
+                        </Box>
+                      </Box>
+                    </Box>
+                  )}
+                  
+                  {/* Text Content and Typography - Unified Tiptap Editor */}
                   {(selectedElement.tagName === 'P' || selectedElement.tagName === 'H1' || selectedElement.tagName === 'H2' || selectedElement.tagName === 'H3' || selectedElement.tagName === 'SPAN') && (
                     <Box sx={{ 
                       background: 'linear-gradient(135deg, #f0f9ff, #ffffff)',
@@ -2248,100 +2667,31 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                         alignItems: 'center',
                         gap: 1
                       }}>
-                        ✏️ Text Content
+                        ✏️ Text Content & Typography
                       </Typography>
                       {(() => {
                         const clone = selectedElement.cloneNode(true) as HTMLElement
+
                         clone.querySelectorAll?.('.ve-drag-handle, .ve-resize-handle').forEach((n:any)=> n.remove())
-                        const value = clone.textContent || ''
-                        return (
-                          <TextField
-                            value={value}
-                            placeholder="Enter your text content"
-                            size="medium"
-                            multiline
-                            rows={3}
-                            fullWidth
-                            variant="outlined"
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                borderRadius: 2,
-                                backgroundColor: '#ffffff',
-                                '&:hover': { borderColor: '#3b82f6' },
-                                '&.Mui-focused': { borderColor: '#3b82f6' }
-                              }
-                            }}
-                            onChange={(e) => {
+                        const value = clone.innerHTML || clone.textContent || ''
+
+                        
+return (
+                          <TiptapEditor
+                            content={value}
+                            onChange={(content) => {
                               selectedElement.querySelectorAll?.('.ve-drag-handle, .ve-resize-handle').forEach((n:any)=> n.remove())
-                              ;(selectedElement as any).innerText = e.target.value
-                              setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                              selectedElement.innerHTML = content
+                              setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML)
                             }}
+                            placeholder="Enter your text content..."
+                            selectedElement={selectedElement}
                           />
                         )
                       })()}
                     </Box>
                   )}
 
-                  {/* Typography Controls */}
-                  {(selectedElement.tagName === 'P' || selectedElement.tagName === 'H1' || selectedElement.tagName === 'H2' || selectedElement.tagName === 'H3' || selectedElement.tagName === 'SPAN' || selectedElement.tagName === 'A') && (
-                    <Box sx={{ 
-                      background: 'linear-gradient(135deg, #eef2ff, #ffffff)',
-                      border: '1px solid #c7d2fe',
-                      borderRadius: 2,
-                      p: 3,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                    }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: '#312e81', display: 'flex', alignItems: 'center', gap: 1 }}>
-                        🔤 Typography
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <Select
-                          size="small"
-                          displayEmpty
-                          value={(selectedElement.style?.fontSize || '').replace('px','') || ''}
-                          onChange={(e:any)=>{
-                            const v = e.target.value ? e.target.value + 'px' : ''
-                            selectedElement.style.fontSize = v as any
-                            setEditedHtml(selectedElement.ownerDocument.body.innerHTML)
-                          }}
-                          sx={{ width: 140 }}
-                          renderValue={(v)=> v || 'Font Size'}
-                        >
-                          {['12','14','16','18','20','24','28','32','36','40','48','56','64'].map(s => (
-                            <MenuItem key={s} value={s}>{s}px</MenuItem>
-                          ))}
-                        </Select>
-                        <Button size="small" variant={selectedElement.style?.fontWeight === '700' || selectedElement.style?.fontWeight === 'bold' ? 'contained':'outlined'} onClick={()=>{
-                          const cur = selectedElement.style?.fontWeight
-                          selectedElement.style.fontWeight = (cur === '700' || cur === 'bold') ? '' : '700'
-                          setEditedHtml(selectedElement.ownerDocument.body.innerHTML)
-                        }}>B</Button>
-                        <Button size="small" variant={selectedElement.style?.fontStyle === 'italic' ? 'contained':'outlined'} onClick={()=>{
-                          selectedElement.style.fontStyle = selectedElement.style?.fontStyle === 'italic' ? '' : 'italic'
-                          setEditedHtml(selectedElement.ownerDocument.body.innerHTML)
-                        }}><i className="tabler-italic"/></Button>
-                        <Button size="small" variant={selectedElement.style?.textDecoration?.includes('underline') ? 'contained':'outlined'} onClick={()=>{
-                          selectedElement.style.textDecoration = selectedElement.style?.textDecoration?.includes('underline') ? '' : 'underline'
-                          setEditedHtml(selectedElement.ownerDocument.body.innerHTML)
-                        }}>U</Button>
-                        <TextField
-                          label="Color"
-                          size="small"
-                          type="color"
-                          value={/^#/.test(selectedElement.style?.color) ? selectedElement.style?.color : '#000000'}
-                          onChange={(e)=>{ 
-                            const val = e.target.value; 
-                            selectedElement.style.color = val as any; 
-                            setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
-                          }}
-                          sx={{ width: 80 }}
-                        />
-                        <Button size="small" variant={selectedElement.style?.textAlign === 'left' || !selectedElement.style?.textAlign ? 'contained':'outlined'} onClick={()=>{ selectedElement.style.textAlign = 'left'; setEditedHtml(selectedElement.ownerDocument.body.innerHTML) }}>Left</Button>
-                        <Button size="small" variant={selectedElement.style?.textAlign === 'center' ? 'contained':'outlined'} onClick={()=>{ selectedElement.style.textAlign = 'center'; setEditedHtml(selectedElement.ownerDocument.body.innerHTML) }}>Center</Button>
-                        <Button size="small" variant={selectedElement.style?.textAlign === 'right' ? 'contained':'outlined'} onClick={()=>{ selectedElement.style.textAlign = 'right'; setEditedHtml(selectedElement.ownerDocument.body.innerHTML) }}>Right</Button>
-                      </Box>
-                    </Box>
-                  )}
 
                                     {/* Background & Border */}
                                     <Box sx={{ 
@@ -2401,8 +2751,10 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                                 color={rgbToHex(solidColor.r, solidColor.g, solidColor.b)}
                                 onChange={(val) => {
                                   const rgb = hexToRgb(val)
+
                                   if (!rgb) return
                                   const next = { ...solidColor, ...rgb }
+
                                   setSolidColor(next)
                                   applySolid(next as any)
                                 }}
@@ -2415,6 +2767,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                               <Typography variant="caption" sx={{ color: '#6b7280' }}>Transparency</Typography>
                               <Slider size="small" value={Math.round((solidColor.a || 0) * 100)} onChange={(e, v:any)=>{
                                 const next = { ...solidColor, a: (Array.isArray(v) ? v[0]: v)/100 }
+
                                 setSolidColor(next)
                                 applySolid(next)
                               }} valueLabelDisplay="auto" min={0} max={100} />
@@ -2430,7 +2783,9 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             const sorted = [...gradientStops].sort((a,b)=>a.position-b.position)
                             const stopsCss = sorted.map(s=>`rgba(${Math.round(s.color.r)}, ${Math.round(s.color.g)}, ${Math.round(s.color.b)}, ${s.color.a}) ${Math.round(s.position)}%`).join(', ')
                             const css = gradientType === 'linear' ? `linear-gradient(${gradientAngle}deg, ${stopsCss})` : `radial-gradient(circle at center, ${stopsCss})`
-                            return (
+
+                            
+return (
                               <Box sx={{
                                 height: 120,
                                 borderRadius: 2,
@@ -2462,6 +2817,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                               const pos = clamp(0,100,last ? Math.min(100, last.position + 10) : 50)
                               const newStop = { id: newId, color: last? { ...last.color } : { r: 239, g: 64, b: 67, a: 1 }, position: pos }
                               const next = [...gradientStops, newStop]
+
                               setGradientStops(next)
                               setActiveStopId(newId)
                               applyGradient(next)
@@ -2471,6 +2827,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             {gradientStops.length > 2 && (
                               <IconButton size="small" color="error" onClick={()=>{
                                 const next = gradientStops.filter(s=>s.id!==activeStopId)
+
                                 setGradientStops(next)
                                 setActiveStopId(next[0]?.id || '')
                                 applyGradient(next)
@@ -2483,12 +2840,15 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           {/* Active stop editors */}
                           {(() => {
                             const current = gradientStops.find(s=>s.id===activeStopId) || gradientStops[0]
+
                             if (!current) return null
-                            return (
+                            
+return (
                               <Box sx={{ mt: 2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                                 <Box>
                                   <RgbaColorPicker color={current.color} onChange={(c)=>{
                                     const next = gradientStops.map(s=> s.id===current.id ? { ...s, color: c as any } : s)
+
                                     setGradientStops(next)
                                     applyGradient(next)
                                   }} />
@@ -2496,6 +2856,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                                     <Typography variant="caption" sx={{ color: '#6b7280' }}>Transparency</Typography>
                                     <Slider size="small" value={Math.round((current.color.a||0)*100)} onChange={(e,v:any)=>{
                                       const next = gradientStops.map(s=> s.id===current.id ? { ...s, color: { ...s.color, a: (Array.isArray(v)?v[0]:v)/100 } } : s)
+
                                       setGradientStops(next)
                                       applyGradient(next)
                                     }} valueLabelDisplay="auto" min={0} max={100} />
@@ -2505,6 +2866,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                                   <Typography variant="caption" sx={{ color: '#6b7280' }}>Stop position ({Math.round(current.position)}%)</Typography>
                                   <Slider size="small" value={current.position} onChange={(e, v:any)=>{
                                     const next = gradientStops.map(s=> s.id===current.id ? { ...s, position: clamp(0,100,Array.isArray(v)?v[0]:v) } : s)
+
                                     setGradientStops(next)
                                     applyGradient(next)
                                   }} valueLabelDisplay="auto" min={0} max={100} />
@@ -2548,7 +2910,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                         onChange={(e) => {
                           if (selectedElement.style) {
                             selectedElement.style.border = e.target.value;
-                            setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                            setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                           }
                         }}
                       />
@@ -2561,7 +2923,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             onClick={() => {
                               if (selectedElement.style) {
                                 selectedElement.style.border = border;
-                                setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                                setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                               }
                             }}
                             sx={{
@@ -2591,19 +2953,23 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                         value={(() => {
                           const bg = selectedElement.style?.backgroundImage || '';
                           const m = bg.match(/url\((['"]?)(.*?)\1\)/);
-                          return m ? m[2] : '';
+
+                          
+return m ? m[2] : '';
                         })()}
                         onChange={(e) => {
                           if (!selectedElement?.style) return;
                           const url = e.target.value.trim();
+
                           if (url) {
                             selectedElement.style.backgroundImage = `url(${url})`;
                             if (!selectedElement.style.backgroundSize) selectedElement.style.backgroundSize = 'cover';
                           } else {
                             selectedElement.style.backgroundImage = '';
                           }
+
                           selectedElement.style.background = '';
-                          setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                          setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                         }}
                         placeholder="https://images.unsplash.com/photo-..."
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, backgroundColor: '#ffffff' } }}
@@ -2622,18 +2988,23 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             hidden
                             onChange={(e) => {
                               const file = e.target.files?.[0];
+
                               if (!file) return;
                               const reader = new FileReader();
+
                               reader.onload = () => {
                                 const dataUrl = reader.result as string;
+
                                 if (!selectedElement?.style) return;
                                 selectedElement.style.backgroundImage = `url(${dataUrl})`;
                                 if (!selectedElement.style.backgroundSize) selectedElement.style.backgroundSize = 'cover';
                                 selectedElement.style.backgroundRepeat = selectedElement.style.backgroundRepeat || 'no-repeat';
                                 selectedElement.style.background = '';
-                                setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                                setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                               };
+
                               reader.readAsDataURL(file);
+
                               // reset input so same file can be picked again
                               (e.target as HTMLInputElement).value = '';
                             }}
@@ -2650,7 +3021,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             onClick={() => {
                               if (!selectedElement?.style) return;
                               selectedElement.style.backgroundSize = size;
-                              setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                              setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                             }}
                             sx={{ fontSize: '10px', px: 1, py: 0.5, borderRadius: 1 }}
                           >
@@ -2665,7 +3036,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             onClick={() => {
                               if (!selectedElement?.style) return;
                               selectedElement.style.backgroundPosition = pos;
-                              setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                              setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                             }}
                             sx={{ fontSize: '10px', px: 1, py: 0.5, borderRadius: 1 }}
                           >
@@ -2678,7 +3049,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           onClick={() => {
                             if (!selectedElement?.style) return;
                             selectedElement.style.backgroundRepeat = selectedElement.style.backgroundRepeat === 'no-repeat' ? '' : 'no-repeat';
-                            setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                            setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                           }}
                           sx={{ fontSize: '10px', px: 1, py: 0.5, borderRadius: 1 }}
                         >
@@ -2697,7 +3068,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           selectedElement.style.backgroundSize = '';
                           selectedElement.style.backgroundPosition = '';
                           selectedElement.style.backgroundRepeat = '';
-                          setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                          setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                         }}
                         sx={{ mt: 1 }}
                       >
@@ -2746,7 +3117,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           onChange={(e) => {
                             if (selectedElement.style) {
                               selectedElement.style.padding = e.target.value;
-                              setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                              setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                             }
                           }}
                         />
@@ -2772,7 +3143,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           onChange={(e) => {
                             if (selectedElement.style) {
                               selectedElement.style.margin = e.target.value;
-                              setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                              setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                             }
                           }}
                         />
@@ -2813,7 +3184,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           selectedElement.style.left = ''
                           selectedElement.style.top = ''
                           selectedElement.style.margin = selectedElement.style.margin || ''
-                          setEditedHtml(selectedElement.ownerDocument.body.innerHTML)
+                          setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML)
                           setSelectedElementVersion(v => v + 1)
                         }}
                       >
@@ -2863,7 +3234,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           onChange={(e) => {
                             if (selectedElement.style) {
                               selectedElement.style.width = e.target.value;
-                              setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                              setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                             }
                           }}
                         />
@@ -2876,7 +3247,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                               onClick={() => {
                                 if (selectedElement.style) {
                                   selectedElement.style.width = width;
-                                  setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                                  setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                                 }
                               }}
                               sx={{
@@ -2914,7 +3285,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           onChange={(e) => {
                             if (selectedElement.style) {
                               selectedElement.style.height = e.target.value;
-                              setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                              setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                             }
                           }}
                         />
@@ -2927,7 +3298,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                               onClick={() => {
                                 if (selectedElement.style) {
                                   selectedElement.style.height = height;
-                                  setEditedHtml(selectedElement.ownerDocument.body.innerHTML);
+                                  setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML);
                                 }
                               }}
                               sx={{
@@ -2974,11 +3345,13 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                       onClick={() => {
                         // Clear selections
                         const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
                         if (iframe?.contentDocument) {
                           iframe.contentDocument.querySelectorAll('.selected-element').forEach((el: any) => {
                             el.classList.remove('selected-element');
                           });
                         }
+
                         setSelectedElement(null);
                       }}
                     >
@@ -3252,6 +3625,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                         value={pageSettings.selectedStore}
                         onChange={(e) => {
                           const storeUuid = e.target.value
+
                           setPageSettings({...pageSettings, selectedStore: storeUuid, selectedDomain: ''})
                         }}
                         label="Pilih Toko"
@@ -3359,6 +3733,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             accept="image/*"
                             onChange={(e) => {
                               const file = e.target.files?.[0]
+
                               if (file && validateImageFile(file, 1)) {
                                 setPageSettings({...pageSettings, favicon: file})
                               }
@@ -3454,6 +3829,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             accept="image/*"
                             onChange={(e) => {
                               const file = e.target.files?.[0]
+
                               if (file && validateImageFile(file, 5)) {
                                 setPageSettings({...pageSettings, logo: file})
                               }
@@ -3693,6 +4069,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           accept="image/*"
                           onChange={(e) => {
                             const file = e.target.files?.[0]
+
                             if (file && validateImageFile(file, 5)) {
                               setPageSettings({...pageSettings, metaImage: file})
                             }
@@ -4320,6 +4697,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                     if (iframe) {
                       iframe.onload = () => {
                         const doc = iframe.contentDocument;
+
                       if (doc) {
                         // Add inline editing capabilities
                         doc.body.addEventListener('click', (e) => {
@@ -4332,6 +4710,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           doc.querySelectorAll('.ve-resize-handle, .ve-drag-handle').forEach((h: any) => h.remove());
                           
                           const blockElement = target.closest('div, section, header, footer, article, aside, main, nav, p, h1, h2, h3, h4, h5, h6, ul, ol, li, figure, figcaption, blockquote, button, a, img') as HTMLElement;
+
                           if (blockElement) {
                             blockElement.classList.add('selected-element');
                             setSelectedElement(blockElement);
@@ -4346,17 +4725,22 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             // Remove drag/resize while editing so 'Drag' text isn't captured
                             doc.querySelectorAll('.ve-drag-handle, .ve-resize-handle').forEach((n:any)=> n.remove());
                             e.preventDefault();
+                            
                             target.contentEditable = 'true';
                             target.focus();
                             target.style.outline = '2px solid #3b82f6';
-                            // Jangan mengubah backgroundColor yang sudah di-set oleh user
+
+                            // Don't change backgroundColor that's already set by user
                             
                             target.addEventListener('blur', () => {
                               target.contentEditable = 'false';
                               target.style.outline = 'none';
-                              setEditedHtml(doc.body.innerHTML);
+                              
+                              setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
+
                               // Re-add handles on the nearest block container
                               const block = target.closest('div, section, header, footer, article, aside, main, nav, p, h1, h2, h3, h4, h5, h6, ul, ol, li, figure, figcaption, blockquote') as HTMLElement || target as HTMLElement;
+
                               if (block) setTimeout(()=> addHandles(block), 0);
                             });
                             
@@ -4368,29 +4752,63 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             });
                           }
                           
-                          // Make images replaceable
+                          // Make images replaceable - direct file explorer access
                           if (target.tagName === 'IMG') {
                             e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Create and trigger file input immediately
                             const input = doc.createElement('input');
+
                             input.type = 'file';
                             input.accept = 'image/*';
-                            input.onchange = (e) => {
-                              const file = (e.target as HTMLInputElement).files?.[0];
+                            input.style.display = 'none';
+                            
+                            input.onchange = (event) => {
+                              const file = (event.target as HTMLInputElement).files?.[0];
+
                               if (file) {
+                                // Validate file type and size
+                                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+
+                                if (!allowedTypes.includes(file.type)) {
+                                  alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+                                  
+return;
+                                }
+                                
+                                if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                                  alert('File size must be less than 5MB');
+                                  
+return;
+                                }
+                                
                                 const reader = new FileReader();
-                                reader.onload = (e) => {
-                                  (target as HTMLImageElement).src = e.target?.result as string;
-                                  setEditedHtml(doc.body.innerHTML);
+
+                                reader.onload = (loadEvent) => {
+                                  if (loadEvent.target?.result) {
+                                    (target as HTMLImageElement).src = loadEvent.target.result as string;
+                                    (target as HTMLImageElement).alt = file.name;
+                                    setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
+                                  }
                                 };
+
                                 reader.readAsDataURL(file);
                               }
+                              
+                              // Clean up
+                              input.remove();
                             };
+                            
+                            // Add to DOM and trigger click
+                            doc.body.appendChild(input);
                             input.click();
                           }
                         });
                         
                         // Add minimal visual indicators + handles styles
                         const style = doc.createElement('style');
+
                         style.textContent = `
                           /* Editable text elements - only border line (no bg/no shadow) */
                           h1:hover, h2:hover, h3:hover, p:hover, span:hover, a:hover {
@@ -4429,16 +4847,39 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             border-color: #3b82f6 !important;
                           }
 
-                          /* Resize/drag handles */
-                          .ve-resize-handle { position: absolute; width: 10px; height: 10px; background: #fff; border: 2px solid #8b5cf6; border-radius: 2px; z-index: 9999; }
-                          .ve-resize-handle.se { right: -6px; bottom: -6px; cursor: nwse-resize; }
-                          .ve-resize-handle.ne { right: -6px; top: -6px; cursor: nesw-resize; }
-                          .ve-resize-handle.sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
-                          .ve-resize-handle.nw { left: -6px; top: -6px; cursor: nwse-resize; }
-                          .ve-resize-handle.e { right: -6px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
-                          .ve-resize-handle.w { left: -6px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
-                          .ve-resize-handle.s { bottom: -6px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
-                          .ve-resize-handle.n { top: -6px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+                          /* Enhanced Resize/drag handles with improved image resizing */
+                          .ve-resize-handle { position: absolute; width: 12px; height: 12px; background: #fff; border: 2px solid #8b5cf6; border-radius: 3px; z-index: 9999; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+                          .ve-resize-handle.se { right: -7px; bottom: -7px; cursor: nwse-resize; }
+                          .ve-resize-handle.ne { right: -7px; top: -7px; cursor: nesw-resize; }
+                          .ve-resize-handle.sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
+                          .ve-resize-handle.nw { left: -7px; top: -7px; cursor: nwse-resize; }
+                          .ve-resize-handle.e { right: -7px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+                          .ve-resize-handle.w { left: -7px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+                          .ve-resize-handle.s { bottom: -7px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+                          .ve-resize-handle.n { top: -7px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+                          
+                          /* Component type indicators */
+                          .editor-component::before { 
+                            content: attr(data-component-type); 
+                            position: absolute; 
+                            top: -20px; 
+                            left: 0; 
+                            background: #8b5cf6; 
+                            color: white; 
+                            padding: 2px 8px; 
+                            border-radius: 4px; 
+                            font-size: 10px; 
+                            font-weight: 600; 
+                            text-transform: uppercase; 
+                            opacity: 0; 
+                            transition: opacity 0.2s ease; 
+                            pointer-events: none; 
+                            z-index: 1000;
+                          }
+                          .editor-component:hover::before { opacity: 1; }
+                          
+                          /* Better spacing for inline elements */
+                          .editor-component + .editor-component { margin-left: 15px; }
                           .ve-drag-handle { position: absolute; left: 50%; top: -18px; transform: translateX(-50%); padding: 2px 6px; font-size: 11px; background: #8b5cf6; color: #fff; border-radius: 6px; user-select: none; cursor: grab; z-index: 9999; }
                         `;
                         doc.head.appendChild(style);
@@ -4446,24 +4887,48 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                         // Helpers to add resize/drag handles to selected element
                         const addHandles = (el: HTMLElement) => {
                           if (el.querySelector('.ve-resize-handle.se')) return;
-                          const se = doc.createElement('div'); se.className = 've-resize-handle se';
-                          const ne = doc.createElement('div'); ne.className = 've-resize-handle ne';
-                          const sw = doc.createElement('div'); sw.className = 've-resize-handle sw';
-                          const nw = doc.createElement('div'); nw.className = 've-resize-handle nw';
-                          const eH = doc.createElement('div'); eH.className = 've-resize-handle e';
-                          const wH = doc.createElement('div'); wH.className = 've-resize-handle w';
-                          const sH = doc.createElement('div'); sH.className = 've-resize-handle s';
-                          const nH = doc.createElement('div'); nH.className = 've-resize-handle n';
-                          const drag = doc.createElement('div'); drag.className = 've-drag-handle'; drag.textContent = 'Drag';
+                          const se = doc.createElement('div');
+
+ se.className = 've-resize-handle se';
+                          const ne = doc.createElement('div');
+
+ ne.className = 've-resize-handle ne';
+                          const sw = doc.createElement('div');
+
+ sw.className = 've-resize-handle sw';
+                          const nw = doc.createElement('div');
+
+ nw.className = 've-resize-handle nw';
+                          const eH = doc.createElement('div');
+
+ eH.className = 've-resize-handle e';
+                          const wH = doc.createElement('div');
+
+ wH.className = 've-resize-handle w';
+                          const sH = doc.createElement('div');
+
+ sH.className = 've-resize-handle s';
+                          const nH = doc.createElement('div');
+
+ nH.className = 've-resize-handle n';
+                          const drag = doc.createElement('div');
+
+ drag.className = 've-drag-handle'; drag.textContent = 'Drag';
                           el.appendChild(se); el.appendChild(ne); el.appendChild(sw); el.appendChild(nw); el.appendChild(eH); el.appendChild(wH); el.appendChild(sH); el.appendChild(nH); el.appendChild(drag);
 
                           let startX = 0, startY = 0, startW = 0, startH = 0;
+
                           const beginResize = (evt: MouseEvent, mode: 'se'|'ne'|'sw'|'nw'|'e'|'w'|'s'|'n') => {
                             evt.preventDefault();
                             startX = evt.clientX; startY = evt.clientY; startW = el.clientWidth; startH = el.clientHeight;
+                            const isImage = el.tagName === 'IMG' || el.querySelector('img');
+                            const minW = isImage ? 50 : 100;
+                            const minH = isImage ? 50 : 80;
+                            
                             const move = (e2: MouseEvent) => {
                               const dx = e2.clientX - startX; const dy = e2.clientY - startY;
                               let newW = startW; let newH = startH;
+
                               if (mode === 'e') newW = startW + dx;
                               if (mode === 'w') newW = startW - dx;
                               if (mode === 's') newH = startH + dy;
@@ -4472,22 +4937,43 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                               if (mode === 'ne') { newW = startW + dx; newH = startH - dy; }
                               if (mode === 'sw') { newW = startW - dx; newH = startH + dy; }
                               if (mode === 'nw') { newW = startW - dx; newH = startH - dy; }
-                              (el as any).style.width = Math.max(50, newW) + 'px';
-                              (el as any).style.height = Math.max(30, newH) + 'px';
+                              
+                              // Apply minimum constraints
+                              newW = Math.max(minW, newW);
+                              newH = Math.max(minH, newH);
+                              
+                              // For images, maintain aspect ratio when shift is held
+                              if (isImage && evt.shiftKey) {
+                                const aspectRatio = startW / startH;
+
+                                if (mode.includes('e') || mode.includes('w')) {
+                                  newH = newW / aspectRatio;
+                                } else if (mode.includes('n') || mode.includes('s')) {
+                                  newW = newH * aspectRatio;
+                                }
+                              }
+                              
+                              (el as any).style.width = newW + 'px';
+                              (el as any).style.height = newH + 'px';
                             };
+
                             const up = () => {
                               doc.removeEventListener('mousemove', move);
                               doc.removeEventListener('mouseup', up);
+
                               // Update inline style attributes so value/inspector reflects size
                               const rect = el.getBoundingClientRect();
+
                               (el as any).style.width = rect.width + 'px';
                               (el as any).style.height = rect.height + 'px';
-                              setEditedHtml(doc.body.innerHTML);
+                              setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
                               setSelectedElementVersion(v => v + 1);
                             };
+
                             doc.addEventListener('mousemove', move);
                             doc.addEventListener('mouseup', up);
                           };
+
                           se.addEventListener('mousedown', (e: any) => beginResize(e, 'se'));
                           ne.addEventListener('mousedown', (e: any) => beginResize(e, 'ne'));
                           sw.addEventListener('mousedown', (e: any) => beginResize(e, 'sw'));
@@ -4507,18 +4993,21 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           const outsideClick = (ev: any) => {
                             const inside = el.contains(ev.target as Node);
                             const isHandle = (ev.target as HTMLElement).classList?.contains('ve-drag-handle') || (ev.target as HTMLElement).classList?.contains('ve-resize-handle');
+
                             if (!inside && !isHandle && el.classList.contains('selected-element')) {
                               el.classList.remove('selected-element');
                               clearHandles();
                               doc.removeEventListener('click', outsideClick);
                             }
                           };
+
                           doc.addEventListener('click', outsideClick);
 
                           // Drag handle now triggers element reordering (no absolute positioning)
                           drag.addEventListener('pointerdown', (evt: any) => {
                             evt.preventDefault();
                             const draggableElement = el as HTMLElement;
+
                             draggableElement.draggable = true;
                             draggableElement.style.opacity = '0.7';
                             draggableElement.style.cursor = 'grabbing';
@@ -4545,7 +5034,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           drag.addEventListener('dblclick', (ev: any) => {
                             (el as any).style.width = '100%';
                             (el as any).style.height = 'auto';
-                            setEditedHtml(doc.body.innerHTML);
+                            setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
                             setSelectedElementVersion(v => v + 1);
                           });
                         };
@@ -4554,6 +5043,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                         doc.addEventListener('keydown', (e) => {
                           if (e.key === 'Delete') {
                             const selectedElement = doc.querySelector('.selected-element');
+
                             if (selectedElement) {
                               e.preventDefault();
                               
@@ -4567,7 +5057,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                                 selectedElement.remove();
                                 
                                 // Update HTML state
-                                setEditedHtml(doc.body.innerHTML);
+                                setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
                                 
                                 // Clear selection
                                 setSelectedElement(null);
@@ -4577,6 +5067,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                                 
                                 // Show success notification
                                 const notification = doc.createElement('div');
+
                                 notification.style.cssText = `
                                   position: fixed;
                                   top: 20px;
@@ -4650,6 +5141,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             
                             const target = e.target as HTMLElement;
                             const dropTarget = target.closest('div, section, header, footer, article, aside, main, nav, p, h1, h2, h3, h4, h5, h6, ul, ol, li, figure, figcaption, blockquote, button, a, img') as HTMLElement;
+
                             if (dropTarget && !dropTarget.draggable) {
                               // Clear all previous indicators
                               doc.querySelectorAll('[style*="border-top"]').forEach((el: any) => {
@@ -4696,6 +5188,7 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             if (dropTarget && elementHtml) {
                               // Find the original element to remove
                               const tempDiv = doc.createElement('div');
+
                               tempDiv.innerHTML = elementHtml;
                               const elementToMove = tempDiv.firstElementChild as HTMLElement;
                               
@@ -4708,10 +5201,11 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                                 dropTarget.parentNode?.insertBefore(elementToMove, dropTarget);
                                 originalElement.remove();
                                 
-                                setEditedHtml(doc.body.innerHTML);
+                                setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
                                 
                                 // Show success notification
                                 const notification = doc.createElement('div');
+
                                 notification.style.cssText = `
                                   position: fixed;
                                   top: 20px;
@@ -4732,7 +5226,9 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                                 }, 2000);
                               }
                             }
-                            return;
+
+                            
+return;
                           }
                           
                           // Handle external drag (components from sidebar)
@@ -4740,23 +5236,38 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                           const componentLabel = e.dataTransfer!.getData('component-label');
                           
                           if (componentType) {
-                            // Get drop position
+                            // Get accurate drop position with iframe offset
                             const target = e.target as HTMLElement;
-                            const rect = target.getBoundingClientRect();
-                            const dropY = e.clientY;
-                            const elementCenterY = rect.top + rect.height / 2;
+                            const iframeRect = iframe.getBoundingClientRect();
+                            const dropY = e.clientY - iframeRect.top;
                             
-                            // Determine insertion position
+                            // Determine precise insertion position
                             let insertTarget = target;
                             let insertPosition: 'before' | 'after' = 'after';
                             
-                            // Find the closest block element
-                            const blockElement = target.closest('div, section, header, footer, article, aside, main, nav, p, h1, h2, h3, h4, h5, h6, ul, ol, li, figure, figcaption, blockquote, button, a, img') as HTMLElement;
+                            // Find the closest block element for better positioning
+                            const blockElement = target.closest('div, section, header, footer, article, aside, main, nav, p, h1, h2, h3, h4, h5, h6, ul, ol, li, figure, figcaption, blockquote, button, a, img, .editor-component') as HTMLElement;
+                            
                             if (blockElement) {
                               insertTarget = blockElement;
                               const blockRect = blockElement.getBoundingClientRect();
                               const blockCenterY = blockRect.top + blockRect.height / 2;
-                              insertPosition = dropY < blockCenterY ? 'before' : 'after';
+
+                              insertPosition = dropY + iframeRect.top < blockCenterY ? 'before' : 'after';
+                            } else {
+                              // If no block element found, insert at cursor position
+                              const bodyChildren = Array.from(doc.body.children) as HTMLElement[];
+                              const insertIndex = bodyChildren.length;
+                              
+                              for (let i = 0; i < bodyChildren.length; i++) {
+                                const childRect = bodyChildren[i].getBoundingClientRect();
+
+                                if (dropY + iframeRect.top < childRect.top + childRect.height / 2) {
+                                  insertTarget = bodyChildren[i];
+                                  insertPosition = 'before';
+                                  break;
+                                }
+                              }
                             }
                             
                             // Create and insert new component
@@ -4770,22 +5281,27 @@ export default function VisualEditor({ initialData, onSave, onManualSave, saving
                             
                             // Update both HTML and components state
                             const updatedHtml = doc.body.innerHTML;
+
                             setEditedHtml(updatedHtml);
                             
                             // Force manual update of iframe if needed
                             setTimeout(() => {
                               const checkIframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
+
                               if (checkIframe?.contentDocument) {
                                 const checkDoc = checkIframe.contentDocument;
+
                                 if (checkDoc.body.innerHTML !== updatedHtml) {
                                   checkDoc.body.innerHTML = updatedHtml;
                                 }
                               }
                             }, 100);
+
                             // Do not push into components array to avoid placeholder canvas mode
                             
                             // Show success feedback
                             const notification = doc.createElement('div');
+
                             notification.style.cssText = `
                               position: fixed;
                               top: 20px;
