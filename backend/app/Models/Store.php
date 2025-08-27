@@ -131,6 +131,14 @@ class Store extends Model
     }
 
     /**
+     * Get the pixel stores for this store.
+     */
+    public function pixelStores(): HasMany
+    {
+        return $this->hasMany(PixelStore::class, 'store_uuid', 'uuid');
+    }
+
+    /**
      * Get the full subdomain URL.
      */
     public function getSubdomainUrlAttribute(): string

@@ -1,4 +1,7 @@
+'use client'
+
 // React Imports
+import { useState, useEffect } from 'react'
 import type { ReactElement } from 'react'
 
 // MUI Imports
@@ -7,9 +10,35 @@ import CardHeader from '@mui/material/CardHeader'
 import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
+import TextField from '@mui/material/TextField'
+import Button from '@mui/material/Button'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContentText from '@mui/material/DialogContentText'
+import Grid from '@mui/material/Grid'
+import MenuItem from '@mui/material/MenuItem'
+import FormControl from '@mui/material/FormControl'
+import InputLabel from '@mui/material/InputLabel'
+import Select from '@mui/material/Select'
+
+// Third-party Imports
+import { toast } from 'react-toastify'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
+
+// Types
+type PixelStore = {
+  uuid: string
+  store_uuid: string
+  pixel_type: string
+  pixel_id: string | null
+  convention_event: string | null
+  test_code: string | null
+  is_active: boolean
+}
 
 type DataType = {
   Keterangan: string
@@ -17,95 +46,386 @@ type DataType = {
   pixel: string
   KodeTesting: string
   conventionIcon: ReactElement
+  pixelType: string
+  data?: PixelStore
 }
 
-// Vars
-const recentKeteranganData: DataType[] = [
-  {
-    Keterangan: 'Facebook Pixel',
-    pixel: '',
-    convention: '',
-    KodeTesting: '',
-    conventionIcon: <i className='tabler-brand-facebook text-[22px] text-info' />
-  },
-  {
-    Keterangan: 'Tiktok Pixel',
-    pixel: '',
-    convention: '',
-    KodeTesting: '',
-    conventionIcon: <i className='tabler-brand-tiktok text-[22px] text-success' />
-  },
-  {
-    Keterangan: 'Google Tag Manager',
-    pixel: '',
-    convention: '',
-    KodeTesting: '',
-    conventionIcon: <i className='tabler-brand-google text-[22px] text-secondary' />
-  }
-]
-
 const RecentKeterangan = () => {
+  // States
+  const [pixelStores, setPixelStores] = useState<PixelStore[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [editingPixel, setEditingPixel] = useState<DataType | null>(null)
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false)
+  const [addDialogOpen, setAddDialogOpen] = useState<boolean>(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false)
+  const [pixelToDelete, setPixelToDelete] = useState<DataType | null>(null)
+  const [selectedPixelType, setSelectedPixelType] = useState<string>('')
+  const [formData, setFormData] = useState({
+    pixel_id: '',
+    convention_event: '',
+    test_code: ''
+  })
+  const [saving, setSaving] = useState<boolean>(false)
+  const [deleting, setDeleting] = useState<boolean>(false)
+
+  // Pixel types configuration
+  const pixelTypes = [
+    {
+      Keterangan: 'Facebook Pixel',
+      pixelType: 'facebook_pixel',
+      conventionIcon: <i className='tabler-brand-facebook text-[22px] text-info' />
+    },
+    {
+      Keterangan: 'Tiktok Pixel',
+      pixelType: 'tiktok_pixel',
+      conventionIcon: <i className='tabler-brand-tiktok text-[22px] text-success' />
+    },
+    {
+      Keterangan: 'Google Tag Manager',
+      pixelType: 'google_tag_manager',
+      conventionIcon: <i className='tabler-brand-google text-[22px] text-secondary' />
+    }
+  ]
+
+  // Create display data from actual database entries
+  const displayData: DataType[] = pixelStores.map(pixelStore => {
+    const pixelTypeConfig = pixelTypes.find(pt => pt.pixelType === pixelStore.pixel_type)
+    return {
+      Keterangan: pixelTypeConfig?.Keterangan || pixelStore.pixel_type,
+      pixel: pixelStore.pixel_id || '',
+      convention: pixelStore.convention_event || '',
+      KodeTesting: pixelStore.test_code || '',
+      conventionIcon: pixelTypeConfig?.conventionIcon || <i className='tabler-settings text-[22px] text-secondary' />,
+      pixelType: pixelStore.pixel_type,
+      data: pixelStore
+    }
+  })
+
+  // Add empty rows for pixel types that don't exist yet (for visual consistency)
+  pixelTypes.forEach(pixelType => {
+    const exists = pixelStores.some(ps => ps.pixel_type === pixelType.pixelType)
+    if (!exists) {
+      displayData.push({
+        Keterangan: pixelType.Keterangan,
+        pixel: '',
+        convention: '',
+        KodeTesting: '',
+        conventionIcon: pixelType.conventionIcon,
+        pixelType: pixelType.pixelType,
+        data: undefined
+      })
+    }
+  })
+
+  // Fetch pixel stores data
+  const fetchPixelStores = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/public/pixel-stores')
+      const json = await res.json()
+      
+      if (json.success) {
+        setPixelStores(json.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching pixel stores:', error)
+      toast.error('Gagal memuat data pixel')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle add new pixel
+  const handleAddPixel = () => {
+    setAddDialogOpen(true)
+    setSelectedPixelType('')
+    setFormData({
+      pixel_id: '',
+      convention_event: '',
+      test_code: ''
+    })
+  }
+
+  // Handle pixel type selection
+  const handlePixelTypeSelect = () => {
+    if (!selectedPixelType) {
+      toast.error('Pilih jenis pixel terlebih dahulu')
+      return
+    }
+
+    const pixelTypeConfig = pixelTypes.find(p => p.pixelType === selectedPixelType)
+    if (!pixelTypeConfig) return
+
+    // Always create new pixel entry, even if the type already exists
+    const pixelItem: DataType = {
+      Keterangan: pixelTypeConfig.Keterangan,
+      pixel: '',
+      convention: '',
+      KodeTesting: '',
+      conventionIcon: pixelTypeConfig.conventionIcon,
+      pixelType: pixelTypeConfig.pixelType,
+      data: undefined // Force it to create new entry
+    }
+
+    setEditingPixel(pixelItem)
+    setAddDialogOpen(false)
+    setDialogOpen(true)
+  }
+
+  // Handle edit click
+  const handleEdit = (item: DataType) => {
+    setEditingPixel(item)
+    setFormData({
+      pixel_id: item.pixel || '',
+      convention_event: item.convention || '',
+      test_code: item.KodeTesting || ''
+    })
+    setDialogOpen(true)
+  }
+
+  // Handle save
+  const handleSave = async () => {
+    if (!editingPixel) return
+
+    try {
+      setSaving(true)
+
+      const isUpdate = editingPixel.data !== undefined
+      
+      const url = isUpdate 
+        ? `/api/public/pixel-stores/${editingPixel.data!.uuid}`
+        : '/api/public/pixel-stores'
+      
+      const method = isUpdate ? 'PUT' : 'POST'
+      
+      const payload = isUpdate
+        ? formData
+        : {
+            pixel_type: editingPixel.pixelType,
+            ...formData
+          }
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      const result = await res.json()
+      
+      if (result.success) {
+        toast.success(isUpdate ? 'Pixel berhasil diperbarui' : 'Pixel berhasil ditambahkan')
+        setDialogOpen(false)
+        fetchPixelStores() // Refresh data
+      } else {
+        toast.error(result.message || 'Gagal menyimpan pixel')
+      }
+    } catch (error) {
+      console.error('Error saving pixel:', error)
+      toast.error('Terjadi kesalahan saat menyimpan')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Handle delete click
+  const handleDeleteClick = (item: DataType) => {
+    if (!item.data) return
+    setPixelToDelete(item)
+    setDeleteDialogOpen(true)
+  }
+
+  // Handle delete confirm
+  const handleDeleteConfirm = async () => {
+    if (!pixelToDelete?.data) return
+
+    try {
+      setDeleting(true)
+      const res = await fetch(`/api/public/pixel-stores/${pixelToDelete.data.uuid}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      const result = await res.json()
+      
+      if (result.success) {
+        toast.success('Pixel berhasil dihapus')
+        setDeleteDialogOpen(false)
+        setPixelToDelete(null)
+        fetchPixelStores() // Refresh data
+      } else {
+        toast.error(result.message || 'Gagal menghapus pixel')
+      }
+    } catch (error) {
+      console.error('Error deleting pixel:', error)
+      toast.error('Terjadi kesalahan saat menghapus')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchPixelStores()
+  }, [])
+
   return (
-    <Card>
-      <CardHeader
-        title="Setting Keterangan"
-        subheader="Tambahkan Keterangan untuk Iklan yang Maximal."
-        sx={{ pb: 1 }}
-      />
-      <div className="overflow-x-auto">
-        <table className={tableStyles.table}>
-          <thead>
-            <tr>
-              <th>Keterangan</th>
-              <th>Pixel Id</th>
-              <th>Convention/Event</th>
-              <th>Kode Testing</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentKeteranganData.map((item, index) => (
-              <tr key={index}>
-                <td>
-                  <div className="flex items-center gap-4">
-                    {item.conventionIcon}
-                    <Typography color="text.primary">{item.Keterangan}</Typography>
-                  </div>
-                </td>
-                <td>
-                  <Typography>{item.pixel}</Typography>
-                </td>
-                <td>
-                  <Typography>{item.convention}</Typography>
-                </td>
-                <td>
-                  <Typography>{item.KodeTesting}</Typography>
-                </td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <Tooltip title="Lihat">
-                      <IconButton size="small" color="info">
-                        <i className="tabler-eye" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Edit">
-                      <IconButton size="small" color="secondary">
-                        <i className="tabler-edit" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Hapus">
-                      <IconButton size="small" color="error">
-                        <i className="tabler-trash" />
-                      </IconButton>
-                    </Tooltip>
-                  </div>
-                </td>
+    <>
+      <Card>
+        <CardHeader
+          title="Setting Keterangan"
+          subheader="Tambahkan Keterangan untuk Iklan yang Maximal."
+          sx={{ pb: 1 }}
+          action={
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<i className="tabler-plus" />}
+              onClick={handleAddPixel}
+            >
+              Tambah Pixel
+            </Button>
+          }
+        />
+        <div className="overflow-x-auto">
+          <table className={tableStyles.table}>
+            <thead>
+              <tr>
+                <th>Keterangan</th>
+                <th>Pixel Id</th>
+                <th>Convention/Event</th>
+                <th>Kode Testing</th>
+                <th>Aksi</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+            </thead>
+            <tbody>
+              {displayData.map((item, index) => (
+                <tr key={index}>
+                  <td>
+                    <div className="flex items-center gap-4">
+                      {item.conventionIcon}
+                      <Typography color="text.primary">{item.Keterangan}</Typography>
+                    </div>
+                  </td>
+                  <td>
+                    <Typography>{item.pixel || '-'}</Typography>
+                  </td>
+                  <td>
+                    <Typography>{item.convention || '-'}</Typography>
+                  </td>
+                  <td>
+                    <Typography>{item.KodeTesting || '-'}</Typography>
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <Tooltip title="Edit">
+                        <IconButton size="small" color="secondary" onClick={() => handleEdit(item)}>
+                          <i className="tabler-edit" />
+                        </IconButton>
+                      </Tooltip>
+                      {item.data && (
+                        <Tooltip title="Hapus">
+                          <IconButton size="small" color="error" onClick={() => handleDelete(item)}>
+                            <i className="tabler-trash" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {editingPixel?.data ? 'Edit' : 'Tambah'} {editingPixel?.Keterangan}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={3} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Pixel ID"
+                value={formData.pixel_id}
+                onChange={(e) => setFormData({ ...formData, pixel_id: e.target.value })}
+                required
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Convention/Event"
+                value={formData.convention_event}
+                onChange={(e) => setFormData({ ...formData, convention_event: e.target.value })}
+                multiline
+                rows={3}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Kode Testing"
+                value={formData.test_code}
+                onChange={(e) => setFormData({ ...formData, test_code: e.target.value })}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)} disabled={saving}>
+            Batal
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            variant="contained" 
+            disabled={saving || !formData.pixel_id.trim()}
+          >
+            {saving ? 'Menyimpan...' : 'Simpan'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Pixel Type Selection Dialog */}
+      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          Pilih Jenis Pixel
+        </DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>Jenis Pixel</InputLabel>
+            <Select
+              value={selectedPixelType}
+              label="Jenis Pixel"
+              onChange={(e) => setSelectedPixelType(e.target.value)}
+            >
+              {pixelTypes.map((pixelType) => (
+                <MenuItem key={pixelType.pixelType} value={pixelType.pixelType}>
+                  <div className="flex items-center gap-3">
+                    {pixelType.conventionIcon}
+                    {pixelType.Keterangan}
+                  </div>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddDialogOpen(false)}>
+            Batal
+          </Button>
+          <Button 
+            onClick={handlePixelTypeSelect} 
+            variant="contained"
+            disabled={!selectedPixelType}
+          >
+            Lanjut
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   )
 }
 

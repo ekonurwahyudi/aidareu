@@ -53,7 +53,7 @@ const RekeningBank = () => {
   const fetchBankAccounts = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/bank-accounts', {
+      const response = await fetch('/api/public/bank-accounts', {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ const RekeningBank = () => {
     if (!confirm('Apakah Anda yakin ingin menghapus rekening ini?')) return
 
     try {
-      const response = await fetch(`/api/bank-accounts/${uuid}`, {
+      const response = await fetch(`/api/public/bank-accounts/${uuid}`, {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json',

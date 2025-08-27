@@ -35,7 +35,7 @@ const schema = yup.object().shape({
     .required('Subdomain wajib diisi')
     .min(3, 'Subdomain minimal 3 karakter')
     .matches(/^[a-z0-9-]+$/, 'Subdomain hanya boleh huruf kecil, angka, dan tanda -'),
-  phoneNumber: yup.string().required('Nomor HP wajib diisi').min(10, 'Nomor HP minimal 10 digit'),
+  phoneNumber: yup.string().required('Nomor HP wajib diisi').min(8, 'Nomor HP minimal 10 digit'),
   category: yup.string().required('Kategori toko wajib dipilih'),
   description: yup.string().required('Deskripsi toko wajib diisi').min(10, 'Deskripsi minimal 10 karakter')
 })
@@ -68,6 +68,7 @@ type StoreItem = {
   uuid?: string
   name: string
   subdomain: string
+  domain?: string
   phone: string
   category: string
   description: string
@@ -93,6 +94,7 @@ const TokoSaya = () => {
   const [subdomainAvailable, setSubdomainAvailable] = useState<boolean | null>(null)
   const [checkTimeout, setCheckTimeout] = useState<NodeJS.Timeout | null>(null)
   const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [isEditing, setIsEditing] = useState<boolean>(false)
 
   // Form
   const {
@@ -114,12 +116,16 @@ const TokoSaya = () => {
 
   const watchedSubdomain = watch('subdomain')
 
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing)
+  }
+
   // Fetch current user's store(s) and prefill form
   useEffect(() => {
     const fetchStores = async () => {
       try {
         setLoadingStore(true)
-        const res = await fetch('/api/stores', { cache: 'no-store' })
+        const res = await fetch('/api/public/stores', { cache: 'no-store' })
         const json = await res.json()
         const stores: StoreItem[] = json?.data || json?.stores || []
         if (Array.isArray(stores) && stores.length > 0) {
@@ -222,7 +228,7 @@ const TokoSaya = () => {
         deskripsi_toko: values.description
       }
 
-      const res = await fetch(`/api/stores/${selectedStoreUuid}`, {
+      const res = await fetch(`/api/public/stores/${selectedStoreUuid}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -235,6 +241,7 @@ const TokoSaya = () => {
         toast.success(data.message || 'Berhasil menyimpan perubahan')
         // Update initial subdomain if changed
         if (values.subdomain) setInitialSubdomain(values.subdomain)
+        setIsEditing(false) // Disable edit mode after successful update
       }
     } catch (e) {
       console.error(e)
@@ -261,6 +268,7 @@ const TokoSaya = () => {
                     {...field}
                     fullWidth
                     label="Nama Toko"
+                    disabled={!isEditing}
                     error={!!errors.storeName}
                     helperText={errors.storeName?.message as string}
                     onChange={(e) => {
@@ -282,6 +290,7 @@ const TokoSaya = () => {
                     {...field}
                     fullWidth
                     label="Subdomain"
+                    disabled={!isEditing}
                     error={!!errors.subdomain || subdomainAvailable === false}
                     helperText={
                       errors.subdomain?.message ||
@@ -322,13 +331,14 @@ const TokoSaya = () => {
                   <TextField
                     {...field}
                     fullWidth
-                    label="No. HP"
+                    label="No. Hp Toko"
                     placeholder="08123456789"
+                    disabled={!isEditing}
                     error={!!errors.phoneNumber}
                     helperText={errors.phoneNumber?.message as string}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">+62</InputAdornment>
-                    }}
+                    // InputProps={{
+                    //   startAdornment: <InputAdornment position="start">+62</InputAdornment>
+                    // }}
                   />
                 )}
               />
@@ -342,7 +352,7 @@ const TokoSaya = () => {
                 render={({ field }) => (
                   <FormControl fullWidth error={!!errors.category}>
                     <InputLabel>Kategori</InputLabel>
-                    <Select {...field} label="Kategori">
+                    <Select {...field} label="Kategori" disabled={!isEditing}>
                       {categories.map((c) => (
                         <MenuItem key={c} value={c}>
                           {c}
@@ -367,6 +377,7 @@ const TokoSaya = () => {
                     multiline
                     rows={4}
                     label="Deskripsi Toko"
+                    disabled={!isEditing}
                     error={!!errors.description}
                     helperText={errors.description?.message as string}
                   />
@@ -375,15 +386,34 @@ const TokoSaya = () => {
             </Grid>
           </Grid>
 
-          <Box className="flex justify-end mt-6">
-            <Button
-              variant="contained"
-              type="submit"
-              disabled={isSaving || subdomainAvailable === false || subdomainChecking}
-              endIcon={<i className="tabler-arrow-right" />}
-            >
-              {isSaving ? 'Mengupdate...' : 'Update'}
-            </Button>
+          <Box className="flex justify-end gap-4 mt-6">
+            {!isEditing ? (
+              <Button
+                variant="contained"
+                onClick={handleEditToggle}
+                endIcon={<i className="tabler-edit" />}
+              >
+                Edit
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outlined"
+                  onClick={handleEditToggle}
+                  disabled={isSaving}
+                >
+                  Batal
+                </Button>
+                <Button
+                  variant="contained"
+                  type="submit"
+                  disabled={isSaving || subdomainAvailable === false || subdomainChecking}
+                  endIcon={<i className="tabler-check" />}
+                >
+                  {isSaving ? 'Mengupdate...' : 'Update'}
+                </Button>
+              </>
+            )}
           </Box>
         </Box>
       </CardContent>
