@@ -232,11 +232,8 @@ export const ProductFormProvider = ({ children, productUuid, isEdit = false }: P
       if (result.status === 'success') {
         // Success - redirect using Next.js router
         if (isEdit) {
-          // For edit, go back and let the auto-refresh handle data update
-          router.push('/apps/tokoku/products')
-          
-          // Add a timestamp to force fresh data fetch
-          router.refresh()
+          // For edit, add refresh parameter to force fresh data fetch
+          router.push('/apps/tokoku/products?refresh=true')
         } else {
           // For create, redirect to list page
           router.push('/apps/tokoku/products')

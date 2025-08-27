@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 
 // Next Imports
 import Link from 'next/link'
+import { useSearchParams, useRouter } from 'next/navigation'
 
 // MUI Imports
 import Card from '@mui/material/Card'
@@ -176,6 +177,10 @@ const productStatusObj: productStatusType = {
 const columnHelper = createColumnHelper<ProductWithActionsType>()
 
 const ProductListTable = () => {
+  // Next.js hooks for detecting URL parameters
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  
   // RBAC Context
   const { currentStore, user, isLoading: rbacLoading } = useRBAC()
 
@@ -203,10 +208,10 @@ const ProductListTable = () => {
   const [statusFilter, setStatusFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
 
-  // Debounced values for better API performance
-  const debouncedSearch = useDebounce(globalFilter, 500)
-  const debouncedStatusFilter = useDebounce(statusFilter, 300)
-  const debouncedCategoryFilter = useDebounce(categoryFilter, 300)
+  // Reduced debouncing for faster response
+  const debouncedSearch = useDebounce(globalFilter, 200) // Reduced from 500ms
+  const debouncedStatusFilter = useDebounce(statusFilter, 100) // Reduced from 300ms  
+  const debouncedCategoryFilter = useDebounce(categoryFilter, 100) // Reduced from 300ms
 
   // Fetch products from API with smart caching
   const fetchProducts = useCallback(async (forceRefresh = false) => {
@@ -217,18 +222,21 @@ const ProductListTable = () => {
       return
     }
 
-    // Implement smart caching - don't fetch if data is fresh (less than 10 seconds old)
+    // Implement aggressive caching - keep data fresh for 5 minutes to avoid loading delays
     const now = Date.now()
     const timeSinceLastFetch = now - lastFetchTime
-    const cacheTimeout = 10000 // 10 seconds (reduced from 30 for better responsiveness)
+    const cacheTimeout = 300000 // 5 minutes - extended for instant loading experience
     
     if (!forceRefresh && timeSinceLastFetch < cacheTimeout && products.length > 0) {
       console.log('Using cached data, last fetch was', Math.round(timeSinceLastFetch / 1000), 'seconds ago')
-      return
+      return // Return immediately without loading indicator for instant display
     }
 
     try {
-      setLoading(true)
+      // Only show loading for fresh requests, not cached data
+      if (forceRefresh || products.length === 0) {
+        setLoading(true)
+      }
       setError(null)
 
       const filters = {
@@ -328,81 +336,57 @@ const ProductListTable = () => {
     }
   }, [fetchProducts, currentStore, rbacLoading])
 
-  // Smart refresh logic - only refresh when user returns after being away
+  // Check for refresh parameter from successful product edit
   useEffect(() => {
-    let activityTimer: NodeJS.Timeout
-    
+    const refreshParam = searchParams.get('refresh')
+    if (refreshParam === 'true' && currentStore && !rbacLoading) {
+      console.log('Detected refresh parameter, forcing data refresh after product edit')
+      fetchProducts(true) // Force refresh to bypass cache
+      
+      // Clean up the URL parameter
+      const url = new URL(window.location.href)
+      url.searchParams.delete('refresh')
+      router.replace(url.pathname + url.search, { scroll: false })
+    }
+  }, [searchParams, currentStore, rbacLoading, fetchProducts, router])
+
+  // Simplified visibility and focus handling - less aggressive refresh
+  useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         setIsUserActive(false)
         setHasBeenAway(true)
       } else {
         setIsUserActive(true)
-        // Only refresh if user has been away and data is older than 1 minute
+        // Only refresh if user has been away for more than 10 minutes
         const timeSinceLastFetch = Date.now() - lastFetchTime
-        if (hasBeenAway && timeSinceLastFetch > 60000 && currentStore && !rbacLoading) {
-          console.log('User returned after being away, refreshing products...')
-          fetchProducts(true) // Force refresh
+        if (hasBeenAway && timeSinceLastFetch > 600000 && currentStore && !rbacLoading) {
+          console.log('User returned after long absence, refreshing products...')
+          fetchProducts(false) // Don't force, allow cache
           setHasBeenAway(false)
         }
       }
     }
 
-    const handleFocus = () => {
-      if (!isUserActive) {
-        setIsUserActive(true)
-        // Only refresh if user has been away and data is older than 2 minutes
-        const timeSinceLastFetch = Date.now() - lastFetchTime
-        if (timeSinceLastFetch > 120000 && currentStore && !rbacLoading) {
-          console.log('Window focused after long absence, refreshing products...')
-          fetchProducts(true) // Force refresh
-        }
-      }
-      
-      // Reset activity timer
-      clearTimeout(activityTimer)
-      activityTimer = setTimeout(() => {
-        setIsUserActive(false)
-      }, 300000) // Consider user inactive after 5 minutes
-    }
-
-    const handleActivity = () => {
-      setIsUserActive(true)
-      clearTimeout(activityTimer)
-      activityTimer = setTimeout(() => {
-        setIsUserActive(false)
-      }, 300000) // Consider user inactive after 5 minutes
-    }
-
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-    window.addEventListener('mousemove', handleActivity)
-    window.addEventListener('keydown', handleActivity)
-    window.addEventListener('click', handleActivity)
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-      window.removeEventListener('mousemove', handleActivity)
-      window.removeEventListener('keydown', handleActivity)
-      window.removeEventListener('click', handleActivity)
-      clearTimeout(activityTimer)
     }
-  }, [currentStore, rbacLoading, fetchProducts, lastFetchTime, hasBeenAway, isUserActive])
+  }, [currentStore, rbacLoading, fetchProducts, lastFetchTime, hasBeenAway])
 
-  // Smart auto refresh - only refresh if user is active and data is old
+  // Minimal auto refresh - only refresh if user is active and data is very old
   useEffect(() => {
     if (!currentStore || rbacLoading) return
 
     const interval = setInterval(() => {
       const timeSinceLastFetch = Date.now() - lastFetchTime
-      const isDataStale = timeSinceLastFetch > 300000 // 5 minutes
+      const isDataVeryStale = timeSinceLastFetch > 600000 // 10 minutes (increased from 5)
       
-      if (isUserActive && isDataStale) {
-        console.log('Background refresh: data is stale and user is active')
+      if (isUserActive && isDataVeryStale) {
+        console.log('Background refresh: data is very stale and user is active')
         fetchProducts(false) // Don't force refresh, respect cache
       }
-    }, 120000) // Check every 2 minutes instead of 30 seconds
+    }, 300000) // Check every 5 minutes instead of 2 minutes
 
     return () => clearInterval(interval)
   }, [currentStore, rbacLoading, fetchProducts, lastFetchTime, isUserActive])
@@ -741,7 +725,14 @@ const ProductListTable = () => {
     <Card>
       {/* Header: title kiri, tombol kanan */}
       <CardHeader
-        title="My Products"
+        title={
+          <div className="flex items-center gap-2">
+            <Typography variant="h5">My Products</Typography>
+            {loading && products.length > 0 && (
+              <CircularProgress size={16} className="text-primary" />
+            )}
+          </div>
+        }
         action={
           <div className="flex gap-3">
             <Button 
@@ -817,14 +808,16 @@ const ProductListTable = () => {
 
       {/* Table */}
       <div className="overflow-x-auto">
-        {loading && (
+        {/* Only show loading for initial load or when no data exists */}
+        {loading && products.length === 0 && (
           <div className="flex justify-center items-center p-8">
             <CircularProgress size={24} />
             <Typography className="ml-2">Loading products...</Typography>
           </div>
         )}
         
-        {!loading && (
+        {/* Show table immediately if we have data, even while loading new data */}
+        {!loading || products.length > 0 ? (
           <table className={tableStyles.table}>
             <thead>
               {table.getHeaderGroups().map(headerGroup => (
@@ -871,7 +864,7 @@ const ProductListTable = () => {
               </tbody>
             )}
           </table>
-        )}
+        ) : null}
       </div>
 
       {/* Pagination */}
