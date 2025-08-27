@@ -71,6 +71,7 @@ class PixelStoreController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'pixel_type' => 'required|string|in:facebook_pixel,tiktok_pixel,google_tag_manager',
+            'nama_pixel' => 'nullable|string|max:255',
             'pixel_id' => 'required|string|max:255',
             'convention_event' => 'nullable|string',
             'test_code' => 'nullable|string|max:255'
@@ -114,6 +115,7 @@ class PixelStoreController extends Controller
                 'uuid' => Str::uuid(),
                 'store_uuid' => $store->uuid,
                 'pixel_type' => $request->pixel_type,
+                'nama_pixel' => $request->nama_pixel,
                 'pixel_id' => $request->pixel_id,
                 'convention_event' => $request->convention_event,
                 'test_code' => $request->test_code,
@@ -141,6 +143,7 @@ class PixelStoreController extends Controller
     public function update(Request $request, $pixelUuid): JsonResponse
     {
         $validator = Validator::make($request->all(), [
+            'nama_pixel' => 'nullable|string|max:255',
             'pixel_id' => 'required|string|max:255',
             'convention_event' => 'nullable|string',
             'test_code' => 'nullable|string|max:255'
@@ -190,6 +193,7 @@ class PixelStoreController extends Controller
             }
 
             $pixelStore->update([
+                'nama_pixel' => $request->nama_pixel,
                 'pixel_id' => $request->pixel_id,
                 'convention_event' => $request->convention_event,
                 'test_code' => $request->test_code
