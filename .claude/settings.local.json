@@ -23,7 +23,8 @@
       "Bash(mv:*)",
       "Bash(psql:*)",
       "WebFetch(domain:modernize-nextjs.adminmart.com)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": [],
