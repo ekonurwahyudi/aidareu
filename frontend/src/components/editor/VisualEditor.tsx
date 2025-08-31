@@ -463,406 +463,20 @@ return { r, g, b }
       
 return () => clearTimeout(timer);
     }
-  }, [editedHtml]);
-
-  // Cleanup function for object URLs to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      // Cleanup any created object URLs when component unmounts
-      if (pageSettings.favicon) {
-        const url = URL.createObjectURL(pageSettings.favicon)
-
-        URL.revokeObjectURL(url)
-      }
-
-      if (pageSettings.logo) {
-        const url = URL.createObjectURL(pageSettings.logo)
-
-        URL.revokeObjectURL(url)
-      }
-
-      if (pageSettings.metaImage) {
-        const url = URL.createObjectURL(pageSettings.metaImage)
-
-        URL.revokeObjectURL(url)
-      }
-    }
-  }, [pageSettings.favicon, pageSettings.logo, pageSettings.metaImage])
-
-  // Auto-generate slug from page name
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .trim()
-
-      // Replace Indonesian characters
-      .replace(/[àáäâèéëêìíïîòóöôùúüûñç]/g, (match) => {
-        const map: { [key: string]: string } = {
-          'à': 'a', 'á': 'a', 'ä': 'a', 'â': 'a',
-          'è': 'e', 'é': 'e', 'ë': 'e', 'ê': 'e',
-          'ì': 'i', 'í': 'i', 'ï': 'i', 'î': 'i',
-          'ò': 'o', 'ó': 'o', 'ö': 'o', 'ô': 'o',
-          'ù': 'u', 'ú': 'u', 'ü': 'u', 'û': 'u',
-          'ñ': 'n', 'ç': 'c'
-        }
-
-        
-return map[match] || match
-      })
-      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-      .replace(/\s+/g, '-') // Replace spaces with hyphens
-      .replace(/--+/g, '-') // Replace multiple hyphens with single
-      .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
-  }
-
-  // Handle page name change and auto-generate slug
-  const handlePageNameChange = (name: string) => {
-    const newSlug = generateSlug(name)
-
-    setPageSettings(prev => ({
-      ...prev,
-      pageName: name,
-      slugUrl: newSlug,
-
-      // Set titleTag to pageName if titleTag is empty
-      titleTag: prev.titleTag || name
-    }))
-  }
-
-  // Get preview URL based on selected store and domain
-  const getPreviewUrl = () => {
-    if (!pageSettings.selectedStore || !pageSettings.slugUrl) return ''
-    
-    const selectedStore = stores.find(store => store.uuid === pageSettings.selectedStore)
-
-    if (!selectedStore) return ''
-    
-    // Use domain if available, otherwise use subdomain
-    if (selectedStore.domain) {
-      return `https://${selectedStore.domain}/${pageSettings.slugUrl}`
-    } else if (selectedStore.subdomain) {
-      return `https://${selectedStore.subdomain}.aidareu.com/${pageSettings.slugUrl}`
-    }
-    
-    return ''
-  }
-
-  // Get full page URL for Google Search preview
-  const getFullPageUrl = () => {
-    if (!pageSettings.selectedStore || !pageSettings.slugUrl) return 'https://example.com/page'
-    
-    const selectedStore = stores.find(store => store.uuid === pageSettings.selectedStore)
-
-    if (!selectedStore) return 'https://example.com/page'
-    
-    // Use domain if available, otherwise use subdomain
-    if (selectedStore.domain) {
-      return `https://${selectedStore.domain}/${pageSettings.slugUrl}`
-    } else if (selectedStore.subdomain) {
-      return `https://${selectedStore.subdomain}.aidareu.com/${pageSettings.slugUrl}`
-    }
-    
-    return 'https://example.com/page'
-  }
-
-  // File upload validation
-  const validateImageFile = (file: File, maxSize = 2) => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-    const maxSizeBytes = maxSize * 1024 * 1024 // Convert MB to bytes
-    
-    if (!allowedTypes.includes(file.type)) {
-      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
-      
-return false
-    }
-    
-    if (file.size > maxSizeBytes) {
-      alert(`File size must be less than ${maxSize}MB`)
-      
-return false
-    }
-    
-    return true
-  }
-
-  // Push to local undo history whenever editedHtml changes (user edits)
-  useEffect(() => {
-    if (applyingHistoryRef.current) return
-    setHtmlHistory(prev => {
-      const current = prev[historyIndex]
-
-      if (current === editedHtml) return prev
-      const next = prev.slice(0, historyIndex + 1)
-
-      next.push(editedHtml)
-      setHistoryIndex(next.length - 1)
-      
-return next
-    })
-
-    // Keep parent informed (so server-side autosave & external buttons still reflect)
-    onSave?.({ components: [], sections: [], html: editedHtml, css: initialData?.css || '' })
   }, [editedHtml])
 
-  const applyHtmlToIframe = (html: string) => {
-    const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement
-
-    if (iframe?.contentWindow) {
-      // Save current scroll position before applying HTML
-      setLastScrollPosition({
-        top: iframe.contentWindow.scrollY || 0,
-        left: iframe.contentWindow.scrollX || 0
-      });
-    }
-
-    setEditedHtml(html)
-
-    if (iframe?.contentDocument) {
-      iframe.contentDocument.body.innerHTML = html
-      updateElementOutline()
-    }
-  }
-
-  const handleLocalUndo = () => {
-    if (historyIndex <= 0) return
-    applyingHistoryRef.current = true
-    const newIndex = historyIndex - 1
-
-    setHistoryIndex(newIndex)
-    const html = htmlHistory[newIndex]
-
-    applyHtmlToIframe(html)
-    applyingHistoryRef.current = false
-    onUndo?.()
-  }
-
-  const handleLocalRedo = () => {
-    if (historyIndex >= htmlHistory.length - 1) return
-    applyingHistoryRef.current = true
-    const newIndex = historyIndex + 1
-
-    setHistoryIndex(newIndex)
-    const html = htmlHistory[newIndex]
-
-    applyHtmlToIframe(html)
-    applyingHistoryRef.current = false
-    onRedo?.()
-  }
-
-  const handleLocalReset = () => {
-    applyingHistoryRef.current = true
-    const html = originalSnapshotRef.current || ''
-
-    applyHtmlToIframe(html)
-    setHtmlHistory([html])
-    setHistoryIndex(0)
-    applyingHistoryRef.current = false
-    onReset?.()
-  }
-  
-  // Auto-save when content changes
+  // Rebuild element outline whenever HTML changes
   useEffect(() => {
-    if (editedHtml || components.length > 0) {
-      const timer = setTimeout(() => {
-        let htmlToSave = editedHtml && editedHtml.trim() !== '' ? editedHtml : generateHTMLFromData(components, sections)
-        
-        // Clean HTML for viewing (remove editor-specific styling)
-        htmlToSave = cleanHtmlForViewing(htmlToSave)
-        
-        const data = { 
-          components, 
-          sections,
-          html: htmlToSave,
-          css: initialData?.css || generateCSSFromData(components, sections)
-        }
-
-        onSave?.(data)
-      }, 2000); // Auto-save after 2 seconds of inactivity
-      
-      return () => clearTimeout(timer);
-    }
-  }, [editedHtml, components, sections]);
-  
-  // Listen for content changes from iframe
-  useEffect(() => {
-    const handleContentChange = (e: CustomEvent) => {
-      const newHtml = e.detail.html;
-      if (newHtml !== editedHtml) {
-        setEditedHtmlWithScrollPreservation(newHtml);
+    const timer = setTimeout(() => {
+      try {
+        updateElementOutline();
+      } catch (err) {
+        // no-op
       }
-    };
-
-    window.addEventListener('contentChange', handleContentChange as EventListener);
-    
-    return () => {
-      window.removeEventListener('contentChange', handleContentChange as EventListener);
-    };
+    }, 150);
+    return () => clearTimeout(timer);
   }, [editedHtml]);
   
-  // Update iframe content when editedHtml changes without scroll interference
-  useEffect(() => {
-    const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
-
-    if (iframe && iframe.contentDocument && editedHtml) {
-      const doc = iframe.contentDocument;
-
-      if (doc.body && doc.body.innerHTML !== editedHtml) {
-        // Add basic styles to iframe body
-        doc.head.innerHTML = `
-          <meta charset="utf-8"/>
-          <meta name="viewport" content="width=device-width, initial-scale=1"/>
-          <style>
-            ${(initialData && (initialData as any).css) ? (initialData as any).css : ''}
-            body { 
-              margin: 0; 
-              padding: 0; 
-              font-family: system-ui;
-            }
-            .editor-component {
-              border: 2px dashed #e0e0e0 !important;
-              border-radius: 8px !important;
-              position: relative;
-            }
-            .editor-component:hover {
-              border-color: #3b82f6 !important;
-            }
-            .selected-element {
-              outline: 2px solid #8b5cf6 !important;
-              outline-offset: 2px !important;
-              background-color: rgba(139, 92, 246, 0.05) !important;
-              z-index: 1000;
-            }
-            /* Ensure images display properly without transparency grid */
-            img {
-              max-width: 100%;
-              height: auto;
-              display: block;
-              background: transparent !important;
-            }
-            /* Full width images */
-            .editor-component[data-component-type="full_width_image"] {
-              width: 100% !important;
-              margin: 20px 0 !important;
-              padding: 0 !important;
-            }
-            .editor-component[data-component-type="full_width_image"] img {
-              width: 100% !important;
-              height: auto !important;
-              object-fit: cover;
-              border-radius: 0;
-            }
-            /* Regular images */
-            .editor-component[data-component-type="image"] img {
-              max-width: 100%;
-              height: auto;
-            }
-            /* Drag and drop indicators */
-            .drop-indicator {
-              position: absolute;
-              height: 2px;
-              background: #8b5cf6;
-              width: 100%;
-              z-index: 1001;
-            }
-            .drop-indicator-top {
-              top: 0;
-              left: 0;
-            }
-            .drop-indicator-bottom {
-              bottom: 0;
-              left: 0;
-            }
-            /* Make contenteditable elements more visible when focused */
-            [contenteditable] {
-              padding: 4px 6px;
-              border-radius: 4px;
-              min-width: 20px;
-              display: inline-block;
-            }
-            [contenteditable]:focus {
-              outline: 2px solid #8b5cf6 !important;
-              outline-offset: 2px !important;
-              background-color: rgba(139, 92, 246, 0.1) !important;
-            }
-            [contenteditable]:empty:before {
-              content: "Click to edit...";
-              color: #9ca3af;
-              font-style: italic;
-            }
-            /* Prevent drag conflicts with editable elements */
-            [contenteditable] img {
-              pointer-events: none;
-            }
-          </style>
-        `;
-        
-        // Update content without any scroll manipulation
-        doc.body.innerHTML = editedHtml;
-        
-        // Set up event handlers for content editing
-        const handleContentChange = (e: Event) => {
-          const target = e.target as HTMLElement;
-          if (target.hasAttribute('contenteditable')) {
-            // Debounce the update to avoid too frequent state changes
-            clearTimeout((window as any).contentUpdateTimer);
-            (window as any).contentUpdateTimer = setTimeout(() => {
-              setEditedHtmlWithScrollPreservation(doc.body.innerHTML);
-            }, 500);
-          }
-        };
-        
-        // Add input event listeners to all contenteditable elements
-        const editableElements = doc.querySelectorAll('[contenteditable]');
-        editableElements.forEach(el => {
-          el.addEventListener('input', handleContentChange);
-          el.addEventListener('blur', handleContentChange);
-        });
-        
-        // Set up drag and drop handlers for iframe content
-        const handleDragOver = (e: DragEvent) => {
-          e.preventDefault();
-          if (e.dataTransfer) {
-            e.dataTransfer.dropEffect = 'copy';
-          }
-        };
-        
-        const handleDrop = (e: DragEvent) => {
-          e.preventDefault();
-          if (e.dataTransfer) {
-            const componentType = e.dataTransfer.getData('component-type');
-            if (componentType && handleAddComponent) {
-              // Get the drop target element
-              const dropTarget = e.target as HTMLElement;
-              handleAddComponent(componentType, dropTarget);
-            }
-          }
-        };
-        
-        doc.addEventListener('dragover', handleDragOver);
-        doc.addEventListener('drop', handleDrop);
-        
-        updateElementOutline();
-      }
-    }
-    
-    // Clean up event listeners
-    return () => {
-      const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
-      if (iframe?.contentDocument) {
-        const doc = iframe.contentDocument;
-        doc.removeEventListener('dragover', () => {});
-        doc.removeEventListener('drop', () => {});
-        
-        // Clean up contenteditable event listeners
-        const editableElements = doc.querySelectorAll('[contenteditable]');
-        editableElements.forEach(el => {
-          el.removeEventListener('input', () => {});
-          el.removeEventListener('blur', () => {});
-        });
-      }
-    };
-  }, [editedHtml, initialData]); // Removed handleAddComponent and updateElementOutline to avoid circular dependencies
-
   // Re-attach handles after updates so properties panel sees latest values
   useEffect(() => {
     const iframe = document.querySelector('iframe[title="Landing Page Editor"]') as HTMLIFrameElement;
@@ -1479,6 +1093,66 @@ return icons[tagName] || '📦';
     setEditedHtml(newHtml);
   }
 
+  // Keep local undo history in sync when HTML changes (ignore when applying history)
+  useEffect(() => {
+    if (applyingHistoryRef.current) return
+    setHtmlHistory(prev => {
+      const current = prev[historyIndex]
+      if (current === editedHtml) return prev
+      const next = prev.slice(0, historyIndex + 1)
+      next.push(editedHtml)
+      setHistoryIndex(next.length - 1)
+      return next
+    })
+  }, [editedHtml])
+
+  // Listen for inline editing changes coming from the iframe (dispatched by EditorCanvas)
+  useEffect(() => {
+    const handleContentChange = (e: Event) => {
+      const evt = e as CustomEvent<{ html: string }>
+      const newHtml = evt.detail?.html
+      if (newHtml && newHtml !== editedHtml) {
+        setEditedHtmlWithScrollPreservation(newHtml)
+      }
+    }
+    window.addEventListener('contentChange', handleContentChange as EventListener)
+    return () => {
+      window.removeEventListener('contentChange', handleContentChange as EventListener)
+    }
+  }, [editedHtml])
+
+  const handleLocalUndo = () => {
+    if (historyIndex <= 0) return
+    applyingHistoryRef.current = true
+    const newIndex = historyIndex - 1
+    setHistoryIndex(newIndex)
+    const html = htmlHistory[newIndex]
+    setEditedHtmlWithScrollPreservation(html)
+    applyingHistoryRef.current = false
+    onUndo?.()
+  }
+
+  const handleLocalRedo = () => {
+    if (historyIndex >= htmlHistory.length - 1) return
+    applyingHistoryRef.current = true
+    const newIndex = historyIndex + 1
+    setHistoryIndex(newIndex)
+    const html = htmlHistory[newIndex]
+    setEditedHtmlWithScrollPreservation(html)
+    applyingHistoryRef.current = false
+    onRedo?.()
+  }
+
+  const handleLocalReset = () => {
+    applyingHistoryRef.current = true
+    const html = originalSnapshotRef.current || ''
+    setEditedHtmlWithScrollPreservation(html)
+    setHtmlHistory([html])
+    setHistoryIndex(0)
+    applyingHistoryRef.current = false
+    onReset?.()
+  }
+
   const updateComponent = (id: string, newData: any) => {
     setComponents(prev => prev.map(comp => comp.id === id ? { ...comp, ...newData } : comp))
   }
@@ -1489,21 +1163,72 @@ return icons[tagName] || '📦';
 
   const handleSave = () => {
     let htmlToSave = editedHtml && editedHtml.trim() !== '' ? editedHtml : generateHTMLFromData(components, sections)
-    
-    // Clean HTML for viewing (remove editor-specific styling)
     htmlToSave = cleanHtmlForViewing(htmlToSave)
-    
     const data = { 
       components, 
       sections,
       html: htmlToSave,
       css: initialData?.css || generateCSSFromData(components, sections)
     }
-
     onSave?.(data)
   }
 
+  // Settings helpers (used by SettingsTab via Sidebar props)
+  const generateSlug = (str: string) => {
+    const from = 'àáäâèéëêìíïîòóöôùúüûñç'
+    const to = 'aaaaaaaaaaaioooouuuunc'
+    const map: Record<string, string> = {}
+    for (let i = 0; i < from.length; i++) map[from[i]] = to[i]
+    return (str || '')
+      .toLowerCase()
+      .replace(/[àáäâèéëêìíïîòóöôùúüûñç]/g, m => map[m] || m)
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/--+/g, '-')
+      .replace(/^-|-$/g, '')
+  }
 
+  const handlePageNameChange = (name: string) => {
+    const newSlug = generateSlug(name)
+    setPageSettings(prev => ({
+      ...prev,
+      pageName: name,
+      slugUrl: newSlug,
+      titleTag: prev.titleTag || name
+    }))
+  }
+
+  const getPreviewUrl = () => {
+    if (!pageSettings.selectedStore || !pageSettings.slugUrl) return ''
+    const selectedStore = stores.find(store => store.uuid === pageSettings.selectedStore)
+    if (!selectedStore) return ''
+    if (selectedStore.domain) return `https://${selectedStore.domain}/${pageSettings.slugUrl}`
+    if (selectedStore.subdomain) return `https://${selectedStore.subdomain}.aidareu.com/${pageSettings.slugUrl}`
+    return ''
+  }
+
+  const getFullPageUrl = () => {
+    if (!pageSettings.selectedStore || !pageSettings.slugUrl) return 'https://example.com/page'
+    const selectedStore = stores.find(store => store.uuid === pageSettings.selectedStore)
+    if (!selectedStore) return 'https://example.com/page'
+    if (selectedStore.domain) return `https://${selectedStore.domain}/${pageSettings.slugUrl}`
+    if (selectedStore.subdomain) return `https://${selectedStore.subdomain}.aidareu.com/${pageSettings.slugUrl}`
+    return 'https://example.com/page'
+  }
+
+  const validateImageFile = (file: File, maxSize = 2) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    const maxSizeBytes = maxSize * 1024 * 1024
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
+      return false
+    }
+    if (file.size > maxSizeBytes) {
+      alert(`File size must be less than ${maxSize}MB`)
+      return false
+    }
+    return true
+  }
 
   return (
     <Box sx={{ display: 'flex', minHeight: '80vh', bgcolor: 'background.paper' }}>
@@ -1589,7 +1314,7 @@ return icons[tagName] || '📦';
             // Convert to component mode for advanced editing
             setComponents([{
               id: 'existing-content',
-              type: 'html_content',
+              type: 'html_code',
               content: initialData?.html || ''
             }])
           }}
@@ -1601,7 +1326,12 @@ return icons[tagName] || '📦';
           onRedo={handleLocalRedo}
           onReset={handleLocalReset}
           saving={saving}
-          onManualSave={onManualSave}
+          onManualSave={() => {
+            // First push current editedHtml/components to parent via onSave
+            handleSave()
+            // Then allow parent to perform its manual save (API persist)
+            onManualSave?.()
+          }}
         />
 
         <EditorCanvas
@@ -1612,7 +1342,8 @@ return icons[tagName] || '📦';
           onDeleteComponent={deleteComponent}
           onSelectComponent={setSelectedComponent}
           onAddComponent={handleAddComponent}
-          onElementSelect={setSelectedElement}
+          onElementSelect={(el) => { setSelectedElement(el); setSelectedElementVersion(prev => prev + 1); setSelectedTab(1); }}
+          customCss={initialData?.css || generateCSSFromData(components, sections)}
         />
       </Box>
 

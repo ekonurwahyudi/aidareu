@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import type { ReactElement, ReactNode, SyntheticEvent } from 'react'
 
 // Next Imports
@@ -28,11 +28,21 @@ import type { OptionsMenuType, OptionType, OptionMenuItemType } from './types'
 // Hook Imports
 import { useSettings } from '@core/hooks/useSettings'
 
-const IconButtonWrapper = (props: Pick<OptionsMenuType, 'tooltipProps'> & { children: ReactElement }) => {
+const IconButtonWrapper = (props: Pick<OptionsMenuType, 'tooltipProps'> & { children: React.ReactElement<any, any> }) => {
   // Props
   const { tooltipProps, children } = props
 
-  return tooltipProps?.title ? <Tooltip {...tooltipProps}>{children}</Tooltip> : children
+  if (!tooltipProps?.title) return children
+
+  // Pastikan typing props tidak unknown
+  const child = children as React.ReactElement<any>
+  const isDisabledChild = Boolean((child.props as any)?.disabled || (child.props as any)?.['aria-disabled'])
+
+  return (
+    <Tooltip {...tooltipProps}>
+      {isDisabledChild ? <span style={{ display: 'inline-flex' }}>{children}</span> : children}
+    </Tooltip>
+  )
 }
 
 const MenuItemWrapper = ({ children, option }: { children: ReactNode; option: OptionMenuItemType }) => {

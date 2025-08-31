@@ -167,6 +167,7 @@ export default function Sidebar({
 
         {selectedTab === 1 && (
           <PropertiesTab
+            key={selectedElementVersion}
             selectedElement={selectedElement}
             selectedComponent={selectedComponent}
             colorEditorTab={colorEditorTab}
