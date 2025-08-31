@@ -153,32 +153,36 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ content, onChange, placehol
         {/* Undo/Redo */}
         <ButtonGroup size="small" variant="text" sx={{ mr: 1 }}>
           <Tooltip title="Undo">
-            <IconButton
-              size="small"
-              onClick={() => editor.chain().focus().undo().run()}
-              disabled={!editor.can().undo()}
-              sx={{ 
-                borderRadius: 1, 
-                '&:hover': { background: 'rgba(59, 130, 246, 0.1)' },
-                '&:disabled': { opacity: 0.4 }
-              }}
-            >
-              <Undo fontSize="small" />
-            </IconButton>
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => editor.chain().focus().undo().run()}
+                disabled={!editor.can().undo()}
+                sx={{ 
+                  borderRadius: 1, 
+                  '&:hover': { background: 'rgba(59, 130, 246, 0.1)' },
+                  '&:disabled': { opacity: 0.4 }
+                }}
+              >
+                <Undo fontSize="small" />
+              </IconButton>
+            </span>
           </Tooltip>
           <Tooltip title="Redo">
-            <IconButton
-              size="small"
-              onClick={() => editor.chain().focus().redo().run()}
-              disabled={!editor.can().redo()}
-              sx={{ 
-                borderRadius: 1, 
-                '&:hover': { background: 'rgba(59, 130, 246, 0.1)' },
-                '&:disabled': { opacity: 0.4 }
-              }}
-            >
-              <Redo fontSize="small" />
-            </IconButton>
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => editor.chain().focus().redo().run()}
+                disabled={!editor.can().redo()}
+                sx={{ 
+                  borderRadius: 1, 
+                  '&:hover': { background: 'rgba(59, 130, 246, 0.1)' },
+                  '&:disabled': { opacity: 0.4 }
+                }}
+              >
+                <Redo fontSize="small" />
+              </IconButton>
+            </span>
           </Tooltip>
         </ButtonGroup>
 
