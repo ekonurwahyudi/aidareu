@@ -56,15 +56,61 @@ export const generateHTMLFromData = (components: any[], sections: any[]) => {
 
 export const generateCSSFromData = (components: any[], sections: any[]) => {
   return `
+    /* Base reset and typography */
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6; color: #333; }
+    body { 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 { font-weight: 700; color: #1f2937; }
+    h1 { font-size: 2.25rem; margin-bottom: 1rem; }
+    h2 { font-size: 1.875rem; margin-bottom: 0.875rem; }
+    h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
+    p { font-size: 1rem; color: #6b7280; margin-bottom: 1rem; line-height: 1.6; }
+    
+    /* Images */
+    img { 
+      max-width: 100%; 
+      height: auto; 
+      display: block; 
+      border-radius: 8px;
+    }
+    
+    /* Links and buttons */
+    a {
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    a[style*="background"] {
+      display: inline-block;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    
+    a[style*="background"]:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Layout utilities */
     .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
     .hero-section { position: relative; }
+    .text-center { text-align: center; }
+    
+    /* Spacing utilities */
     .py-4 { padding: 1rem 0; }
     .py-8 { padding: 2rem 0; }
     .py-16 { padding: 4rem 0; }
     .py-20 { padding: 5rem 0; }
-    .text-center { text-align: center; }
+    
+    /* Text utilities */
     .text-lg { font-size: 1.125rem; }
     .text-xl { font-size: 1.25rem; }
     .text-3xl { font-size: 1.875rem; }
@@ -74,24 +120,40 @@ export const generateCSSFromData = (components: any[], sections: any[]) => {
     .text-gray-600 { color: #6b7280; }
     .text-gray-800 { color: #1f2937; }
     .text-white { color: white; }
+    
+    /* Background utilities */
     .bg-blue-600 { background-color: #2563eb; }
     .bg-white { background-color: white; }
+    
+    /* Border utilities */
     .rounded-lg { border-radius: 0.5rem; }
+    
+    /* Shadow utilities */
     .shadow { box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .shadow-lg { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    
+    /* Size utilities */
     .max-w-full { max-width: 100%; }
     .h-auto { height: auto; }
+    
+    /* Margin utilities */
     .mx-auto { margin-left: auto; margin-right: auto; }
     .mb-4 { margin-bottom: 1rem; }
     .mb-6 { margin-bottom: 1.5rem; }
     .mb-8 { margin-bottom: 2rem; }
+    
+    /* Grid utilities */
     .grid { display: grid; }
     .gap-2 { gap: 0.5rem; }
     .gap-6 { gap: 1.5rem; }
+    
+    /* Padding utilities */
     .p-6 { padding: 1.5rem; }
+    
+    /* Display utilities */
     .inline-block { display: inline-block; }
-    a { text-decoration: none; transition: all 0.3s ease; }
-    a:hover { transform: translateY(-2px); }
+    
+    /* Responsive utilities */
     @media (min-width: 768px) {
       .md\\:grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
       .md\\:text-6xl { font-size: 3.75rem; }
@@ -110,9 +172,19 @@ export const createComponentElement = (type: string): HTMLElement => {
   // Add contenteditable attributes for text components
   const makeEditable = (element: HTMLElement) => {
     element.setAttribute('contenteditable', 'true');
-    element.style.cursor = 'text';
     
-    // Add better styling for editable elements
+    // Set appropriate placeholder based on element type
+    const tag = element.tagName.toLowerCase();
+    const placeholderText = tag === 'h1' || tag === 'h2' || tag === 'h3' ? 'Enter title...' : 
+                          tag === 'button' ? 'Button text...' :
+                          tag === 'a' ? 'Link text...' : 'Type here...';
+    
+    if (!element.textContent?.trim()) {
+      element.setAttribute('data-placeholder', placeholderText);
+    }
+    
+    // Add editor-only styling that won't be saved
+    element.style.cursor = 'text';
     element.style.padding = '4px 6px';
     element.style.borderRadius = '4px';
     element.style.minWidth = '20px';
@@ -128,6 +200,10 @@ export const createComponentElement = (type: string): HTMLElement => {
     element.addEventListener('blur', () => {
       element.style.outline = 'none';
       element.style.backgroundColor = 'transparent';
+      // Clean placeholder if element has content
+      if (element.textContent?.trim()) {
+        element.removeAttribute('data-placeholder');
+      }
     });
     
     // Prevent drag and drop conflicts
@@ -303,13 +379,60 @@ export const getDefaultProps = (type: string) => {
 
 // Function to clean editor-specific styling for view page
 export const cleanHtmlForViewing = (html: string): string => {
-  // Remove editor-component class and any editor-specific styling
-  return html
-    .replace(/class="[^"]*editor-component[^"]*"/g, '')
-    .replace(/class="editor-component"/g, '')
-    .replace(/editor-component\s*/g, '')
-
-    // Remove empty class attributes
-    .replace(/class=""/g, '')
-    .replace(/class="\s*"/g, '')
+  // Create a temporary DOM to properly clean the HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  
+  // Remove all editor-specific elements
+  tempDiv.querySelectorAll('.ve-resize-handle, .ve-drag-handle, .element-controls').forEach(el => el.remove());
+  
+  // Clean up all elements
+  tempDiv.querySelectorAll('*').forEach(el => {
+    const element = el as HTMLElement;
+    
+    // Remove editor-specific attributes
+    element.removeAttribute('contenteditable');
+    element.removeAttribute('data-placeholder');
+    element.removeAttribute('data-component-type');
+    element.removeAttribute('data-component-id');
+    element.removeAttribute('draggable');
+    
+    // Remove editor-specific classes
+    element.classList.remove('editor-component', 'selected-element');
+    
+    // Clean up style attribute - remove editor-specific styles
+    if (element.style) {
+      element.style.removeProperty('outline');
+      element.style.removeProperty('outline-offset');
+      element.style.removeProperty('opacity');
+      element.style.removeProperty('cursor');
+      
+      // Remove background-color if it's the editor selection color
+      const bgColor = element.style.backgroundColor;
+      if (bgColor && (bgColor.includes('139, 92, 246') || bgColor.includes('rgba(139, 92, 246'))) {
+        element.style.removeProperty('background-color');
+      }
+      
+      // Remove empty style attribute
+      if (element.getAttribute('style') === '' || element.getAttribute('style') === null) {
+        element.removeAttribute('style');
+      }
+    }
+    
+    // Remove empty class attribute
+    if (element.className === '' || element.className === null) {
+      element.removeAttribute('class');
+    }
+  });
+  
+  return tempDiv.innerHTML
+    // Additional cleanup with regex for any missed cases
+    .replace(/\s+data-[^=]*="[^"]*"/g, '') // Remove any remaining data attributes
+    .replace(/\s+contenteditable="[^"]*"/g, '') // Remove contenteditable
+    .replace(/\s+draggable="[^"]*"/g, '') // Remove draggable
+    .replace(/\s+class="\s*"/g, '') // Remove empty class attributes
+    .replace(/\s+style="\s*"/g, '') // Remove empty style attributes
+    // Clean up extra spaces
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }

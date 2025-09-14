@@ -28,15 +28,13 @@ import type { OptionsMenuType, OptionType, OptionMenuItemType } from './types'
 // Hook Imports
 import { useSettings } from '@core/hooks/useSettings'
 
-const IconButtonWrapper = (props: Pick<OptionsMenuType, 'tooltipProps'> & { children: React.ReactElement<any, any> }) => {
+const IconButtonWrapper = (props: Pick<OptionsMenuType, 'tooltipProps'> & { children: ReactElement }) => {
   // Props
   const { tooltipProps, children } = props
 
   if (!tooltipProps?.title) return children
 
-  // Pastikan typing props tidak unknown
-  const child = children as React.ReactElement<any>
-  const isDisabledChild = Boolean((child.props as any)?.disabled || (child.props as any)?.['aria-disabled'])
+  const isDisabledChild = React.isValidElement(children) && (children.props.disabled || children.props['aria-disabled'])
 
   return (
     <Tooltip {...tooltipProps}>

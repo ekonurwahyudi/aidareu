@@ -83,10 +83,37 @@ const EditorCanvas = ({
               outline-offset: 2px !important;
               background-color: rgba(139, 92, 246, 0.1) !important;
             }
-            [contenteditable]:empty:before {
-              content: "Click to edit...";
-              color: #9ca3af;
-              font-style: italic;
+            /* Prevent accidental style changes during text selection */
+            [contenteditable] ::selection {
+              background-color: rgba(139, 92, 246, 0.3) !important;
+              color: inherit !important;
+            }
+            [contenteditable]::-moz-selection {
+              background-color: rgba(139, 92, 246, 0.3) !important;
+              color: inherit !important;
+            }
+            /* Completely disable all pseudo content for contenteditable elements */
+            [contenteditable]:empty:before,
+            [contenteditable]:empty:after,
+            [contenteditable]::before,
+            [contenteditable]::after {
+              content: none !important;
+              display: none !important;
+            }
+            /* Prevent any automatic text insertion */
+            [contenteditable] * {
+              -webkit-user-modify: read-write-plaintext-only !important;
+            }
+            /* Prevent drag handle from being contenteditable */
+            .ve-drag-handle {
+              pointer-events: auto !important;
+              user-select: none !important;
+              -webkit-user-select: none !important;
+              -moz-user-select: none !important;
+              -ms-user-select: none !important;
+            }
+            .ve-drag-handle[contenteditable] {
+              contenteditable: false !important;
             }
             /* Prevent drag conflicts with editable elements */
             [contenteditable] img { pointer-events: none; }
@@ -102,7 +129,7 @@ const EditorCanvas = ({
             .ve-resize-handle.s { left: 50%; bottom: -6px; transform: translateX(-50%); cursor: s-resize; }
             .ve-resize-handle.n { left: 50%; top: -6px; transform: translateX(-50%); cursor: n-resize; }
 
-            .ve-drag-handle { position: absolute; left: 50%; top: -18px; transform: translateX(-50%); padding: 2px 6px; font-size: 11px; background: #8b5cf6; color: #fff; border-radius: 6px; user-select: none; cursor: grab; z-index: 9999; }
+            .ve-drag-handle { position: absolute; left: 50%; top: -18px; transform: translateX(-50%); padding: 2px 4px; font-size: 12px; background: #8b5cf6; color: #fff; border-radius: 4px; user-select: none; cursor: grab; z-index: 9999; pointer-events: auto !important; line-height: 1; font-weight: bold; }
           </style>
           <style id="ve-custom-css">${customCss || ''}</style>
         `;
@@ -131,6 +158,31 @@ const EditorCanvas = ({
           const clone = doc.body.cloneNode(true) as HTMLElement;
           clone.querySelectorAll('.ve-resize-handle, .ve-drag-handle').forEach(h => h.remove());
           clone.querySelectorAll('.selected-element').forEach(el => el.classList.remove('selected-element'));
+          // Remove any data-placeholder attributes that might have been added
+          clone.querySelectorAll('[data-placeholder]').forEach(el => el.removeAttribute('data-placeholder'));
+          // Clean up any unwanted placeholder text that might have been inserted
+          clone.querySelectorAll('[contenteditable]').forEach((el: any) => {
+            const text = el.textContent || '';
+            const innerHTML = el.innerHTML || '';
+            // Remove various forms of placeholder text
+            const placeholderTexts = [
+              'Type here...', 'Enter title...', 'Click to edit...',
+              'Type here', 'Enter title', 'susus', 'Type here...'
+            ];
+            
+            placeholderTexts.forEach(placeholder => {
+              if (text.trim() === placeholder || innerHTML.trim() === placeholder) {
+                el.textContent = '';
+              }
+              // Remove partial matches that might have been inserted
+              if (text.includes(placeholder) && text.length < placeholder.length + 10) {
+                el.textContent = text.replace(placeholder, '').trim();
+              }
+            });
+            
+            // Remove webkit-user-modify style
+            (el.style as any).webkitUserModify = '';
+          });
           return clone.innerHTML;
         };
 
@@ -146,7 +198,16 @@ const EditorCanvas = ({
           const wH = doc.createElement('div'); wH.className = 've-resize-handle w';
           const sH = doc.createElement('div'); sH.className = 've-resize-handle s';
           const nH = doc.createElement('div'); nH.className = 've-resize-handle n';
-          const drag = doc.createElement('div'); drag.className = 've-drag-handle'; drag.textContent = 'Drag';
+          const drag = doc.createElement('div'); drag.className = 've-drag-handle';
+          // Use Unicode drag icon instead of text
+          drag.innerHTML = '⋮⋮';
+          // Ensure drag handle is never contenteditable
+          drag.setAttribute('contenteditable', 'false');
+          drag.style.pointerEvents = 'auto';
+          drag.style.userSelect = 'none';
+          (drag.style as any).webkitUserSelect = 'none';
+          (drag.style as any).mozUserSelect = 'none';
+          (drag.style as any).msUserSelect = 'none';
 
           el.appendChild(se); el.appendChild(ne); el.appendChild(sw); el.appendChild(nw); el.appendChild(eH); el.appendChild(wH); el.appendChild(sH); el.appendChild(nH); el.appendChild(drag);
 
@@ -229,19 +290,6 @@ const EditorCanvas = ({
         // Click selection handler
         const handleClick = (e: Event) => {
           const target = e.target as HTMLElement;
-          // Jika klik pada handle, biarkan handler resize/drag bekerja tapi tetap update selection ke parent yang dipilih
-          if (isHandle(target)) {
-            const parent = (target as HTMLElement).closest(selectableSelector) as HTMLElement | null;
-            if (parent) {
-              doc.querySelectorAll('.selected-element').forEach((el: any) => el.classList.remove('selected-element'));
-              clearHandles();
-              parent.classList.add('selected-element');
-              addHandles(parent);
-              onElementSelectRef.current?.(parent);
-            }
-            return;
-          }
-
           const candidate = getClosestSelectable(target);
 
           // Clear previous selections and handles
@@ -251,29 +299,69 @@ const EditorCanvas = ({
           if (candidate) {
             candidate.classList.add('selected-element');
             addHandles(candidate);
-            // Inline edit for text-like elements
+            // Inline edit for text-like elements (but not drag handles)
             const tag = candidate.tagName.toLowerCase();
             const textLike = ['p','h1','h2','h3','h4','h5','h6','span','button','a'];
-            if (textLike.includes(tag)) {
-              if (!candidate.hasAttribute('contenteditable')) candidate.setAttribute('contenteditable','true');
-              // Attach change listeners if newly enabled
+            const isDragHandle = candidate.classList.contains('ve-drag-handle');
+            const isResizeHandle = candidate.classList.contains('ve-resize-handle');
+            
+            if (textLike.includes(tag) && !isDragHandle && !isResizeHandle) {
+              // Remove any data-placeholder to prevent unwanted placeholders
+              candidate.removeAttribute('data-placeholder');
+              
+              // Store original content before making contenteditable
+              const originalContent = candidate.innerHTML;
+              
+              if (!candidate.hasAttribute('contenteditable')) {
+                candidate.setAttribute('contenteditable','true');
+                // Prevent unwanted behavior
+                (candidate.style as any).webkitUserModify = 'read-write-plaintext-only';
+              }
+              
+              // Restore content if it was modified unexpectedly
+              setTimeout(() => {
+                const currentContent = candidate.innerHTML;
+                if (currentContent !== originalContent && 
+                    (currentContent.includes('Type here') || 
+                     currentContent.includes('Enter title') ||
+                     currentContent.includes('Click to edit'))) {
+                  candidate.innerHTML = originalContent;
+                }
+              }, 10);
+              
+              // Protect drag and resize handles inside this element
+              const handles = candidate.querySelectorAll('.ve-drag-handle, .ve-resize-handle');
+              handles.forEach((handle: any) => {
+                handle.setAttribute('contenteditable', 'false');
+                handle.style.pointerEvents = 'auto';
+                handle.style.userSelect = 'none';
+              });
+              
+              // Remove existing listeners to prevent duplicates
+              const existingHandler = (candidate as any)._veContentHandler;
+              if (existingHandler) {
+                candidate.removeEventListener('input', existingHandler);
+                candidate.removeEventListener('blur', existingHandler);
+              }
+              
+              // Attach change listeners
               const handleContentChange = (e: Event) => {
                 const event = new CustomEvent('contentChange', { detail: { html: getCleanHtml() } });
                 window.dispatchEvent(event);
               };
+              (candidate as any)._veContentHandler = handleContentChange;
               candidate.addEventListener('input', handleContentChange);
-              candidate.addEventListener('blur', handleContentChange, { once: true });
-              // Fokus hanya jika klik berasal dari dalam kandidat; jika berasal dari panel/luar iframe, lewati
+              candidate.addEventListener('blur', handleContentChange);
+              
+              // Focus and place caret at end
               try {
-                if (doc.contains(candidate)) {
-                  candidate.focus();
-                  const range = doc.createRange();
-                  range.selectNodeContents(candidate);
-                  range.collapse(false);
-                  const sel = iframe.contentWindow?.getSelection?.();
-                  sel?.removeAllRanges();
-                  sel?.addRange(range);
-                }
+                candidate.focus();
+                const range = doc.createRange();
+                range.selectNodeContents(candidate);
+                range.collapse(false);
+                const sel = iframe.contentWindow?.getSelection?.();
+                sel?.removeAllRanges();
+                sel?.addRange(range);
               } catch {}
             }
             onElementSelectRef.current?.(candidate);
@@ -284,11 +372,23 @@ const EditorCanvas = ({
         const handleContentChange = (e: Event) => {
           const target = e.target as HTMLElement;
           if (target.hasAttribute('contenteditable')) {
+            // Check for unwanted text and remove it
+            const text = target.textContent || '';
+            const unwantedTexts = ['Type here...', 'Enter title...', 'Click to edit...', 'susus'];
+            
+            let shouldClean = false;
+            unwantedTexts.forEach(unwanted => {
+              if (text.includes(unwanted)) {
+                target.textContent = text.replace(unwanted, '').trim();
+                shouldClean = true;
+              }
+            });
+            
             clearTimeout((window as any).contentUpdateTimer);
             (window as any).contentUpdateTimer = setTimeout(() => {
               const event = new CustomEvent('contentChange', { detail: { html: getCleanHtml() } });
               window.dispatchEvent(event);
-            }, 500);
+            }, shouldClean ? 100 : 500);
           }
         };
 
