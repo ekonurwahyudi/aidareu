@@ -434,10 +434,19 @@ return { r, g, b }
     if (!selectedElement?.style) return
     const css = rgbaToCss(c)
 
-    selectedElement.style.backgroundColor = css as any
+    // Apply background color
+    selectedElement.style.backgroundColor = css
     selectedElement.style.background = ''
     selectedElement.style.backgroundImage = ''
+    
+    // Force style application
+    selectedElement.style.setProperty('background-color', css, 'important')
+    
+    // Update the HTML content
     setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML)
+    
+    // Trigger a re-render of the selected element
+    setSelectedElementVersion(prev => prev + 1)
   }
 
   const applyGradient = (stops = gradientStops, angle = gradientAngle, type = gradientType) => {
@@ -446,10 +455,19 @@ return { r, g, b }
     const stopsCss = sorted.map(s => `${rgbaToCss(s.color)} ${clamp(0, 100, s.position)}%`).join(', ')
     const css = type === 'linear' ? `linear-gradient(${angle}deg, ${stopsCss})` : `radial-gradient(circle at center, ${stopsCss})`
 
-    selectedElement.style.background = css as any
+    // Apply gradient background
+    selectedElement.style.background = css
     selectedElement.style.backgroundImage = ''
     selectedElement.style.backgroundColor = ''
+    
+    // Force style application
+    selectedElement.style.setProperty('background', css, 'important')
+    
+    // Update the HTML content
     setEditedHtmlWithScrollPreservation(selectedElement.ownerDocument.body.innerHTML)
+    
+    // Trigger a re-render of the selected element
+    setSelectedElementVersion(prev => prev + 1)
   }
   
   
