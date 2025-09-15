@@ -281,6 +281,7 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
 
     // Landing Page Routes
     Route::post('/generate-landing', [LandingPageController::class, 'generate']);
+    Route::post('/landing', [LandingPageController::class, 'store']);
     Route::get('/landing', [LandingPageController::class, 'index']);
     Route::get('/test-openai', [LandingPageController::class, 'testOpenAI']);
     
