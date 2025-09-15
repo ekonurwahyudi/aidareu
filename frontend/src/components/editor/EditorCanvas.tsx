@@ -81,7 +81,11 @@ const EditorCanvas = ({
             [contenteditable]:focus {
               outline: 2px solid #8b5cf6 !important;
               outline-offset: 2px !important;
-              background-color: rgba(139, 92, 246, 0.1) !important;
+            }
+            /* Don't override background color for buttons and links when focused */
+            button[contenteditable]:focus,
+            a[contenteditable]:focus {
+              background-color: inherit !important;
             }
             /* Prevent accidental style changes during text selection */
             [contenteditable] ::selection {
@@ -103,6 +107,29 @@ const EditorCanvas = ({
             /* Prevent any automatic text insertion */
             [contenteditable] * {
               -webkit-user-modify: read-write-plaintext-only !important;
+            }
+            /* Disable button and link navigation in edit mode */
+            button, a[href] {
+              pointer-events: auto !important;
+              cursor: default !important;
+            }
+            button:hover, a[href]:hover {
+              cursor: pointer !important;
+            }
+            /* Ensure buttons and links are editable */
+            button[contenteditable="true"], a[contenteditable="true"] {
+              pointer-events: auto !important;
+              cursor: text !important;
+            }
+            /* Special handling for buttons and links with data-editable-link */
+            [data-editable-link="true"] {
+              pointer-events: auto !important;
+            }
+            [data-editable-link="true"]:focus,
+            [data-editable-link="true"][contenteditable="true"]:focus {
+              cursor: text !important;
+              outline: 2px solid #8b5cf6 !important;
+              outline-offset: 2px !important;
             }
             /* Prevent drag handle from being contenteditable */
             .ve-drag-handle {
@@ -140,12 +167,17 @@ const EditorCanvas = ({
         }
         
         // Utility: Get closest selectable element
-        const selectableSelector = 'div, section, header, footer, article, aside, main, nav, p, h1, h2, h3, h4, h5, h6, ul, ol, li, figure, figcaption, blockquote, button, a, img, span';
+        const selectableSelector = 'div, section, header, footer, article, aside, main, nav, p, h1, h2, h3, h4, h5, h6, ul, ol, li, figure, figcaption, blockquote, button, a, img, span, [data-editable-link]';
         const isHandle = (el: Element | null) => !!(el as HTMLElement | null)?.classList?.contains('ve-drag-handle') || !!(el as HTMLElement | null)?.classList?.contains('ve-resize-handle');
         const getClosestSelectable = (start: Element | null) => {
           if (!start) return null;
           if (isHandle(start)) return null;
-          return (start as HTMLElement).closest(selectableSelector) as HTMLElement | null;
+          // First check if the element itself is selectable
+          const element = start as HTMLElement;
+          if (element.matches && element.matches(selectableSelector)) {
+            return element;
+          }
+          return element.closest(selectableSelector) as HTMLElement | null;
         };
 
         // Clear all existing handles
@@ -164,7 +196,7 @@ const EditorCanvas = ({
           clone.querySelectorAll('[contenteditable]').forEach((el: any) => {
             const text = el.textContent || '';
             const innerHTML = el.innerHTML || '';
-            // Remove various forms of placeholder text
+            // Remove various forms of placeholder text and unwanted characters
             const placeholderTexts = [
               'Type here...', 'Enter title...', 'Click to edit...',
               'Type here', 'Enter title', 'susus', 'Type here...'
@@ -179,6 +211,11 @@ const EditorCanvas = ({
                 el.textContent = text.replace(placeholder, '').trim();
               }
             });
+            
+            // Remove unwanted special characters like "::" that might appear
+            if (text.includes('::') && text.length < 20) {
+              el.textContent = text.replace('::', '').trim();
+            }
             
             // Remove webkit-user-modify style
             (el.style as any).webkitUserModify = '';
@@ -291,6 +328,15 @@ const EditorCanvas = ({
         const handleClick = (e: Event) => {
           const target = e.target as HTMLElement;
           const candidate = getClosestSelectable(target);
+          
+          // Prevent default navigation for buttons and links in edit mode
+          if (target.tagName.toLowerCase() === 'button' || 
+              target.tagName.toLowerCase() === 'a' ||
+              target.closest('button') || 
+              target.closest('a')) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
 
           // Clear previous selections and handles
           doc.querySelectorAll('.selected-element').forEach((el: any) => el.classList.remove('selected-element'));
@@ -304,8 +350,9 @@ const EditorCanvas = ({
             const textLike = ['p','h1','h2','h3','h4','h5','h6','span','button','a'];
             const isDragHandle = candidate.classList.contains('ve-drag-handle');
             const isResizeHandle = candidate.classList.contains('ve-resize-handle');
+            const hasEditableLink = candidate.hasAttribute('data-editable-link');
             
-            if (textLike.includes(tag) && !isDragHandle && !isResizeHandle) {
+            if ((textLike.includes(tag) || hasEditableLink) && !isDragHandle && !isResizeHandle) {
               // Remove any data-placeholder to prevent unwanted placeholders
               candidate.removeAttribute('data-placeholder');
               
@@ -314,8 +361,10 @@ const EditorCanvas = ({
               
               if (!candidate.hasAttribute('contenteditable')) {
                 candidate.setAttribute('contenteditable','true');
-                // Prevent unwanted behavior
-                (candidate.style as any).webkitUserModify = 'read-write-plaintext-only';
+                // Prevent unwanted behavior only for non-links
+                if (tag !== 'a') {
+                  (candidate.style as any).webkitUserModify = 'read-write-plaintext-only';
+                }
               }
               
               // Restore content if it was modified unexpectedly
@@ -374,7 +423,7 @@ const EditorCanvas = ({
           if (target.hasAttribute('contenteditable')) {
             // Check for unwanted text and remove it
             const text = target.textContent || '';
-            const unwantedTexts = ['Type here...', 'Enter title...', 'Click to edit...', 'susus'];
+            const unwantedTexts = ['Type here...', 'Enter title...', 'Click to edit...', 'susus', '::'];
             
             let shouldClean = false;
             unwantedTexts.forEach(unwanted => {
@@ -383,6 +432,12 @@ const EditorCanvas = ({
                 shouldClean = true;
               }
             });
+            
+            // Special handling for "::" characters that might appear as icons
+            if (text.includes('::') && text !== '::' && text.length > 2) {
+              target.textContent = text.replace(/::+/g, '').trim();
+              shouldClean = true;
+            }
             
             clearTimeout((window as any).contentUpdateTimer);
             (window as any).contentUpdateTimer = setTimeout(() => {

@@ -149,9 +149,52 @@ const LandingPage = () => {
 	// Handlers
 	const handleOpenAddMenu = (event: React.MouseEvent<HTMLElement>) => setAddMenuEl(event.currentTarget)
 	const handleCloseAddMenu = () => setAddMenuEl(null)
-	const handleAddBlank = () => {
+	const handleAddBlank = async () => {
 		handleCloseAddMenu()
-		// TODO: Navigate to create blank landing page
+
+		try {
+			if (!process.env.NEXT_PUBLIC_API_URL) {
+				throw new Error('API URL tidak dikonfigurasi')
+			}
+
+			const headers: any = {
+				'Accept': 'application/json',
+				'Content-Type': 'application/json'
+			}
+			headers['Authorization'] = `Bearer ${authToken}`
+
+			// Create blank website with default title
+			const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/landing`, {
+				method: 'POST',
+				credentials: 'include',
+				headers,
+				body: JSON.stringify({
+					name: 'New Website',
+					data: {
+						html: '<div style="text-align: center; padding: 40px; color: #6b7280; border: 2px dashed #e0e0e0; border-radius: 8px; margin: 20px;" class="editor-component" data-component-type="container"><h2>Welcome to your new website</h2><p>Start editing by clicking elements or adding components from the sidebar</p></div>',
+						css: 'body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }',
+						sections: []
+					}
+				})
+			})
+
+			if (!res.ok) {
+				throw new Error(`Failed to create blank website (${res.status})`)
+			}
+
+			const data = await res.json()
+
+			// Navigate to editor with the new website ID
+			window.location.href = `/pages/landing/${data.uuid || data.id}`
+
+		} catch (error: any) {
+			console.error('Error creating blank website:', error)
+			setSnackbar({
+				open: true,
+				message: `Gagal membuat website blank: ${error?.message || 'Unknown error'}`,
+				severity: 'error'
+			})
+		}
 	}
 	const handleAddByAI = () => {
 		handleCloseAddMenu()
@@ -715,15 +758,24 @@ const LandingPage = () => {
 										</IconButton>
 									</span>
 								</Tooltip>
-								<Tooltip title='Tambah landing page'>
-									<IconButton color='primary' onClick={handleOpenAddMenu}>
-										<i className='tabler-plus' />
-									</IconButton>
-								</Tooltip>
-								<Menu anchorEl={addMenuEl} open={Boolean(addMenuEl)} onClose={handleCloseAddMenu} keepMounted>
+								<Button 
+									variant="contained" 
+									color="primary" 
+									onClick={handleOpenAddMenu}
+									>
+									Tambah Website
+									</Button>
+
+									<Menu 
+									anchorEl={addMenuEl} 
+									open={Boolean(addMenuEl)} 
+									onClose={handleCloseAddMenu} 
+									keepMounted
+									>
 									<MenuItem onClick={handleAddBlank}>Add Blank</MenuItem>
 									<MenuItem onClick={handleAddByAI}>Add by AI</MenuItem>
-								</Menu>
+									</Menu>
+
 							</>
 						}
 					/>

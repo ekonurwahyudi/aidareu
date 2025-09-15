@@ -224,7 +224,12 @@ export const createComponentElement = (type: string): HTMLElement => {
       makeEditable(div.querySelector('p') || div);
       break;
     case COMPONENT_TYPES.BUTTON:
-      div.innerHTML = '<div style="text-align: center; margin: 0;"><a href="#" style="display: inline-block; background: #3b82f6; color: white !important; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; cursor: pointer;">Click Me</a></div>';
+      div.innerHTML = '<div style="text-align: center; margin: 0;"><a href="#" data-editable-link="true" style="display: inline-block; background: #3b82f6; color: white !important; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s; cursor: pointer;">Click Me</a></div>';
+      // Make the button text editable
+      const buttonLink = div.querySelector('a');
+      if (buttonLink) {
+        makeEditable(buttonLink);
+      }
       break;
     case COMPONENT_TYPES.IMAGE:
       div.style.cssText = 'margin: 10px 0; padding: 0; min-height: 200px; position: relative; display: block; width: 100%;';
@@ -254,16 +259,29 @@ export const createComponentElement = (type: string): HTMLElement => {
       makeEditable(div.querySelector('p') || div);
       break;
     case 'contact_form':
-      div.innerHTML = '<form style="max-width: 500px; margin: 0 auto;"><h3 style="margin: 0 0 20px 0; color: #374151;">Contact Us</h3><input type="text" placeholder="Your Name" style="width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d5db; border-radius: 6px;"/><input type="email" placeholder="Email Address" style="width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d5db; border-radius: 6px;"/><textarea placeholder="Your Message" rows="4" style="width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d5db; border-radius: 6px; resize: vertical;"></textarea><button type="submit" style="background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Send Message</button></form>';
+      div.innerHTML = '<form style="max-width: 500px; margin: 0 auto;"><h3 style="margin: 0 0 20px 0; color: #374151;">Contact Us</h3><input type="text" placeholder="Your Name" style="width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d5db; border-radius: 6px;"/><input type="email" placeholder="Email Address" style="width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d5db; border-radius: 6px;"/><textarea placeholder="Your Message" rows="4" style="width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d5db; border-radius: 6px; resize: vertical;"></textarea><div style="display: flex; gap: 10px; margin-top: 15px;"><button type="submit" data-editable-link="true" style="flex: 1; background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Send Message</button><a href="https://wa.me/62812345678901?text=Hello, I want" data-editable-link="true" target="_blank" style="flex: 1; display: flex; align-items: center; justify-content: center; background: #25d366; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; cursor: pointer;">📱 WhatsApp</a></div></form>';
+      // Make the title and buttons editable
+      const formTitle = div.querySelector('h3');
+      const submitButton = div.querySelector('button[type="submit"]');
+      const whatsappButton = div.querySelector('a[href*="wa.me"]');
+      if (formTitle) makeEditable(formTitle);
+      if (submitButton) makeEditable(submitButton);
+      if (whatsappButton) makeEditable(whatsappButton);
       break;
     case 'testimonial':
       div.innerHTML = '<div style="max-width: 600px; margin: 0 auto; text-align: center;"><div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"><p style="font-size: 18px; font-style: italic; margin: 0 0 20px 0; color: #374151;">"This service completely transformed our business. Highly recommended!"</p><div style="display: flex; align-items: center; justify-content: center; gap: 15px;"><img src="https://source.unsplash.com/60x60/?portrait" alt="Customer" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;"/><div><strong style="color: #374151;">John Smith</strong><br/><span style="color: #6b7280; font-size: 14px;">CEO, Company Inc.</span></div></div></div></div>';
       makeEditable(div.querySelector('p') || div);
       makeEditable(div.querySelector('strong') || div);
+      makeEditable(div.querySelector('span') || div);
       break;
     case 'pricing_card':
-      div.innerHTML = '<div style="max-width: 350px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"><div style="background: #3b82f6; color: white; padding: 30px; text-align: center;"><h3 style="margin: 0 0 10px 0; font-size: 24px;">Pro Plan</h3><div style="font-size: 48px; font-weight: bold;">$29<span style="font-size: 18px; opacity: 0.8;">/month</span></div></div><div style="padding: 30px;"><ul style="list-style: none; padding: 0; margin: 0;"><li style="padding: 8px 0; color: #374151;">✓ All features included</li><li style="padding: 8px 0; color: #374151;">✓ 24/7 Support</li><li style="padding: 8px 0; color: #374151;">✓ Premium templates</li></ul><button style="width: 100%; background: #3b82f6; color: white; padding: 15px; border: none; border-radius: 8px; font-weight: 600; margin-top: 20px; cursor: pointer;">Choose Plan</button></div></div>';
+      div.innerHTML = '<div style="max-width: 350px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"><div style="background: #3b82f6; color: white; padding: 30px; text-align: center;"><h3 style="margin: 0 0 10px 0; font-size: 24px;">Pro Plan</h3><div class="price-text" style="font-size: 48px; font-weight: bold;">$29<span style="font-size: 18px; opacity: 0.8;">/month</span></div></div><div style="padding: 30px;"><ul style="list-style: none; padding: 0; margin: 0;"><li style="padding: 8px 0; color: #374151;">✓ All features included</li><li style="padding: 8px 0; color: #374151;">✓ 24/7 Support</li><li style="padding: 8px 0; color: #374151;">✓ Premium templates</li></ul><button data-editable-link="true" style="width: 100%; background: #3b82f6; color: white; padding: 15px; border: none; border-radius: 8px; font-weight: 600; margin-top: 20px; cursor: pointer;">Choose Plan</button></div></div>';
       makeEditable(div.querySelector('h3') || div);
+      makeEditable(div.querySelector('.price-text') || div);
+      makeEditable(div.querySelector('button') || div);
+      // Make all li elements editable
+      const listItems = div.querySelectorAll('li');
+      listItems.forEach((li: any) => makeEditable(li));
       break;
     case 'divider':
       div.style.padding = '10px 0';

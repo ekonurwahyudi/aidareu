@@ -128,8 +128,8 @@ export default function PropertiesTab({
             </Typography>
           </Box>
           
-          {/* Button Specific Properties */}
-          {selectedElement.tagName === 'A' && (
+          {/* Button/Link Specific Properties */}
+          {(selectedElement.tagName === 'A' || selectedElement.tagName === 'BUTTON' || selectedElement.hasAttribute('data-editable-link')) && (
             <Box sx={{ 
               background: 'linear-gradient(135deg, #f3f4f6, #ffffff)',
               border: '1px solid #e5e7eb',
@@ -153,8 +153,8 @@ export default function PropertiesTab({
                     Button Text
                   </Typography>
                   <TextField
-                    value={selectedElement.textContent || ''}
-                    placeholder="Enter button text"
+                    value={selectedElement.textContent || selectedElement.innerText || ''}
+                    placeholder={selectedElement.tagName === 'A' ? "📱 WhatsApp" : "Enter button text"}
                     size="small"
                     fullWidth
                     variant="outlined"
@@ -167,18 +167,23 @@ export default function PropertiesTab({
                       }
                     }}
                     onChange={(e) => {
+                      // Update both textContent and innerText for better compatibility
                       selectedElement.textContent = e.target.value;
+                      selectedElement.innerText = e.target.value;
                       onEditedHtmlChange(selectedElement.ownerDocument.body.innerHTML);
                     }}
                   />
                 </Box>
                 <Box>
                   <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#6b7280' }}>
-                    Button URL
+                    {selectedElement.tagName === 'A' ? 'Link URL' : 'Button URL'}
                   </Typography>
                   <TextField
-                    value={selectedElement.getAttribute('href') || ''}
-                    placeholder="https://example.com"
+                    value={selectedElement.tagName === 'A' 
+                      ? (selectedElement.getAttribute('href') || '') 
+                      : (selectedElement.getAttribute('data-url') || selectedElement.getAttribute('onclick') || '')
+                    }
+                    placeholder={selectedElement.tagName === 'A' ? "https://wa.me/62812345678901?text=Hello, I want" : "javascript:void(0) or data action"}
                     size="small"
                     fullWidth
                     variant="outlined"
@@ -191,7 +196,11 @@ export default function PropertiesTab({
                       }
                     }}
                     onChange={(e) => {
-                      selectedElement.setAttribute('href', e.target.value);
+                      if (selectedElement.tagName === 'A') {
+                        selectedElement.setAttribute('href', e.target.value);
+                      } else {
+                        selectedElement.setAttribute('data-url', e.target.value);
+                      }
                       onEditedHtmlChange(selectedElement.ownerDocument.body.innerHTML);
                     }}
                   />
@@ -434,6 +443,7 @@ export default function PropertiesTab({
                 
                 return (
                   <TiptapEditor
+                    key={`${selectedElement?.tagName}-${selectedElementVersion}-${selectedElement?.textContent?.slice(0, 10)}`}
                     content={value}
                     onChange={(content) => {
                       selectedElement.querySelectorAll?.('.ve-drag-handle, .ve-resize-handle').forEach((n:any)=> n.remove())

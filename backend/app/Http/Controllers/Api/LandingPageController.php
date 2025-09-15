@@ -201,8 +201,40 @@ class LandingPageController extends Controller
     }
 
     /* ===========================
-     * Update / Show / List
+     * Store / Update / Show / List
      * =========================== */
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'data' => 'required|array',
+        ]);
+
+        $user = $request->user();
+        $name = $validated['name'];
+        $data = $validated['data'];
+
+        // Generate slug from name
+        $baseSlug = Str::slug($name);
+        $slug = $this->generateUniqueSlug($baseSlug);
+
+        // Create the landing page
+        $landingPage = LandingPage::create([
+            'user_id' => $user->id,
+            'uuid' => (string) Str::uuid(),
+            'slug' => $slug,
+            'data' => $data,
+        ]);
+
+        return response()->json([
+            'id' => $landingPage->id,
+            'uuid' => $landingPage->uuid,
+            'slug' => $landingPage->slug,
+            'data' => $landingPage->data,
+            'message' => 'Landing page created successfully'
+        ]);
+    }
 
     public function update(Request $request, LandingPage $landing)
     {
