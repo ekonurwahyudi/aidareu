@@ -24,7 +24,13 @@
       "Bash(psql:*)",
       "WebFetch(domain:modernize-nextjs.adminmart.com)",
       "Bash(timeout:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "WebFetch(domain:themes.pixelstrap.com)"
     ],
     "deny": [],
     "ask": [],
