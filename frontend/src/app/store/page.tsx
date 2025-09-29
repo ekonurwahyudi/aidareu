@@ -4,12 +4,16 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
+// Cart Context
+import { useCart } from '@/contexts/CartContext'
+
 // MUI Imports
 import { Box, Container, Grid, Typography, Card, CardContent, Button, IconButton, Chip, Rating, Collapse } from '@mui/material'
 import { styled } from '@mui/material/styles'
 
 // Icon Imports
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import WhatsAppIcon from '@mui/icons-material/WhatsApp'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
@@ -22,6 +26,18 @@ import VisibilityIcon from '@mui/icons-material/Visibility'
 import StoreHeader from '@/components/store/StoreHeader'
 import StoreFooter from '@/components/store/StoreFooter'
 import CartDrawer from '@/components/store/CartDrawer'
+
+// Add keyframes for pulse animation
+const pulseKeyframes = `
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+`
 
 // Custom Styled Components
 const HeroSection = styled(Box)(({ theme }) => ({
@@ -104,14 +120,7 @@ interface Product {
   uuid?: string
 }
 
-interface CartItem {
-  id: string
-  name: string
-  price: number
-  salePrice?: number
-  image: string
-  quantity: number
-}
+// CartItem interface is now imported from CartContext
 
 // Static Data
 const heroSlides = [
@@ -177,32 +186,32 @@ const promotions = [
 const steps = [
   {
     number: '1',
-    title: 'Filter & Discover',
-    description: 'Smart filtering and suggestions make it easy to find',
+    title: 'Cari & Temukan',
+    description: 'Gunakan filter pintar untuk menemukan produk yang kamu butuhkan',
     color: '#EF4444',
     image: '/images/step/step1.webp',
     bgColor: '#FEF2F2'
   },
   {
     number: '2',
-    title: 'Add to cart',
-    description: 'Easily select the correct items and add them to the cart',
+    title: 'Masukkan Keranjang',
+    description: 'Pilih produk yang tepat dan masukkan ke dalam keranjang belanja',
     color: '#8B5CF6',
     image: '/images/step/step2.webp',
     bgColor: '#F5F3FF'
   },
   {
     number: '3',
-    title: 'Fast shipping',
-    description: 'The carrier will confirm and ship quickly to you',
+    title: 'Pengiriman Cepat',
+    description: 'Kurir akan mengkonfirmasi dan mengirim produk dengan cepat',
     color: '#F59E0B',
     image: '/images/step/step3.webp',
     bgColor: '#FFFBEB'
   },
   {
     number: '4',
-    title: 'Enjoy the product',
-    description: 'Have fun and enjoy your 5-star quality products',
+    title: 'Nikmati Produk',
+    description: 'Bersenang-senang dan nikmati produk berkualitas tinggi',
     color: '#EC4899',
     image: '/images/step/step4.webp',
     bgColor: '#FDF2F8'
@@ -247,58 +256,43 @@ const getProductIcon = (productName: string) => {
   return '👕' // default
 }
 
+// Helper function to format currency in Rupiah
+const formatRupiah = (amount: number): string => {
+  return `Rp. ${Math.round(amount).toLocaleString('id-ID')}`
+}
+
 const StorePage = () => {
   const router = useRouter()
   const [currentSlide, setCurrentSlide] = useState(0)
   const [favoriteProducts, setFavoriteProducts] = useState<string[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [cartDrawerOpen, setCartDrawerOpen] = useState(false)
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0)
+  const [currentTestimonial, setCurrentTestimonial] = useState(0)
 
-  const handleCartClick = () => {
-    setCartDrawerOpen(true)
-  }
+  // Use cart context
+  const {
+    cartItems,
+    cartDrawerOpen,
+    setCartDrawerOpen,
+    addToCart: addToCartContext,
+    removeFromCart,
+    updateCartQuantity,
+    handleCartClick
+  } = useCart()
 
   const addToCart = (productId: string, event: React.MouseEvent) => {
     event.stopPropagation()
     const product = products.find(p => p.id === productId)
     if (!product) return
 
-    setCartItems(prev => {
-      const existingItem = prev.find(item => item.id === productId)
-      if (existingItem) {
-        return prev.map(item =>
-          item.id === productId
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
-      } else {
-        return [...prev, {
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          salePrice: product.salePrice ?? undefined,
-          image: product.image,
-          quantity: 1
-        }]
-      }
+    addToCartContext({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      salePrice: product.salePrice ?? undefined,
+      image: product.image
     })
-  }
-
-  const removeFromCart = (productId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== productId))
-  }
-
-  const updateCartQuantity = (productId: string, quantity: number) => {
-    setCartItems(prev =>
-      prev.map(item =>
-        item.id === productId
-          ? { ...item, quantity }
-          : item
-      )
-    )
   }
 
   // Fetch products from API
@@ -330,9 +324,9 @@ const StorePage = () => {
     )
   }
 
-  const handleProductClick = (slugOrId: string, uuid?: string) => {
-    const query = uuid ? `?uuid=${uuid}` : ''
-    router.push(`/store/${slugOrId}${query}`)
+  const handleProductClick = (product: Product) => {
+    // Use slug for routing
+    router.push(`/store/${product.slug}`)
   }
 
   const handleFaqClick = (index: number) => {
@@ -347,6 +341,14 @@ const StorePage = () => {
     setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length)
   }
 
+  const nextTestimonial = () => {
+    setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
+  }
+
+  const prevTestimonial = () => {
+    setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length)
+  }
+
   // Auto-slide functionality
   useEffect(() => {
     const interval = setInterval(() => {
@@ -358,19 +360,27 @@ const StorePage = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <StoreHeader cartItemCount={cartItems.reduce((total, item) => total + item.quantity, 0)} onCartClick={handleCartClick} />
+      <style jsx global>{pulseKeyframes}</style>
+      <StoreHeader
+        cartItemCount={cartItems.reduce((total, item) => total + item.quantity, 0)}
+        onCartClick={handleCartClick}
+        cartItems={cartItems}
+        onRemoveItem={removeFromCart}
+        onUpdateQuantity={updateCartQuantity}
+        onAddToCart={addToCart}
+      />
 
       {/* Hero Section */}
       <Box
         id="home"
         sx={{
-          background: 'transparent',
-          color: 'inherit',
+          background: 'white',
+          // color: 'inherit',
           py: { xs: 3, md: 5 },
           position: 'relative',
           overflow: 'hidden',
-          borderRadius: '0 0 50px 50px',
-          margin: { xs: 1, md: 2 },
+          // borderRadius: '0 0 50px 50px',
+          // margin: { xs: 1, md: 2 },
           marginTop: { xs: 1, md: 2 }
         }}
       >
@@ -477,7 +487,8 @@ const StorePage = () => {
       </Container> */}
 
       {/* Products Section */}
-      <Container id="products" maxWidth="lg" sx={{ py: 4, px: { xs: 2, sm: 3, md: 4 } }}>
+      <Box id="products" sx={{ bgcolor: 'white', py: 8 }}>
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Box>
             <Typography
@@ -486,7 +497,7 @@ const StorePage = () => {
               sx={{
                 fontWeight: 'bold',
                 mb: 1,
-                fontSize: { xs: '1.5rem', sm: '2rem', md: '2 rem' }
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' }
               }}
             >
               New Arrivals. <span style={{ color: '#9CA3AF' }}>Daftar Produk</span>
@@ -502,35 +513,68 @@ const StorePage = () => {
           </Box>
         </Box>
 
-        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+        <Grid container spacing={{ xs: 3, sm: 4 }}>
           {loading ? (
             // Loading skeleton - responsive columns
-            Array.from({ length: 4 }).map((_, index) => (
+            Array.from({ length: 8 }).map((_, index) => (
               <Grid item xs={6} sm={6} md={4} lg={3} key={index}>
-                <ProductCard>
+                <ProductCard sx={{ bgcolor: '#FAFAFA' }}>
                   <Box sx={{
-                    height: { xs: 200, sm: 250, md: 300 },
-                    bgcolor: '#F0F0F0',
+                    height: { xs: 180, sm: 220, md: 260 },
+                    bgcolor: '#F8FAFC',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    borderRadius: '12px 12px 0 0'
                   }}>
-                    <Typography variant="body2">Loading...</Typography>
+                    <Box sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      bgcolor: '#E2E8F0',
+                      animation: 'pulse 1.5s ease-in-out infinite'
+                    }} />
                   </Box>
-                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Box sx={{ height: 20, bgcolor: '#F0F0F0', mb: 2, borderRadius: 1 }} />
-                    <Box sx={{ height: 16, bgcolor: '#E0E0E0', mb: 2, borderRadius: 1 }} />
-                    <Box sx={{ height: 24, bgcolor: '#F0F0F0', mb: 2, borderRadius: 1 }} />
+                  <CardContent sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'white' }}>
+                    <Box sx={{ height: 18, bgcolor: '#F1F5F9', mb: 2, borderRadius: '6px' }} />
+                    <Box sx={{ height: 14, bgcolor: '#E2E8F0', mb: 2, borderRadius: '4px', width: '70%' }} />
+                    <Box sx={{ height: 20, bgcolor: '#F1F5F9', mb: 1, borderRadius: '6px', width: '50%' }} />
                   </CardContent>
                 </ProductCard>
               </Grid>
             ))
           ) : (
-            products.map((product) => (
+            products.slice(0, 8).map((product) => (
               <Grid item xs={6} sm={6} md={4} lg={3} key={product.id}>
-                <ProductCard onClick={() => handleProductClick(product.slug ?? product.id, product.uuid ?? product.id)}>
+                <ProductCard
+                  onClick={() => handleProductClick(product)}
+                  sx={{
+                    bgcolor: 'white',
+                    border: '1px solid #F1F5F9',
+                    '&:hover': {
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+                      borderColor: '#E2E8F0'
+                    }
+                  }}
+                >
                   <Box sx={{ position: 'relative' }}>
-                    {product.isNew && (
+                    {product.salePrice && (
+                      <Chip
+                        label={`${Math.round(((product.price - product.salePrice) / product.price) * 100)}%`}
+                        size="small"
+                        sx={{
+                          position: 'absolute',
+                          top: { xs: 8, sm: 12, md: 16 },
+                          left: { xs: 8, sm: 12, md: 16 },
+                          bgcolor: '#fdc700',
+                          color: '#804b08',
+                          fontWeight: 'bold',
+                          zIndex: 1,
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                        }}
+                      />
+                    )}
+                    {product.isNew && !product.salePrice && (
                       <Chip
                         label="New in"
                         size="small"
@@ -569,13 +613,15 @@ const StorePage = () => {
                     <Box
                       sx={{
                         width: '100%',
-                        aspectRatio: '1 / 1',
-                        bgcolor: '#F8FAFC',
+                        height: { xs: 180, sm: 220, md: 260 },
+                        bgcolor: '#FAFBFC',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         overflow: 'hidden',
-                        borderRadius: 2
+                        borderRadius: '12px 12px 0 0',
+                        border: '1px solid #F1F5F9',
+                        borderBottom: 'none'
                       }}
                     >
                       {product.image && product.image !== '/placeholder.jpg' ? (
@@ -612,97 +658,130 @@ const StorePage = () => {
                     </Box>
                   </Box>
 
-                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                  <CardContent sx={{ p: { xs: 3, sm: 4 }, bgcolor: 'white', borderRadius: '0 0 12px 12px' }}>
 
                     <Typography
                       variant="h6"
                       sx={{
-                        fontWeight: 'bold',
-                        mb: 1,
-                        fontSize: { xs: '0.9rem', sm: '1rem', md: '1.25rem' },
-                        lineHeight: 1.3
+                        fontWeight: '600',
+                        mb: 1.5,
+                        fontSize: { xs: '0.875rem', sm: '1rem' },
+                        lineHeight: 1.4,
+                        color: '#1E293B',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
                       }}
                     >
                       {product.name}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                      <Box
-                        sx={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: '50%',
-                          bgcolor: '#E91E63',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '10px'
-                        }}
-                      >
-                        🏪
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            bgcolor: '#E91E63',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '8px'
+                          }}
+                        >
+                          🏪
+                        </Box>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: '#64748B',
+                            fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                            fontWeight: '500'
+                          }}
+                        >
+                          {product.brand || 'Premium Collection'}
+                        </Typography>
                       </Box>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: 'text.secondary',
-                          fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                        }}
-                      >
-                        {product.brand || 'Premium Collection'}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Rating
+                          value={1}
+                          max={1}
+                          readOnly
+                          size="small"
+                          sx={{
+                            color: '#F59E0B',
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                          }}
+                        />
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: '#64748B',
+                            fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                          }}
+                        >
+                          (4.9)
+                        </Typography>
+                      </Box>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
                       {product.salePrice ? (
                         <>
                           <Typography
                             variant="h6"
                             sx={{
-                              fontWeight: 'bold',
-                              color: '#22C55E',
-                              fontSize: { xs: '0.9rem', sm: '1rem', md: '1.25rem' }
+                              fontWeight: '700',
+                              color: '#50c878',
+                              fontSize: { xs: '1rem', sm: '1.125rem' }
                             }}
                           >
-                            Rp {product.salePrice.toLocaleString('id-ID')}
+                            {formatRupiah(product.salePrice)}
                           </Typography>
                           <Typography
                             variant="body2"
                             sx={{
                               textDecoration: 'line-through',
-                              color: 'text.secondary',
-                              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                              color: '#94A3B8',
+                              fontSize: { xs: '0.8rem', sm: '0.875rem' }
                             }}
                           >
-                            Rp {product.price.toLocaleString('id-ID')}
+                            {formatRupiah(product.price)}
                           </Typography>
                         </>
                       ) : (
                         <Typography
                           variant="h6"
                           sx={{
-                            fontWeight: 'bold',
-                            color: '#22C55E',
-                            fontSize: { xs: '0.9rem', sm: '1rem', md: '1.25rem' }
+                            fontWeight: '700',
+                            color: '#50c878',
+                            fontSize: { xs: '1rem', sm: '1.125rem' }
                           }}
                         >
-                          Rp {product.price.toLocaleString('id-ID')}
+                          {formatRupiah(product.price)}
                         </Typography>
                       )}
                     </Box>
 
 
-                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
                       <Button
                         variant="contained"
-                        startIcon={<VisibilityIcon />}
+                        startIcon={<VisibilityIcon fontSize="small" />}
                         sx={{
                           flex: 1,
                           bgcolor: '#E91E63',
                           '&:hover': { bgcolor: '#C2185B' },
                           borderRadius: 2,
-                          py: 1,
-                          fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                          height: 40,
+                          // py: 0.5,
+                          // px: 1.5,
+                          // fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          // fontWeight: '500',
+                          // minHeight: 'auto'
                         }}
-                        onClick={() => handleProductClick(product.slug ?? product.id, product.uuid ?? product.id)}
+                        onClick={() => handleProductClick(product)}
                       >
                         Lihat Produk
                       </Button>
@@ -711,8 +790,8 @@ const StorePage = () => {
                           bgcolor: '#F8F9FA',
                           border: '1px solid #E2E8F0',
                           borderRadius: 2,
-                          width: 48,
-                          height: 48,
+                          width: 40,
+                          height: 40,
                           '&:hover': {
                             bgcolor: '#E91E63',
                             color: 'white',
@@ -730,313 +809,483 @@ const StorePage = () => {
             ))
           )}
         </Grid>
-      </Container>
-
-      {/* Shopping Steps */}
-      <Box id="faq" sx={{ bgcolor: '#F8FAFC', py: 6 }}>
-        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
-          <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold', mb: 2 }}>
-              Cara Berbelanja
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-              Proses mudah dan cepat untuk mendapatkan produk impian Anda
-            </Typography>
-          </Box>
-
-          <Grid container spacing={{ xs: 3, sm: 4, md: 6 }} justifyContent="center">
-            {steps.map((step, index) => (
-              <Grid item xs={6} sm={6} md={3} key={index}>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    position: 'relative',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center'
-                  }}
-                >
-                  {/* Gambar step dari /public/images/step/ */}
-                  <Box
-                    sx={{
-                      width: { xs: 140, sm: 160, md: 180 },
-                      height: { xs: 120, sm: 140, md: 160 },
-                      borderRadius: '16px',
-                      bgcolor: step.bgColor,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mb: 3,
-                      overflow: 'hidden',
-                      border: `3px solid ${step.color}`
-                    }}
-                  >
-                    <Box
-                      component="img"
-                      src={step.image}
-                      alt={`${step.title} image`}
-                      sx={{
-                        width: '85%',
-                        height: '85%',
-                        objectFit: 'contain'
-                      }}
-                    />
-                  </Box>
-
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 'bold',
-                      mb: 2,
-                      fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
-                      color: step.color
-                    }}
-                  >
-                    {step.title}
-                  </Typography>
-
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: 'text.secondary',
-                      textAlign: 'center',
-                      lineHeight: 1.6,
-                      fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                      maxWidth: 220
-                    }}
-                  >
-                    {step.description}
-                  </Typography>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
         </Container>
       </Box>
+      {/* Shopping Steps */}
+      <Box
+        id="step"
+        sx={{
+          bgcolor: 'transparent',
+          py: 16
+        }}
+      >
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
 
-      {/* Testimonials */}
-      <Container id="testimonials" maxWidth="lg" sx={{ py: 6, px: { xs: 2, sm: 3, md: 4 } }}>
-        <Box sx={{ textAlign: 'center', mb: 2 }}>
-          <Box
-            sx={{
-              display: 'inline-block',
-              bgcolor: '#FEF3C7',
-              color: '#92400E',
-              px: 3,
-              py: 1,
-              borderRadius: '50px',
-              fontSize: '0.875rem',
-              fontWeight: 'bold',
-              mb: 3
-            }}
-          >
-            Testimoni
-          </Box>
-          <Typography
-            variant="h3"
-            component="h2"
-            sx={{
-              fontWeight: 'bold',
-              mb: 2,
-              fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.5rem' },
-              color: '#1E293B'
-            }}
-          >
-            Dipercaya Ribuan Orang Tua
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{
-              color: 'text.secondary',
-              fontSize: { xs: '1rem', sm: '1.125rem' },
-              mb: 4
-            }}
-          >
-            Lihat apa kata orang tua yang sudah merasakan manfaat worksheet kami
-          </Typography>
-        </Box>
-
-        <Grid container spacing={4}>
-          {testimonials.map((testimonial, index) => (
-            <Grid item xs={12} md={4} key={index}>
+          <Box sx={{ position: 'relative', maxWidth: 1200, mx: 'auto' }}>
+            {/* Custom SVG connecting line */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: { xs: 60, sm: 70, md: 90 },
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '90%',
+                height: 'auto',
+                zIndex: 0,
+                display: { xs: 'none', md: 'block' }
+              }}
+            >
               <Box
+                component="img"
+                src="/images/step/garis.svg"
+                alt="connecting line"
                 sx={{
-                  position: 'relative',
-                  bgcolor: 'white',
-                  borderRadius: '20px',
-                  p: 4,
-                  height: '100%',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                  border: '1px solid rgba(0,0,0,0.05)',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-5px)',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.15)'
-                  }
+                  width: '100%',
+                  height: 'auto'
                 }}
-              >
-                {/* Navigation arrows for mobile */}
-                {index === 0 && (
-                  <Box sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: -20,
-                    transform: 'translateY(-50%)',
-                    display: { xs: 'block', md: 'none' }
-                  }}>
-                    <IconButton sx={{ bgcolor: 'white', boxShadow: 2 }}>
-                      <ArrowBackIcon />
-                    </IconButton>
-                  </Box>
-                )}
+              />
+            </Box>
 
-                {index === testimonials.length - 1 && (
-                  <Box sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: -20,
-                    transform: 'translateY(-50%)',
-                    display: { xs: 'block', md: 'none' }
-                  }}>
-                    <IconButton sx={{ bgcolor: 'white', boxShadow: 2 }}>
-                      <ArrowForwardIcon />
-                    </IconButton>
-                  </Box>
-                )}
-
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mb: 3,
-                    lineHeight: 1.6,
-                    fontSize: { xs: '0.9rem', sm: '1rem' },
-                    color: '#475569',
-                    fontStyle: 'italic'
-                  }}
-                >
-                  "{testimonial.text}"
-                </Typography>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Grid container spacing={{ xs: 4, sm: 6, md: 8 }} justifyContent="center">
+              {steps.map((step, index) => (
+                <Grid item xs={6} sm={6} md={3} key={index}>
                   <Box
                     sx={{
-                      width: 50,
-                      height: 50,
-                      borderRadius: '50%',
-                      bgcolor: '#F1F5F9',
+                      textAlign: 'center',
+                      position: 'relative',
+                      height: '100%',
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.5rem'
+                      zIndex: 1
                     }}
                   >
-                    👩
-                  </Box>
-                  <Box>
+                    {/* Step number badge */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: -8,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        bgcolor: step.color,
+                        color: 'white',
+                        borderRadius: '12px',
+                        px: 2,
+                        py: 0.5,
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        zIndex: 2
+                      }}
+                    >
+                      Step {index + 1}
+                    </Box>
+
+                    {/* Image container with clean design */}
+                    <Box
+                      sx={{
+                        width: { xs: 120, sm: 140, md: 200 },
+                        height: { xs: 120, sm: 140, md: 180 },
+                        borderRadius: '24px',
+                        bgcolor: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mb: 3,
+                        overflow: 'hidden',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                        border: '1px solid #F1F5F9',
+                        position: 'relative'
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={step.image}
+                        alt={`${step.title} image`}
+                        sx={{
+                          width: '70%',
+                          height: '70%',
+                          objectFit: 'contain'
+                        }}
+                      />
+                    </Box>
+
                     <Typography
                       variant="h6"
                       sx={{
                         fontWeight: 'bold',
-                        fontSize: '1rem',
+                        mb: 2,
+                        fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
                         color: '#1E293B'
                       }}
                     >
-                      {testimonial.name}
+                      {step.title}
                     </Typography>
+
                     <Typography
-                      component="div"
                       variant="body2"
                       sx={{
-                        color: 'text.secondary',
-                        fontSize: '0.875rem'
+                        color: '#64748B',
+                        textAlign: 'center',
+                        lineHeight: 1.6,
+                        fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                        maxWidth: 200
                       }}
                     >
-                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Rating
-                    value={testimonial.rating}
-                    readOnly
-                    size="small"
-                    sx={{ color: '#F59E0B' }}
-                  />
-                </Box>
+                      {step.description}
                     </Typography>
                   </Box>
-                </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        </Container>
+      </Box>
 
-               
+      {/* Testimonials */}
+      <Box id="testimonial" sx={{ bgcolor: 'white', py: 16 }}>
+        
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
+          <Box sx={{ textAlign: 'center', mb: 8 }}>
+            <Typography
+              variant="h4"
+              component="h2"
+              sx={{
+                fontWeight: 'bold',
+                mb: 2,
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' }
+              }}
+            >
+              Kata <span style={{ color: '#9CA3AF' }}>Mereka</span>
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                color: 'text.secondary',
+                fontSize: { xs: '1rem', sm: '1.125rem' },
+                maxWidth: 600,
+                mx: 'auto'
+              }}
+            >
+              Apa kata mereka tentang manfaat produk kami.
+            </Typography>
+          </Box>
+        
 
+        {/* Desktop View - Show all testimonials */}
+        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+          <Grid container spacing={4}>
+            {testimonials.map((testimonial, index) => (
+              <Grid item xs={12} md={4} key={index}>
                 <Box
                   sx={{
-                    position: 'absolute',
-                    bottom: 16,
-                    right: 16,
-                    bgcolor: '#FEF3C7',
-                    color: '#92400E',
-                    px: 2,
-                    py: 0.5,
-                    borderRadius: '12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold'
+                    position: 'relative',
+                    bgcolor: 'white',
+                    borderRadius: '20px',
+                    p: 4,
+                    height: '100%',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                    border: '1px solid rgba(0,0,0,0.05)',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-5px)',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.15)'
+                    }
                   }}
                 >
-                  {testimonial.package}
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      mb: 3,
+                      lineHeight: 1.6,
+                      fontSize: '1rem',
+                      color: '#475569',
+                      fontStyle: 'italic'
+                    }}
+                  >
+                    "{testimonial.text}"
+                  </Typography>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                    <Box
+                      sx={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: '50%',
+                        bgcolor: '#F1F5F9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.5rem'
+                      }}
+                    >
+                      👩
+                    </Box>
+                    <Box>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 'bold',
+                          fontSize: '1rem',
+                          color: '#1E293B'
+                        }}
+                      >
+                        {testimonial.name}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Rating
+                          value={testimonial.rating}
+                          readOnly
+                          size="small"
+                          sx={{ color: '#F59E0B' }}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 16,
+                      right: 16,
+                      bgcolor: '#FEF3C7',
+                      color: '#92400E',
+                      px: 2,
+                      py: 0.5,
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {testimonial.package}
+                  </Box>
                 </Box>
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+
+        {/* Mobile View - Carousel */}
+        <Box sx={{ display: { xs: 'block', md: 'none' }, position: 'relative' }}>
+          <Box
+            sx={{
+              overflow: 'hidden',
+              borderRadius: '20px'
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                transform: `translateX(-${currentTestimonial * 100}%)`,
+                transition: 'transform 0.3s ease-in-out'
+              }}
+            >
+              {testimonials.map((testimonial, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    minWidth: '100%',
+                    px: 1
+                  }}
+                >
+                  <Box
+                    sx={{
+                      bgcolor: 'white',
+                      borderRadius: '20px',
+                      p: 4,
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                      border: '1px solid rgba(0,0,0,0.05)',
+                      position: 'relative'
+                    }}
+                  >
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        mb: 3,
+                        lineHeight: 1.6,
+                        fontSize: '0.9rem',
+                        color: '#475569',
+                        fontStyle: 'italic'
+                      }}
+                    >
+                      "{testimonial.text}"
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Box
+                        sx={{
+                          width: 45,
+                          height: 45,
+                          borderRadius: '50%',
+                          bgcolor: '#F1F5F9',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.3rem'
+                        }}
+                      >
+                        👩
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 'bold',
+                            fontSize: '0.9rem',
+                            color: '#1E293B'
+                          }}
+                        >
+                          {testimonial.name}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Rating
+                            value={testimonial.rating}
+                            readOnly
+                            size="small"
+                            sx={{ color: '#F59E0B' }}
+                          />
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        bottom: 12,
+                        right: 12,
+                        bgcolor: '#FEF3C7',
+                        color: '#92400E',
+                        px: 2,
+                        py: 0.5,
+                        borderRadius: '12px',
+                        fontSize: '0.7rem',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {testimonial.package}
+                    </Box>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Navigation arrows */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              position: 'absolute',
+              top: '50%',
+              left: 0,
+              right: 0,
+              transform: 'translateY(-50%)',
+              px: -2
+            }}
+          >
+            <IconButton
+              onClick={prevTestimonial}
+              sx={{
+                bgcolor: 'white',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                width: 44,
+                height: 44,
+                '&:hover': { bgcolor: '#F8FAFC' }
+              }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <IconButton
+              onClick={nextTestimonial}
+              sx={{
+                bgcolor: 'white',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                width: 44,
+                height: 44,
+                '&:hover': { bgcolor: '#F8FAFC' }
+              }}
+            >
+              <ArrowForwardIcon />
+            </IconButton>
+          </Box>
+
+          {/* Dots indicator */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 3 }}>
+            {testimonials.map((_, index) => (
+              <Box
+                key={index}
+                onClick={() => setCurrentTestimonial(index)}
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: currentTestimonial === index ? '#92400E' : '#E5E7EB',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              />
+            ))}
+          </Box>
+        </Box>
+        </Container>
+      </Box>
 
       {/* FAQ Section */}
-      <Container maxWidth="lg" sx={{ py: 8, px: { xs: 2, sm: 3, md: 4 } }}>
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography
-            variant="h3"
-            component="h2"
-            sx={{
-              fontWeight: 'bold',
-              mb: 2,
-              fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.5rem' },
-              color: '#1E293B'
-            }}
-          >
-            Pertanyaan yang Sering Diajukan
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{
-              color: 'text.secondary',
-              fontSize: '1.125rem',
-              maxWidth: 600,
-              mx: 'auto'
-            }}
-          >
-            Temukan jawaban untuk pertanyaan umum tentang worksheet kami
-          </Typography>
-        </Box>
+      <Box
+        id="faq"
+        sx={{
+          bgcolor: 'transparent',
+          mt: 12,
+          mb: 8
+        }}
+      >
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
+          <Box sx={{ textAlign: 'center', mb: 8 }}>
+            <Typography
+              variant="h4"
+              component="h2"
+              sx={{
+                fontWeight: 'bold',
+                mb: 2,
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' }
+              }}
+            >
+              Pertayaan <span style={{ color: '#9CA3AF' }}>Umum</span>
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                color: 'text.secondary',
+                fontSize: { xs: '1rem', sm: '1.125rem' },
+                maxWidth: 600,
+                mx: 'auto'
+              }}
+            >
+              Temukan jawaban untuk pertanyaan umum tentang Produk kami.
+            </Typography>
+          </Box>
+        
 
         <Box sx={{ maxWidth: 800, mx: 'auto' }}>
           {[
             {
-              question: "Apakah worksheet ini cocok untuk semua usia?",
-              answer: "Worksheet kami dirancang khusus untuk anak usia 2-9 tahun dengan tingkat kesulitan yang bervariasi. Setiap worksheet sudah disesuaikan dengan tahap perkembangan anak."
+              question: "Metode pembayaran apa saja yang tersedia?",
+              answer: "Kami menerima kartu kredit/debit, transfer bank, dan e-wallet populer. Semua transaksi diproses secara aman."
             },
             {
-              question: "Bagaimana cara download setelah pembelian?",
-              answer: "Setelah pembayaran berhasil, Anda akan menerima email konfirmasi dengan link download. File dapat diunduh langsung dan dicetak di rumah."
+              question: "Apakah pembayaran saya aman?",
+              answer: "Pembayaran diproses melalui penyedia tepercaya dengan enkripsi SSL. Kami tidak menyimpan informasi kartu Anda."
             },
             {
-              question: "Apakah bisa dicetak berulang kali?",
-              answer: "Ya, setelah pembelian Anda bisa mencetak worksheet sebanyak yang dibutuhkan untuk kebutuhan anak di rumah."
+              question: "Kapan pesanan saya diproses?",
+              answer: "Pesanan diproses otomatis setelah pembayaran terkonfirmasi. Untuk produk digital, tautan unduhan akan tersedia dalam hitungan menit."
             },
             {
-              question: "Berapa lama mendapat update gratis?",
-              answer: "Anda akan mendapatkan update gratis selama 1 tahun untuk worksheet yang sudah dibeli, termasuk materi tambahan dan perbaikan."
+              question: "Bagaimana cara mengunduh produk setelah pembelian?",
+              answer: "Setelah pembayaran berhasil, Anda akan menerima email konfirmasi berisi tautan unduhan. Tautan juga dapat diakses dari halaman riwayat pesanan."
             },
             {
-              question: "Apakah ada garansi jika tidak puas?",
-              answer: "Kami memberikan garansi 30 hari uang kembali jika Anda tidak puas dengan kualitas worksheet yang dibeli."
+              question: "Bagaimana kebijakan pembatalan dan pengembalian dana?",
+              answer: "Kami menyediakan kebijakan pengembalian dana 30 hari jika terjadi masalah kualitas atau kesalahan transaksi."
             }
           ].map((faq, index) => (
             <Box
@@ -1096,8 +1345,94 @@ const StorePage = () => {
               </Collapse>
             </Box>
           ))}
+           <Card
+              sx={{
+                borderRadius: 3,
+                p: { xs: 2, md: 4,},
+                boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+                border: '1px solid #E2E8F0',
+                bgcolor: 'white'
+              }}
+            >
+              <Grid container alignItems="center" spacing={3}>
+                <Grid item xs={12} md={3}>
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      height: { xs: 120, md: 140 },
+                      borderRadius: 3,
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src="/images/store/cs.png"
+                      alt="Customer Service"
+                      sx={{ width: '87%', ml:5, height: '100%', objectFit: 'cover' }}
+                    />
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 'bold',
+                      mb: 1,
+                      textAlign: { xs: 'center', md: 'left' }
+                    }}
+                  >
+                    Ada kendala dalam pemesanan?
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    color="text.secondary"
+                    sx={{ textAlign: { xs: 'center', md: 'left' } }}
+                  >
+                    Jangan ragu untuk hubungi kami 😊.
+                  </Typography>
+                </Grid>
+
+                <Grid
+                  item
+                  xs={12}
+                  md={3}
+                  sx={{ display: 'flex', justifyContent: { xs: 'center', md: 'flex-end' } }}
+                >
+                  <Button
+                    variant="contained"
+                    startIcon={<WhatsAppIcon />}
+                    sx={{
+                     bgcolor: '#25D366',
+                      '&:hover': { bgcolor: '#128C7E' },
+                      borderRadius: 999,
+                      boxShadow: 'none',
+                      filter: 'none',
+                      '&:focus': { boxShadow: 'none', filter: 'none' },
+                      '&:focus-visible': { boxShadow: 'none', filter: 'none' },
+                      '&:active': { boxShadow: 'none', filter: 'none' },
+                      '&.MuiButton-root': { boxShadow: 'none' },
+                      '&.MuiButton-contained': { boxShadow: 'none' }
+                    }}
+                    onClick={() => window.open('https://wa.me/628121555423', '_blank')}
+                  >
+                    Hubungi Kami
+                  </Button>
+                </Grid>
+              </Grid>
+            </Card>
         </Box>
-      </Container>
+        
+        </Container>
+      </Box>
+      
+      <Box id="contact">
+        <Container sx={{ width: '55%', px: { xs: 2, sm: 3, md: 4 }, mb: 6 }}>
+           
+          </Container>
+      </Box>
+
+      
 
       <StoreFooter />
 

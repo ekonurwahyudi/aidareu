@@ -16,7 +16,9 @@ import {
   Avatar,
   Button,
   Divider,
-  Badge
+  Badge,
+  useTheme,
+  useMediaQuery
 } from '@mui/material'
 import { styled } from '@mui/material/styles'
 
@@ -25,12 +27,19 @@ import CloseIcon from '@mui/icons-material/Close'
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import DeleteIcon from '@mui/icons-material/Delete'
 
+// Helper function to format currency in Rupiah
+const formatRupiah = (amount: number): string => {
+  return `Rp. ${amount.toLocaleString('id-ID')}`
+}
+
 const CartDrawer = styled(Drawer)(({ theme }) => ({
   '& .MuiDrawer-paper': {
     width: 380,
     padding: theme.spacing(2),
     [theme.breakpoints.down('sm')]: {
-      width: '100vw'
+      width: '100vw',
+      height: '70vh',
+      borderRadius: '20px 20px 0 0'
     }
   }
 }))
@@ -59,6 +68,9 @@ const CartDrawerComponent = ({
   onRemoveItem,
   onUpdateQuantity
 }: CartDrawerProps) => {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
   const totalPrice = cartItems.reduce((total, item) => {
     const price = item.salePrice || item.price
     return total + (price * item.quantity)
@@ -67,12 +79,37 @@ const CartDrawerComponent = ({
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0)
 
   return (
-    <CartDrawer anchor="right" open={open} onClose={onClose}>
+    <CartDrawer anchor={isMobile ? "bottom" : "right"} open={open} onClose={onClose}>
+      {/* Mobile handle bar */}
+      {isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+          <Box
+            sx={{
+              width: 40,
+              height: 4,
+              bgcolor: '#E5E7EB',
+              borderRadius: 2
+            }}
+          />
+        </Box>
+      )}
+
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ShoppingCartIcon />
-          Cart Saya
-          <Badge badgeContent={totalItems} color="error" sx={{ ml: 1 }} />
+          <ShoppingCartIcon sx={{ color: '#E91E63' }} />
+          Keranjang Belanja
+          <Badge
+            badgeContent={totalItems}
+            color="error"
+            sx={{
+              ml: 5,
+              '& .MuiBadge-badge': {
+                fontSize: '0.7rem',
+                minWidth: '18px',
+                height: '18px'
+              }
+            }}
+          />
         </Typography>
         <IconButton onClick={onClose}>
           <CloseIcon />
@@ -93,95 +130,83 @@ const CartDrawerComponent = ({
         </Box>
       ) : (
         <>
-          <List sx={{ flexGrow: 1, maxHeight: 400, overflow: 'auto' }}>
-            {cartItems.map((item) => (
-              <ListItem
-                key={item.id}
-                sx={{
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  mb: 2,
-                  bgcolor: 'background.paper'
-                }}
-              >
-                <ListItemAvatar>
+          <Box sx={{ flexGrow: 1, maxHeight: 400, overflow: 'auto' }}>
+            {cartItems.map((item, index) => (
+              <Box key={item.id} sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, border: '1px solid #E5E7EB', borderRadius: 2 }}>
+                  {/* Product Image */}
                   <Avatar
                     src={item.image}
-                    sx={{ width: 56, height: 56, borderRadius: 2 }}
+                    sx={{ width: 48, height: 48, borderRadius: 2 }}
                     variant="rounded"
                   >
                     📦
                   </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', lineHeight: 1.3 }}>
+
+                  {/* Product Info */}
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: '600', mb: 0.5, color: '#374151' }}>
                       {item.name}
                     </Typography>
-                  }
-                  secondary={
-                    <Box sx={{ mt: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {item.salePrice ? (
-                          <>
-                            <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#22C55E' }}>
-                              Rp {item.salePrice.toLocaleString('id-ID')}
-                            </Typography>
-                            <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary' }}>
-                              Rp {item.price.toLocaleString('id-ID')}
-                            </Typography>
-                          </>
-                        ) : (
-                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                            Rp {item.price.toLocaleString('id-ID')}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {item.salePrice ? (
+                        <>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#10B981' }}>
+                            {formatRupiah(item.salePrice)}
                           </Typography>
-                        )}
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                          sx={{ minWidth: 30, width: 30, height: 30 }}
-                        >
-                          -
-                        </Button>
-                        <Typography variant="body2" sx={{ mx: 1, minWidth: 20, textAlign: 'center' }}>
-                          {item.quantity}
+                          <Typography variant="body2" sx={{ textDecoration: 'line-through', color: '#9CA3AF' }}>
+                            {formatRupiah(item.price)}
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#10B981' }}>
+                          {formatRupiah(item.price)}
                         </Typography>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                          sx={{ minWidth: 30, width: 30, height: 30 }}
-                        >
-                          +
-                        </Button>
-                        <IconButton
-                          size="small"
-                          onClick={() => onRemoveItem(item.id)}
-                          sx={{ ml: 'auto', color: 'error.main' }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
+                      )}
                     </Box>
-                  }
-                />
-              </ListItem>
+                  </Box>
+
+                  {/* Quantity Controls */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                      sx={{ width: 28, height: 28, border: '1px solid #E5E7EB' }}
+                    >
+                      <Typography variant="body2">-</Typography>
+                    </IconButton>
+                    <Typography variant="body2" sx={{ minWidth: 20, textAlign: 'center', fontWeight: '600' }}>
+                      {item.quantity}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                      sx={{ width: 28, height: 28, border: '1px solid #E5E7EB' }}
+                    >
+                      <Typography variant="body2">+</Typography>
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => onRemoveItem(item.id)}
+                      sx={{ ml: 1, color: '#EF4444' }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+              </Box>
             ))}
-          </List>
+          </Box>
 
           <Divider sx={{ my: 2 }} />
 
           <Box sx={{ mt: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#374151' }}>
                 Total:
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#E91E63' }}>
-                Rp {totalPrice.toLocaleString('id-ID')}
+                {formatRupiah(totalPrice)}
               </Typography>
             </Box>
 
@@ -193,7 +218,10 @@ const CartDrawerComponent = ({
                 bgcolor: '#E91E63',
                 '&:hover': { bgcolor: '#C2185B' },
                 borderRadius: 2,
-                py: 1.5
+                py: 1.5,
+                textTransform: 'none',
+                fontWeight: 'bold',
+                fontSize: '1rem'
               }}
             >
               Checkout ({totalItems} items)

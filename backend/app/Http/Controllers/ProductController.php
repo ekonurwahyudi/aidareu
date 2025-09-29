@@ -20,7 +20,7 @@ class ProductController extends Controller
     {
         try {
             $query = Product::with(['category:id,judul_kategori', 'store:uuid,name'])
-                ->select('id', 'uuid', 'nama_produk', 'harga_produk', 'harga_diskon', 'status_produk', 'jenis_produk', 'stock', 'category_id', 'uuid_store', 'upload_gambar_produk');
+                ->select('id', 'uuid', 'nama_produk', 'deskripsi', 'harga_produk', 'harga_diskon', 'status_produk', 'jenis_produk', 'stock', 'category_id', 'uuid_store', 'upload_gambar_produk', 'created_at', 'url_produk');
 
             // Filter by store if provided
             if ($request->has('store_uuid')) {

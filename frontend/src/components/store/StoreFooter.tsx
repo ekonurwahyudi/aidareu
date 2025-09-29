@@ -17,7 +17,7 @@ const StoreFooter = () => {
       <Container maxWidth="lg">
         <Box sx={{ textAlign: 'center' }}>
           <Typography variant="body2" sx={{ color: '#9CA3AF' }}>
-            Made with ❤️ by Tunerra
+            Made with ❤️ by <a href="https://aidareu.com" target="_blank" rel="noopener noreferrer">AiDareU</a>
           </Typography>
         </Box>
       </Container>

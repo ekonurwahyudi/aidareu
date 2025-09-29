@@ -294,10 +294,8 @@ export const ProductFormProvider = ({ children, productUuid, isEdit = false }: P
                 stock: product.stock || 0
               })
               
-              // Set editor content if available
-              if (editor && product.deskripsi) {
-                editor.commands.setContent(product.deskripsi)
-              }
+              // Set editor content if available - this will be handled by the component
+              // when the editor is ready and formData.deskripsi is available
             }
           }
         } catch (error) {

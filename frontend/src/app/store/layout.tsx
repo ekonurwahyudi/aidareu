@@ -4,6 +4,7 @@ import type { ChildrenType } from '@core/types'
 // Component Imports
 import Providers from '@components/Providers'
 import BlankLayout from '@layouts/BlankLayout'
+import { CartProvider } from '@/contexts/CartContext'
 
 // Util Imports
 import { getSystemMode } from '@core/utils/serverHelpers'
@@ -20,7 +21,9 @@ const StoreLayout = async ({ children }: ChildrenType) => {
   return (
     <Providers direction='ltr'>
       <BlankLayout systemMode={systemMode}>
-        {children}
+        <CartProvider>
+          {children}
+        </CartProvider>
       </BlankLayout>
     </Providers>
   )
