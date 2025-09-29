@@ -13,10 +13,16 @@ use App\Http\Controllers\Api\SocialMediaController;
 use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\EditorImageController;
 
 // Test endpoint
 Route::get('/test', function () {
     return response()->json(['message' => 'API is working!']);
+});
+
+// Test upload endpoint
+Route::get('/test-upload', function () {
+    return response()->json(['message' => 'Upload endpoint is accessible!']);
 });
 
 // Debug stores endpoint
@@ -138,6 +144,15 @@ Route::get('/public/products/{product}', [ProductController::class, 'show']);
 Route::put('/public/products/{product}', [ProductController::class, 'update']);
 Route::post('/public/products/{product}', [ProductController::class, 'update']); // Handle POST with _method=PUT
 Route::delete('/public/products/{product}', [ProductController::class, 'destroy']);
+
+// Public: Editor Image Upload (no auth required for testing)
+Route::post('/upload-editor-image', [EditorImageController::class, 'upload']);
+Route::options('/upload-editor-image', function() {
+    return response()->json(['status' => 'OK'])
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With');
+});
 
 // Public: User API for testing (no auth required)
 Route::get('/users/me', [UserController::class, 'me']);

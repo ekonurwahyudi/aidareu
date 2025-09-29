@@ -30,7 +30,9 @@
       "Bash(npx prisma:*)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "WebFetch(domain:themes.pixelstrap.com)"
+      "WebFetch(domain:themes.pixelstrap.com)",
+      "Bash(pkill:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": [],

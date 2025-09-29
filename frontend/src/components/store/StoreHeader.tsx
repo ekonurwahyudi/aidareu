@@ -29,6 +29,9 @@ import MenuIcon from '@mui/icons-material/Menu'
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import CloseIcon from '@mui/icons-material/Close'
 
+// Components
+import CartDropdown from './CartDropdown'
+
 // Custom Styled Components
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   backgroundColor: 'white',
@@ -65,19 +68,39 @@ const CartButton = styled(Button)(({ theme }) => ({
   color: 'white',
   fontWeight: 'bold',
   textTransform: 'none',
-  borderRadius: '24px',
+  borderRadius: '8px',
   padding: '8px 20px',
   '&:hover': {
     backgroundColor: '#C2185B'
   }
 }))
 
+interface CartItem {
+  id: string
+  name: string
+  price: number
+  salePrice?: number
+  image: string
+  quantity: number
+}
+
 interface StoreHeaderProps {
   cartItemCount?: number
   onCartClick?: () => void
+  cartItems?: CartItem[]
+  onRemoveItem?: (productId: string) => void
+  onUpdateQuantity?: (productId: string, quantity: number) => void
+  onAddToCart?: (productId: string, event: React.MouseEvent) => void
 }
 
-const StoreHeader = ({ cartItemCount = 0, onCartClick }: StoreHeaderProps) => {
+const StoreHeader = ({
+  cartItemCount = 0,
+  onCartClick,
+  cartItems = [],
+  onRemoveItem,
+  onUpdateQuantity,
+  onAddToCart
+}: StoreHeaderProps) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -85,8 +108,8 @@ const StoreHeader = ({ cartItemCount = 0, onCartClick }: StoreHeaderProps) => {
   const menuItems = [
     { label: 'Home', href: '#home' },
     { label: 'Produk', href: '#products' },
+    { label: 'Testimoni', href: '#testimonial' },
     { label: 'FAQ', href: '#faq' },
-    { label: 'Testimoni', href: '#testimonials' },
     { label: 'Kontak', href: '#contact' }
   ]
 
@@ -114,7 +137,7 @@ const StoreHeader = ({ cartItemCount = 0, onCartClick }: StoreHeaderProps) => {
           <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 0, sm: 2 } }}>
             {/* Logo */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Logo variant="h6" component="div">
+              <Logo variant="h6">
                 ❤️ AiDareU
               </Logo>
             </Box>
@@ -145,17 +168,58 @@ const StoreHeader = ({ cartItemCount = 0, onCartClick }: StoreHeaderProps) => {
                 </IconButton>
               )}
 
-              <CartButton
-                startIcon={
-                  <Badge badgeContent={cartItemCount} color="error">
+              {/* Desktop: Use CartDropdown, Mobile: Use CartDrawer button */}
+              {!isMobile ? (
+                <CartDropdown
+                  cartItems={cartItems}
+                  onRemoveItem={onRemoveItem || (() => {})}
+                  onUpdateQuantity={onUpdateQuantity || (() => {})}
+                  onAddToCart={onAddToCart || (() => {})}
+                  autoOpen={true}
+                />
+              ) : (
+                <Box sx={{ position: 'relative' }}>
+                  <Button
+                    onClick={onCartClick}
+                    sx={{
+                      backgroundColor: '#E91E63',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      textTransform: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 20px',
+                      minWidth: 'auto',
+                      '&:hover': {
+                        backgroundColor: '#C2185B'
+                      }
+                    }}
+                  >
                     <ShoppingCartIcon />
-                  </Badge>
-                }
-                onClick={handleCartClick}
-                size={isMobile ? 'small' : 'medium'}
-              >
-                {isMobile ? '' : 'Cart Saya'}
-              </CartButton>
+                  </Button>
+                  {cartItemCount > 0 && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: -8,
+                        right: -8,
+                        backgroundColor: '#DC2626',
+                        color: 'white',
+                        borderRadius: '50%',
+                        minWidth: 20,
+                        height: 20,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        border: '2px solid white'
+                      }}
+                    >
+                      {cartItemCount}
+                    </Box>
+                  )}
+                </Box>
+              )}
             </Box>
           </Toolbar>
         </Container>
