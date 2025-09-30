@@ -262,6 +262,9 @@ class StoreController extends Controller
                         'phone' => $store->phone,
                         'category' => $store->category,
                         'description' => $store->description,
+                        'provinsi' => $store->provinsi,
+                        'kota' => $store->kota,
+                        'kecamatan' => $store->kecamatan,
                         'is_active' => $store->is_active,
                         'url' => 'https://' . $store->subdomain . '.aidareu.com',
                         'created_at' => $store->created_at,
@@ -350,7 +353,10 @@ class StoreController extends Controller
             'domain' => 'sometimes|nullable|string|max:255',
             'no_hp_toko' => ['sometimes', 'required', 'string', 'regex:/^(\+62|62|0)[0-9]{9,13}$/'],
             'kategori_toko' => 'sometimes|required|string|in:digital,fashion,elektronik,makanan,kesehatan,rumah_tangga,olahraga,buku_media,otomotif,mainan_hobi,jasa,lainnya',
-            'deskripsi_toko' => 'sometimes|required|string|min:10|max:1000'
+            'deskripsi_toko' => 'sometimes|required|string|min:10|max:1000',
+            'provinsi' => 'sometimes|nullable|string|max:100',
+            'kota' => 'sometimes|nullable|string|max:100',
+            'kecamatan' => 'sometimes|nullable|string|max:100'
         ]);
 
         if ($validator->fails()) {
@@ -365,7 +371,7 @@ class StoreController extends Controller
             
             // Fallback authentication if no authenticated user
             if (!$user) {
-                $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8';
+                $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8'; // Eko Wahyudi ST (Serba Ada owner)
                 $user = \App\Models\User::where('uuid', $targetUuid)->first();
             }
             
@@ -415,6 +421,16 @@ class StoreController extends Controller
             if ($request->has('deskripsi_toko')) {
                 $updateData['description'] = $request->deskripsi_toko;
             }
+            // Address fields
+            if ($request->has('provinsi')) {
+                $updateData['provinsi'] = $request->provinsi;
+            }
+            if ($request->has('kota')) {
+                $updateData['kota'] = $request->kota;
+            }
+            if ($request->has('kecamatan')) {
+                $updateData['kecamatan'] = $request->kecamatan;
+            }
 
             $store->update($updateData);
 
@@ -428,6 +444,9 @@ class StoreController extends Controller
                     'phone' => $store->phone,
                     'category' => $store->category,
                     'description' => $store->description,
+                    'provinsi' => $store->provinsi,
+                    'kota' => $store->kota,
+                    'kecamatan' => $store->kecamatan,
                     'status' => $store->status,
                     'is_published' => $store->is_published,
                     'url' => 'https://' . $store->subdomain . '.aidareu.com'

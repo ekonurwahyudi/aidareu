@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useMediaQuery, useTheme } from '@mui/material'
 
 // Types
+// di dalam file CartContext.tsx
 export interface CartItem {
   id: string
   name: string
@@ -11,6 +12,9 @@ export interface CartItem {
   salePrice?: number
   image: string
   quantity: number
+  brand?: string
+  storeUuid?: string // simpan UUID Store
+  jenis_produk?: string // jenis produk: digital atau fisik
 }
 
 interface CartContextType {

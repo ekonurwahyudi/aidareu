@@ -3,6 +3,9 @@
 // React Imports
 import { useState } from 'react'
 
+// Next Imports
+import { useRouter } from 'next/navigation'
+
 // MUI Imports
 import {
   Drawer,
@@ -70,6 +73,7 @@ const CartDrawerComponent = ({
 }: CartDrawerProps) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const router = useRouter()
 
   const totalPrice = cartItems.reduce((total, item) => {
     const price = item.salePrice || item.price
@@ -77,6 +81,13 @@ const CartDrawerComponent = ({
   }, 0)
 
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0)
+
+  const handleCheckout = () => {
+    console.log('CartDrawer handleCheckout called')
+    onClose()
+    console.log('Navigating to checkout from drawer...')
+    router.push('/store/checkout')
+  }
 
   return (
     <CartDrawer anchor={isMobile ? "bottom" : "right"} open={open} onClose={onClose}>
@@ -214,6 +225,7 @@ const CartDrawerComponent = ({
               variant="contained"
               fullWidth
               size="large"
+              onClick={handleCheckout}
               sx={{
                 bgcolor: '#E91E63',
                 '&:hover': { bgcolor: '#C2185B' },

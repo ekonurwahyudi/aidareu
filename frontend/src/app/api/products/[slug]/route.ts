@@ -72,7 +72,8 @@ export async function GET(
         jenis_produk: product.jenis_produk,
         status_produk: product.status_produk,
         stock: product.stock || 0,
-        url_produk: product.url_produk
+        url_produk: product.url_produk,
+        storeUuid: product.store?.uuid || product.uuid_store || null // map UUID toko
       }))
 
       console.log('Transformed products count:', transformedProducts.length)
@@ -89,7 +90,7 @@ export async function GET(
         })
       } else {
         console.log('Product not found for slug:', slug)
-        console.log('Available slugs:', transformedProducts.map(p => p.slug))
+        console.log('Available slugs:', transformedProducts.map((p: { slug: string }) => p.slug))
       }
     }
 

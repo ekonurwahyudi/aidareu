@@ -3,6 +3,9 @@
 // React Imports
 import { useState, useEffect } from 'react'
 
+// Next Imports
+import { useRouter } from 'next/navigation'
+
 // MUI Imports
 import {
   Box,
@@ -58,6 +61,7 @@ const CartDropdown = ({
 }: CartDropdownProps) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const router = useRouter()
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null)
 
   const totalPrice = cartItems.reduce((total, item) => {
@@ -89,6 +93,13 @@ const CartDropdown = ({
 
   const handleClose = () => {
     setAnchorEl(null)
+  }
+
+  const handleCheckout = () => {
+    console.log('CartDropdown handleCheckout called')
+    handleClose()
+    console.log('Navigating to checkout from dropdown...')
+    router.push('/store/checkout')
   }
 
   const open = Boolean(anchorEl)
@@ -358,7 +369,7 @@ const CartDropdown = ({
                   variant="contained"
                   fullWidth
                   size="large"
-                  onClick={handleClose}
+                  onClick={handleCheckout}
                   sx={{
                     backgroundColor: '#E91E63',
                     '&:hover': { backgroundColor: '#C2185B' },

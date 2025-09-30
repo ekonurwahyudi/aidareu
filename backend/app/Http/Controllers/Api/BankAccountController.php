@@ -39,6 +39,84 @@ class BankAccountController extends Controller
     }
 
     /**
+     * Get bank accounts by store UUID (for checkout flow)
+     */
+    public function getByStore($storeUuid): JsonResponse
+    {
+        try {
+            // Validate store exists
+            $store = Store::where('uuid', $storeUuid)->first();
+            if (!$store) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store not found',
+                    'data' => []
+                ], 404);
+            }
+
+            // Get bank accounts for this store
+            $bankAccounts = BankAccount::where('store_uuid', $storeUuid)
+                                    ->where('is_active', true)
+                                    ->orderBy('is_primary', 'desc')
+                                    ->orderBy('created_at', 'desc')
+                                    ->get()
+                                    ->map(function ($account) {
+                                        return [
+                                            'uuid' => $account->uuid,
+                                            'store_uuid' => $account->store_uuid,
+                                            'account_name' => $account->account_name ?? $account->account_holder_name,
+                                            'bank_name' => $account->bank_name,
+                                            'account_number' => $account->account_number,
+                                            'is_primary' => $account->is_primary,
+                                            'is_active' => $account->is_active,
+                                            'bank_code' => $this->getBankCode($account->bank_name),
+                                            'created_at' => $account->created_at,
+                                            'updated_at' => $account->updated_at
+                                        ];
+                                    });
+
+            return response()->json([
+                'success' => true,
+                'data' => $bankAccounts
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get bank accounts',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get bank code/acronym from bank name
+     */
+    private function getBankCode($bankName): string
+    {
+        $bankCodes = [
+            'Bank Central Asia' => 'BCA',
+            'Bank Rakyat Indonesia' => 'BRI',
+            'Bank Mandiri' => 'Mandiri',
+            'Bank Negara Indonesia' => 'BNI',
+            'Bank Syariah Indonesia' => 'BSI',
+            'Bank Permata' => 'Permata',
+            'Bank Danamon' => 'Danamon',
+            'Bank CIMB Niaga' => 'CIMB',
+            'Bank Maybank' => 'Maybank'
+        ];
+
+        foreach ($bankCodes as $fullName => $code) {
+            if (stripos($bankName, $fullName) !== false || stripos($bankName, $code) !== false) {
+                return $code;
+            }
+        }
+
+        // Return first 3 characters if no match found
+        return strtoupper(substr($bankName, 0, 3));
+    }
+
+    /**
      * Get bank accounts for current user's store
      */
     public function userIndex(): JsonResponse
