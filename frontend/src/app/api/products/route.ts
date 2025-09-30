@@ -44,13 +44,13 @@ export async function GET(request: NextRequest) {
         brand: product.store?.name || 'Premium Collection',
         price: product.harga_produk,
         salePrice: product.harga_diskon || null,
-        rating: 4.5, // Default rating as it's not in backend
-        reviews: Math.floor(Math.random() * 100) + 10, // Random reviews
+        rating: 4.5,
+        reviews: Math.floor(Math.random() * 100) + 10,
         image: Array.isArray(product.upload_gambar_produk) && product.upload_gambar_produk.length > 0
           ? `${backendUrl}/storage/${product.upload_gambar_produk[0]}`
           : '/placeholder.jpg',
         colors: null,
-        isNew: product.status_produk === 'active' && new Date(product.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // New if created in last 30 days
+        isNew: product.status_produk === 'active' && new Date(product.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
         inStock: product.jenis_produk === 'digital' || (product.stock && product.stock > 0),
         slug: product.nama_produk.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''),
         category: product.category?.judul_kategori,
@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
         jenis_produk: product.jenis_produk,
         status_produk: product.status_produk,
         stock: product.stock,
-        url_produk: product.url_produk
+        url_produk: product.url_produk,
+        storeUuid: product.store?.uuid || product.uuid_store || null // map UUID toko
       })) || []
 
       return NextResponse.json({

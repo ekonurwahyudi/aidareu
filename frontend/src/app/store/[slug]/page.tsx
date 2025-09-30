@@ -65,6 +65,7 @@ interface Product {
   status_produk: string
   stock?: number
   url_produk?: string
+  storeUuid?: string // tambahkan UUID Store di product
 }
 
 // CartItem interface is now imported from CartContext
@@ -616,7 +617,7 @@ function ProductDetailPage() {
         if (data.status === 'success' && data.data && data.data.data) {
           // Transform and find product by slug
           const transformedProducts: Product[] = data.data.data.map((product: any) => ({
-            id: product.uuid || product.id.toString(),
+            id: product.uuid || product.id?.toString(),
             uuid: product.uuid,
             name: product.nama_produk,
             brand: product.store?.name || 'Premium Collection',
@@ -639,7 +640,8 @@ function ProductDetailPage() {
             jenis_produk: product.jenis_produk,
             status_produk: product.status_produk,
             stock: product.stock || 0,
-            url_produk: product.url_produk
+            url_produk: product.url_produk,
+            storeUuid: product.store?.uuid || product.uuid_store || undefined // mapping UUID Store
           }))
 
           console.log('Looking for slug:', slug)
@@ -686,15 +688,30 @@ function ProductDetailPage() {
   }, [slug])
 
   const handleAddToCart = () => {
-    if (!product) return
+    if (!product) {
+      console.log('No product found, cannot add to cart')
+      return
+    }
+
+    console.log('Adding product to cart:', {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: quantity
+    })
 
     addToCart({
       id: product.id,
       name: product.name,
       price: product.price,
       salePrice: product.salePrice ?? undefined,
-      image: product.image
+      image: product.image,
+      brand: product.brand ?? undefined, // kirim nama toko ke cart
+      storeUuid: product.storeUuid ?? undefined, // kirim UUID Store ke cart
+      jenis_produk: product.jenis_produk ?? 'fisik' // kirim jenis produk ke cart
     }, quantity)
+
+    console.log('Product added to cart successfully')
   }
 
   const handleBack = () => {
@@ -706,12 +723,15 @@ function ProductDetailPage() {
   }
 
   const handleBuyNow = () => {
-    if (product?.jenis_produk === 'digital' && product?.url_produk) {
-      window.open(product.url_produk, '_blank')
-    } else {
-      handleAddToCart()
-      // Redirect to checkout or show checkout modal
-    }
+    console.log('handleBuyNow called')
+    console.log('Product type:', product?.jenis_produk)
+
+    // Always add to cart and redirect to checkout for both digital and physical products
+    console.log('Adding to cart and redirecting to checkout')
+    handleAddToCart()
+    // Redirect to checkout page
+    console.log('Navigating to checkout...')
+    router.push('/store/checkout')
   }
 
   if (loading) {

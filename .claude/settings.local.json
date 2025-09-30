@@ -32,7 +32,10 @@
       "Bash(findstr:*)",
       "WebFetch(domain:themes.pixelstrap.com)",
       "Bash(pkill:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npx next dev:*)",
+      "mcp__ide__getDiagnostics",
+      "WebFetch(domain:biteship.com)"
     ],
     "deny": [],
     "ask": [],

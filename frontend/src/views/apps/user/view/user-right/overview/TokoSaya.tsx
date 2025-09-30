@@ -37,7 +37,10 @@ const schema = yup.object().shape({
     .matches(/^[a-z0-9-]+$/, 'Subdomain hanya boleh huruf kecil, angka, dan tanda -'),
   phoneNumber: yup.string().required('Nomor HP wajib diisi').min(8, 'Nomor HP minimal 10 digit'),
   category: yup.string().required('Kategori toko wajib dipilih'),
-  description: yup.string().required('Deskripsi toko wajib diisi').min(10, 'Deskripsi minimal 10 karakter')
+  description: yup.string().required('Deskripsi toko wajib diisi').min(10, 'Deskripsi minimal 10 karakter'),
+  province: yup.string().required('Provinsi wajib dipilih'),
+  city: yup.string().required('Kota wajib dipilih'),
+  district: yup.string().required('Kecamatan wajib dipilih')
 })
 
 // Category mapping between UI labels and backend enum slugs
@@ -72,7 +75,21 @@ type StoreItem = {
   phone: string
   category: string
   description: string
+  province?: string
+  city?: string
+  district?: string
   url?: string
+}
+
+// Extend Window interface to include pendingAddressData
+declare global {
+  interface Window {
+    pendingAddressData?: {
+      province: string
+      city: string
+      district: string
+    }
+  }
 }
 
 // Form values type aligned with form field names
@@ -82,6 +99,9 @@ type FormValues = {
   phoneNumber: string
   category: string
   description: string
+  province: string
+  city: string
+  district: string
 }
 
 const TokoSaya = () => {
@@ -95,6 +115,14 @@ const TokoSaya = () => {
   const [checkTimeout, setCheckTimeout] = useState<NodeJS.Timeout | null>(null)
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [isEditing, setIsEditing] = useState<boolean>(false)
+
+  // Location States
+  const [provinces, setProvinces] = useState<any[]>([])
+  const [cities, setCities] = useState<any[]>([])
+  const [districts, setDistricts] = useState<any[]>([])
+  const [loadingProvinces, setLoadingProvinces] = useState(false)
+  const [loadingCities, setLoadingCities] = useState(false)
+  const [loadingDistricts, setLoadingDistricts] = useState(false)
 
   // Form
   const {
@@ -110,14 +138,151 @@ const TokoSaya = () => {
       subdomain: '',
       phoneNumber: '',
       category: '',
-      description: ''
+      description: '',
+      province: '',
+      city: '',
+      district: ''
     }
   })
 
   const watchedSubdomain = watch('subdomain')
+  const watchedProvince = watch('province')
+  const watchedCity = watch('city')
 
   const handleEditToggle = () => {
     setIsEditing(!isEditing)
+  }
+
+  // Load provinces on component mount
+  useEffect(() => {
+    loadProvinces()
+  }, [])
+
+  // Process pending address data after provinces are loaded
+  useEffect(() => {
+    if (provinces.length > 0 && window.pendingAddressData) {
+      const addressData = window.pendingAddressData
+      loadAddressDataAfterProvinces(addressData)
+      delete window.pendingAddressData
+    }
+  }, [provinces])
+
+  // Load cities when province changes
+  useEffect(() => {
+    if (watchedProvince) {
+      const selectedProvince = provinces.find(p => p.name === watchedProvince)
+      if (selectedProvince) {
+        loadCities(selectedProvince.id)
+        setValue('city', '')
+        setValue('district', '')
+        setCities([])
+        setDistricts([])
+      }
+    }
+  }, [watchedProvince, provinces, setValue])
+
+  // Load districts when city changes
+  useEffect(() => {
+    if (watchedCity) {
+      const selectedCity = cities.find(c => c.name === watchedCity)
+      if (selectedCity) {
+        loadDistricts(selectedCity.id)
+        setValue('district', '')
+        setDistricts([])
+      }
+    }
+  }, [watchedCity, cities, setValue])
+
+  // API Functions for location data
+  const loadProvinces = async () => {
+    setLoadingProvinces(true)
+    try {
+      const response = await fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+      const data = await response.json()
+      setProvinces(data)
+    } catch (error) {
+      console.error('Error loading provinces:', error)
+    } finally {
+      setLoadingProvinces(false)
+    }
+  }
+
+  const loadCities = async (provinceId: string) => {
+    setLoadingCities(true)
+    try {
+      const response = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provinceId}.json`)
+      const data = await response.json()
+      setCities(data)
+    } catch (error) {
+      console.error('Error loading cities:', error)
+    } finally {
+      setLoadingCities(false)
+    }
+  }
+
+  const loadDistricts = async (cityId: string) => {
+    setLoadingDistricts(true)
+    try {
+      const response = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${cityId}.json`)
+      const data = await response.json()
+      setDistricts(data)
+    } catch (error) {
+      console.error('Error loading districts:', error)
+    } finally {
+      setLoadingDistricts(false)
+    }
+  }
+
+  // Helper function to load address data after provinces are available
+  const loadAddressDataAfterProvinces = async (addressData: { province: string; city: string; district: string }) => {
+    if (!addressData.province || provinces.length === 0) {
+      return
+    }
+
+    const selectedProvince = provinces.find(p => p.name === addressData.province)
+    if (selectedProvince) {
+      setValue('province', selectedProvince.name)
+
+      try {
+        // Load cities
+        const citiesResponse = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${selectedProvince.id}.json`)
+        const citiesData = await citiesResponse.json()
+        setCities(citiesData)
+
+        if (addressData.city) {
+          const selectedCity = citiesData.find((c: { id: string; name: string }) => c.name === addressData.city)
+          if (selectedCity) {
+            setValue('city', selectedCity.name)
+
+            // Load districts
+            const districtsResponse = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${selectedCity.id}.json`)
+            const districtsData = await districtsResponse.json()
+            setDistricts(districtsData)
+
+            // Find and set the district
+            if (addressData.district) {
+              const selectedDistrict = districtsData.find((d: { id: string; name: string }) => d.name === addressData.district)
+              if (selectedDistrict) {
+                setValue('district', selectedDistrict.name)
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading address data:', error)
+      }
+    }
+  }
+
+  // Helper to get cities (reusable)
+  const getCities = async (provinceId: string) => {
+    try {
+      const response = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provinceId}.json`)
+      return await response.json()
+    } catch (error) {
+      console.error('Error getting cities:', error)
+      return []
+    }
   }
 
   // Fetch current user's store(s) and prefill form
@@ -133,12 +298,31 @@ const TokoSaya = () => {
           setStoreData(s)
           if ((s as any).uuid) setSelectedStoreUuid((s as any).uuid as string)
           setInitialSubdomain(s.subdomain)
+
+          // Get address values - try both field names
+          const provinceValue = (s as any).province || (s as any).provinsi || ''
+          const cityValue = (s as any).city || (s as any).kota || ''
+          const districtValue = (s as any).district || (s as any).kecamatan || ''
+
           // Prefill form values
           setValue('storeName', s.name || '')
           setValue('subdomain', s.subdomain || '')
           setValue('phoneNumber', s.phone || '')
           setValue('category', CATEGORY_SLUG_TO_LABEL[s.category as string] || CATEGORY_SLUG_TO_LABEL[(s as any).kategori_toko as string] || '')
           setValue('description', s.description || '')
+          setValue('province', provinceValue)
+          setValue('city', cityValue)
+          setValue('district', districtValue)
+
+          // Store address data for loading dropdown options later
+          if (provinceValue || cityValue || districtValue) {
+            window.pendingAddressData = {
+              province: provinceValue,
+              city: cityValue,
+              district: districtValue
+            }
+          }
+
           // For existing subdomain, mark as available to avoid false error
           setSubdomainAvailable(true)
         }
@@ -203,7 +387,9 @@ const TokoSaya = () => {
 
   // Submit
   const onSubmit = async (values: FormValues) => {
-    if (!selectedStoreUuid) return
+    if (!selectedStoreUuid) {
+      return
+    }
 
     try {
       setIsSaving(true)
@@ -225,7 +411,10 @@ const TokoSaya = () => {
         subdomain: values.subdomain,
         no_hp_toko: values.phoneNumber,
         kategori_toko: CATEGORY_LABEL_TO_SLUG[values.category] || 'lainnya',
-        deskripsi_toko: values.description
+        deskripsi_toko: values.description,
+        provinsi: values.province,
+        kota: values.city,
+        kecamatan: values.district
       }
 
       const res = await fetch(`/api/public/stores/${selectedStoreUuid}`, {
@@ -235,6 +424,7 @@ const TokoSaya = () => {
       })
 
       const data = await res.json()
+
       if (!res.ok) {
         toast.error(data.message || 'Gagal menyimpan perubahan')
       } else {
@@ -381,6 +571,120 @@ const TokoSaya = () => {
                     error={!!errors.description}
                     helperText={errors.description?.message as string}
                   />
+                )}
+              />
+            </Grid>
+
+            {/* Provinsi */}
+            <Grid item xs={12} sm={4}>
+              <Controller
+                name="province"
+                control={control}
+                render={({ field }) => (
+                  isEditing ? (
+                    <FormControl fullWidth error={!!errors.province}>
+                      <InputLabel>Provinsi</InputLabel>
+                      <Select
+                        {...field}
+                        label="Provinsi"
+                        disabled={loadingProvinces}
+                      >
+                        {provinces.map((province) => (
+                          <MenuItem key={province.id} value={province.name}>
+                            {province.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      <FormHelperText>
+                        {loadingProvinces ? 'Memuat provinsi...' : errors.province?.message as string}
+                      </FormHelperText>
+                    </FormControl>
+                  ) : (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Provinsi"
+                      disabled
+                      error={!!errors.province}
+                      helperText={errors.province?.message as string}
+                    />
+                  )
+                )}
+              />
+            </Grid>
+
+            {/* Kota */}
+            <Grid item xs={12} sm={4}>
+              <Controller
+                name="city"
+                control={control}
+                render={({ field }) => (
+                  isEditing ? (
+                    <FormControl fullWidth error={!!errors.city}>
+                      <InputLabel>Kota/Kabupaten</InputLabel>
+                      <Select
+                        {...field}
+                        label="Kota/Kabupaten"
+                        disabled={loadingCities || !watchedProvince}
+                      >
+                        {cities.map((city) => (
+                          <MenuItem key={city.id} value={city.name}>
+                            {city.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      <FormHelperText>
+                        {loadingCities ? 'Memuat kota...' : errors.city?.message as string}
+                      </FormHelperText>
+                    </FormControl>
+                  ) : (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Kota/Kabupaten"
+                      disabled
+                      error={!!errors.city}
+                      helperText={errors.city?.message as string}
+                    />
+                  )
+                )}
+              />
+            </Grid>
+
+            {/* Kecamatan */}
+            <Grid item xs={12} sm={4}>
+              <Controller
+                name="district"
+                control={control}
+                render={({ field }) => (
+                  isEditing ? (
+                    <FormControl fullWidth error={!!errors.district}>
+                      <InputLabel>Kecamatan</InputLabel>
+                      <Select
+                        {...field}
+                        label="Kecamatan"
+                        disabled={loadingDistricts || !watchedCity}
+                      >
+                        {districts.map((district) => (
+                          <MenuItem key={district.id} value={district.name}>
+                            {district.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      <FormHelperText>
+                        {loadingDistricts ? 'Memuat kecamatan...' : errors.district?.message as string}
+                      </FormHelperText>
+                    </FormControl>
+                  ) : (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Kecamatan"
+                      disabled
+                      error={!!errors.district}
+                      helperText={errors.district?.message as string}
+                    />
+                  )
                 )}
               />
             </Grid>

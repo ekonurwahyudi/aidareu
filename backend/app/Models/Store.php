@@ -50,6 +50,10 @@ class Store extends Model
         'facebook_url',
         'tiktok_url',
         'youtube_url',
+        // Address fields
+        'provinsi',
+        'kota',
+        'kecamatan',
         // Legacy fields for backward compatibility
         'domain',
         'alamat',

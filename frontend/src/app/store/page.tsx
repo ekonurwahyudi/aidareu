@@ -118,6 +118,7 @@ interface Product {
   inStock: boolean
   slug?: string
   uuid?: string
+  storeUuid?: string // tambahkan UUID Store di product
 }
 
 // CartItem interface is now imported from CartContext
@@ -291,7 +292,9 @@ const StorePage = () => {
       name: product.name,
       price: product.price,
       salePrice: product.salePrice ?? undefined,
-      image: product.image
+      image: product.image,
+      brand: product.brand ?? undefined,
+      storeUuid: product.storeUuid ?? undefined // kirim UUID Store ke cart
     })
   }
 
