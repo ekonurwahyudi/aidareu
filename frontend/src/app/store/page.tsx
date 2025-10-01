@@ -119,6 +119,7 @@ interface Product {
   slug?: string
   uuid?: string
   storeUuid?: string // tambahkan UUID Store di product
+  jenis_produk?: string // Tipe produk: 'digital' atau 'fisik'
 }
 
 // CartItem interface is now imported from CartContext
