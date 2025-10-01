@@ -32,56 +32,54 @@ export const RBACProvider = ({ children }: RBACProviderProps) => {
       // Try to get user data from localStorage first (fallback)
       const storedUserData = localStorage.getItem('user_data')
       let userData = null
-      
+
       if (storedUserData) {
         try {
           userData = JSON.parse(storedUserData)
           console.log('User data loaded from localStorage:', userData)
+          console.log('Store from user data:', userData.store)
+
+          // Set user immediately
+          setUser(userData)
+
+          // If user has store data directly, set it as current store
+          if (userData.store) {
+            console.log('Setting current store from user data:', userData.store)
+            setCurrentStore(userData.store)
+          }
         } catch (error) {
           console.error('Failed to parse stored user data:', error)
         }
       }
-      
-      // Try to fetch fresh user data from API
+
+      // Try to fetch fresh user data from API (optional enhancement)
       try {
         const userResponse = await fetch('/api/public/stores', {
           credentials: 'include'
         })
-        
+
         if (userResponse.ok) {
           const storesData = await userResponse.json()
-          console.log('Stores data loaded:', storesData)
-          
+          console.log('Stores data loaded from API:', storesData)
+
           // If we have stored user data, combine it with stores
           if (userData) {
             userData.stores = storesData.data || storesData.stores || []
             setUser(userData)
-            
-            // Set default store if user has stores
+
+            // Set default store if user has stores from API
             if (userData.stores && userData.stores.length > 0) {
-              console.log('Setting current store:', userData.stores[0])
+              console.log('Updating current store from API:', userData.stores[0])
               setCurrentStore(userData.stores[0])
-            } else {
-              console.warn('No stores found for user')
             }
           }
         } else {
-          console.error('Failed to fetch stores data:', userResponse.status, userResponse.statusText)
-          
-          // If API fails but we have stored user data, use it
-          if (userData) {
-            setUser(userData)
-            console.log('Using stored user data due to API failure')
-          }
+          console.warn('Failed to fetch stores data from API:', userResponse.status)
+          // Already have store from localStorage, so this is not critical
         }
       } catch (apiError) {
-        console.error('API request failed, using stored data if available:', apiError)
-        
-        // If API fails but we have stored user data, use it
-        if (userData) {
-          setUser(userData)
-          console.log('Using stored user data due to API error')
-        }
+        console.warn('API request failed, using stored data:', apiError)
+        // Already have store from localStorage, so this is not critical
       }
       
       // Try to get user permissions (optional)

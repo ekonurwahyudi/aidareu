@@ -157,7 +157,7 @@ const Login = ({ mode }: { mode: SystemMode }) => {
             email: data.email,
             password: data.password
           }))
-          
+
           toast.success('Login berhasil! Silakan verifikasi email Anda.')
           router.push('/auth/verify-email')
         } else {
@@ -165,7 +165,10 @@ const Login = ({ mode }: { mode: SystemMode }) => {
           // Store token for session (temporary approach)
           localStorage.setItem('auth_token', result.token)
           localStorage.setItem('user_data', JSON.stringify(result.user))
-          
+
+          console.log('Login success - User data stored:', result.user)
+          console.log('Store data:', result.user?.store)
+
           toast.success('Login berhasil!')
           const redirectURL = searchParams.get('redirectTo') ?? '/dashboards/ecommerce'
           router.replace(redirectURL)

@@ -210,18 +210,33 @@ class AuthController extends Controller
         }
 
         $request->session()->regenerate();
-    
+
         /** @var User $user */
         $user = Auth::user();
-    
+
+        // Load store relation
+        $user->load('stores');
+
+        // Get first store if exists
+        $store = $user->stores->first();
+
         // Buat token untuk API calls
         $token = $user->createToken('api-token')->plainTextToken;
-    
+
         return response()->json([
-            'id' => $user->id,
-            'name' => $user->name ?? 'User',
-            'email' => $user->email,
-            'token' => $token, // Tambahkan token
+            'user' => [
+                'id' => $user->id,
+                'uuid' => $user->uuid,
+                'name' => $user->name ?? 'User',
+                'email' => $user->email,
+                'store' => $store ? [
+                    'uuid' => $store->uuid,
+                    'nama_toko' => $store->name ?? $store->nama_toko,
+                    'slug' => $store->subdomain ?? null,
+                    'logo' => $store->logo,
+                ] : null,
+            ],
+            'token' => $token,
         ]);
     }
 

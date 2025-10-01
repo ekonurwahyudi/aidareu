@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\EditorImageController;
 use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\Api\SettingTokoController;
 
 // Test endpoint
 Route::get('/test', function () {
@@ -328,3 +329,19 @@ Route::middleware(['auth:sanctum,web'])->group(function () {
 
 // Public
 Route::get('/landing/slug/{slug}', [LandingPageController::class, 'showBySlug']);
+
+// Public: Theme Settings API (no auth required for public store view)
+Route::get('/theme-settings', [SettingTokoController::class, 'index']);
+
+// Protected: Theme Settings Management
+Route::middleware(['auth:sanctum,web'])->group(function () {
+    Route::post('/theme-settings/general', [SettingTokoController::class, 'updateGeneral']);
+    Route::post('/theme-settings/slides', [SettingTokoController::class, 'updateSlides']);
+    Route::post('/theme-settings/faq', [SettingTokoController::class, 'createFaq']);
+    Route::put('/theme-settings/faq/{uuid}', [SettingTokoController::class, 'updateFaq']);
+    Route::delete('/theme-settings/faq/{uuid}', [SettingTokoController::class, 'deleteFaq']);
+    Route::post('/theme-settings/testimonial', [SettingTokoController::class, 'createTestimonial']);
+    Route::put('/theme-settings/testimonial/{uuid}', [SettingTokoController::class, 'updateTestimonial']);
+    Route::delete('/theme-settings/testimonial/{uuid}', [SettingTokoController::class, 'deleteTestimonial']);
+    Route::post('/theme-settings/seo', [SettingTokoController::class, 'updateSeo']);
+});

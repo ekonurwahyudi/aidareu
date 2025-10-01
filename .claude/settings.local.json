@@ -37,7 +37,8 @@
       "mcp__ide__getDiagnostics",
       "WebFetch(domain:biteship.com)",
       "Bash(npx tsx:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": [],
