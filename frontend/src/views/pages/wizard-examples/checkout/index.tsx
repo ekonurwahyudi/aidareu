@@ -22,6 +22,21 @@ import DirectionalIcon from '@components/DirectionalIcon'
 // Styled Component Imports
 import StepperWrapper from '@core/styles/stepper'
 
+// Types
+interface CheckoutData {
+  customerInfo: {
+    name: string
+    phone: string
+    email: string
+    address: string
+    province: string
+    city: string
+    district: string
+  }
+  payment: any
+  shipping: any
+}
+
 // Vars
 const steps = [
   {
@@ -78,6 +93,14 @@ const steps = [
 // Styled Components
 const Stepper = styled(MuiStepper)<StepperProps>(({ theme }) => ({
   justifyContent: 'center',
+  [theme.breakpoints.down('md')]: {
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: theme.spacing(1.5),
+    '& .MuiStep-root': {
+      padding: 0
+    }
+  },
   '& .MuiStep-root': {
     '& + i': {
       display: 'none',
@@ -90,7 +113,12 @@ const Stepper = styled(MuiStepper)<StepperProps>(({ theme }) => ({
       paddingBlock: theme.spacing(5),
       svg: {
         marginInline: theme.spacing(1.5),
-        fill: 'var(--mui-palette-text-primary)'
+        fill: 'var(--mui-palette-text-primary)',
+        [theme.breakpoints.down('md')]: {
+          width: '40px',
+          height: '40px',
+          marginInline: theme.spacing(1)
+        }
       },
       '&.Mui-active, &.Mui-completed': {
         '& .MuiTypography-root': {
@@ -98,6 +126,22 @@ const Stepper = styled(MuiStepper)<StepperProps>(({ theme }) => ({
         },
         '& svg': {
           fill: 'var(--mui-palette-primary-main)'
+        }
+      },
+      [theme.breakpoints.down('md')]: {
+        paddingBlock: theme.spacing(2),
+        paddingInline: theme.spacing(2),
+        backgroundColor: '#f8f9fa',
+        borderRadius: '12px',
+        border: '1px solid #e0e0e0',
+        transition: 'all 0.3s ease',
+        '&.Mui-active': {
+          backgroundColor: '#FFF0F5',
+          borderColor: '#E91E63'
+        },
+        '& .MuiTypography-root': {
+          fontSize: '0.875rem',
+          fontWeight: 500
         }
       }
     },
@@ -111,18 +155,26 @@ const Stepper = styled(MuiStepper)<StepperProps>(({ theme }) => ({
         display: 'block'
       },
       '& .MuiStepLabel-label': {
-        display: 'block'
+        display: 'block',
+        backgroundColor: 'transparent',
+        border: 'none'
       }
     }
   }
 }))
 
-const getStepContent = (step: number, handleNext: () => void) => {
+const getStepContent = (
+  step: number,
+  handleNext: () => void,
+  checkoutData: CheckoutData | null,
+  setCheckoutData: (data: CheckoutData) => void,
+  orderUuid: string | null
+) => {
   switch (step) {
     case 0:
-      return <StepCart handleNext={handleNext} />
+      return <StepCart handleNext={handleNext} setCheckoutData={setCheckoutData} />
     case 1:
-      return <StepConfirmation />
+      return <StepConfirmation checkoutData={checkoutData} orderUuid={orderUuid} />
     default:
       return null
   }
@@ -131,8 +183,16 @@ const getStepContent = (step: number, handleNext: () => void) => {
 const CheckoutWizard = () => {
   // States
   const [activeStep, setActiveStep] = useState<number>(0)
+  const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null)
+  const [orderUuid, setOrderUuid] = useState<string | null>(null)
 
-  const handleNext = () => {
+  const handleNext = (data?: CheckoutData, uuid?: string) => {
+    if (data) {
+      setCheckoutData(data)
+    }
+    if (uuid) {
+      setOrderUuid(uuid)
+    }
     setActiveStep(activeStep + 1)
   }
 
@@ -174,7 +234,7 @@ const CheckoutWizard = () => {
       <Divider />
 
       <CardContent sx={{ px: { xs: 3, sm: 4, md: 6 }, py: { xs: 3, md: 4 } }}>
-        {getStepContent(activeStep, handleNext)}
+        {getStepContent(activeStep, handleNext, checkoutData, setCheckoutData, orderUuid)}
       </CardContent>
     </Card>
   )

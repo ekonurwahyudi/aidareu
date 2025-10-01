@@ -35,7 +35,9 @@
       "Bash(npx eslint:*)",
       "Bash(npx next dev:*)",
       "mcp__ide__getDiagnostics",
-      "WebFetch(domain:biteship.com)"
+      "WebFetch(domain:biteship.com)",
+      "Bash(npx tsx:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": [],

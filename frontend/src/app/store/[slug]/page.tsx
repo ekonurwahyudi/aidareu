@@ -693,23 +693,35 @@ function ProductDetailPage() {
       return
     }
 
+    // Validate product has UUID before adding to cart
+    if (!product.uuid) {
+      console.error('Product missing UUID:', product)
+      alert('Error: Produk tidak memiliki UUID. Silakan refresh halaman dan coba lagi.')
+      return
+    }
+
     console.log('Adding product to cart:', {
       id: product.id,
+      uuid: product.uuid,
       name: product.name,
       price: product.price,
       quantity: quantity
     })
 
-    addToCart({
+    const cartItem = {
       id: product.id,
+      uuid: product.uuid, // UUID produk untuk database - PENTING!
       name: product.name,
       price: product.price,
       salePrice: product.salePrice ?? undefined,
       image: product.image,
-      brand: product.brand ?? undefined, // kirim nama toko ke cart
-      storeUuid: product.storeUuid ?? undefined, // kirim UUID Store ke cart
-      jenis_produk: product.jenis_produk ?? 'fisik' // kirim jenis produk ke cart
-    }, quantity)
+      brand: product.brand ?? undefined,
+      storeUuid: product.storeUuid ?? undefined,
+      jenis_produk: product.jenis_produk ?? 'fisik'
+    }
+
+    console.log('Cart Item with UUID:', cartItem)
+    addToCart(cartItem, quantity)
 
     console.log('Product added to cart successfully')
   }

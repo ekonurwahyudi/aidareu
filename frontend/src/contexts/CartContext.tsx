@@ -7,6 +7,7 @@ import { useMediaQuery, useTheme } from '@mui/material'
 // di dalam file CartContext.tsx
 export interface CartItem {
   id: string
+  uuid?: string // UUID produk untuk database
   name: string
   price: number
   salePrice?: number

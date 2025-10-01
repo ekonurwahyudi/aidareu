@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\EditorImageController;
 use App\Http\Controllers\ShippingController;
+use App\Http\Controllers\CheckoutController;
 
 // Test endpoint
 Route::get('/test', function () {
@@ -143,6 +144,12 @@ Route::post('/shipping/calculate', [ShippingController::class, 'calculate']);
 
 // Public: Bank Accounts API (no auth required) - for checkout flow
 Route::get('/stores/{storeUuid}/bank-accounts', [BankAccountController::class, 'getByStore']);
+
+// Public: Checkout API (no auth required)
+Route::post('/checkout', [CheckoutController::class, 'processCheckout']);
+Route::get('/order/{uuid}', [CheckoutController::class, 'getOrder']);
+Route::get('/stores/{storeUuid}/orders', [CheckoutController::class, 'getStoreOrders']);
+Route::put('/order/{uuid}/status', [CheckoutController::class, 'updateOrderStatus']);
 
 // Public: Products API (no auth required for testing)
 Route::get('/public/products', [ProductController::class, 'index']);
