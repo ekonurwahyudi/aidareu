@@ -285,17 +285,34 @@ const StorePage = () => {
   const addToCart = (productId: string, event: React.MouseEvent) => {
     event.stopPropagation()
     const product = products.find(p => p.id === productId)
-    if (!product) return
+    if (!product) {
+      console.error('Product not found:', productId)
+      return
+    }
 
-    addToCartContext({
+    // Validate product has UUID
+    if (!product.uuid) {
+      console.error('Product missing UUID:', product)
+      alert('Error: Produk tidak memiliki UUID. Silakan refresh halaman dan coba lagi.')
+      return
+    }
+
+    console.log('Adding to cart - Product:', product)
+
+    const cartItem = {
       id: product.id,
+      uuid: product.uuid, // UUID produk untuk database
       name: product.name,
       price: product.price,
       salePrice: product.salePrice ?? undefined,
       image: product.image,
       brand: product.brand ?? undefined,
-      storeUuid: product.storeUuid ?? undefined // kirim UUID Store ke cart
-    })
+      storeUuid: product.storeUuid ?? undefined, // UUID Store ke cart
+      jenis_produk: product.jenis_produk ?? 'fisik'
+    }
+
+    console.log('Cart Item with UUID:', cartItem)
+    addToCartContext(cartItem)
   }
 
   // Fetch products from API
@@ -307,6 +324,14 @@ const StorePage = () => {
         const data = await response.json()
 
         if (data.success && data.data) {
+          console.log('Products fetched from API:', data.data)
+
+          // Validate all products have UUID
+          const productsWithoutUuid = data.data.filter((p: any) => !p.uuid)
+          if (productsWithoutUuid.length > 0) {
+            console.warn('Products without UUID:', productsWithoutUuid)
+          }
+
           setProducts(data.data)
         }
       } catch (error) {

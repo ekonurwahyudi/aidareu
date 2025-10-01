@@ -40,10 +40,16 @@ const formatRupiah = (amount: number): string => {
   return `Rp. ${Math.round(amount).toLocaleString('id-ID')}`
 }
 
-const StepCart = ({ handleNext }: { handleNext: () => void }) => {
+interface StepCartProps {
+  handleNext: (data?: any, uuid?: string) => void
+  setCheckoutData: (data: any) => void
+}
+
+const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
   // States
   const [openCollapse, setOpenCollapse] = useState<boolean>(true)
   const [openFade, setOpenFade] = useState<boolean>(true)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   // Customer Information States
   const [customerInfo, setCustomerInfo] = useState({
@@ -242,6 +248,113 @@ const StepCart = ({ handleNext }: { handleNext: () => void }) => {
     return baseTotal + shippingCost
   }
 
+  // Handle checkout - save to database
+  const handleCheckout = async () => {
+    if (!isFormValid() || !selectedPayment) {
+      alert('Silakan lengkapi semua data dan pilih metode pembayaran')
+      return
+    }
+
+    // Validate that all cart items have UUID
+    const itemsWithoutUuid = cartItems.filter(item => !item.uuid || item.uuid === '')
+    if (itemsWithoutUuid.length > 0) {
+      alert('Error: Beberapa produk di cart tidak memiliki UUID. Silakan hapus dan tambahkan kembali produk ke cart.')
+      console.error('Items without UUID:', itemsWithoutUuid)
+      return
+    }
+
+    setIsProcessing(true)
+
+    try {
+      const storeUuid = getStoreUuid()
+
+      // Prepare customer data
+      const customerData = {
+        nama: customerInfo.name,
+        noHp: customerInfo.phone,
+        email: customerInfo.email,
+        provinsi: getProvinceName(customerInfo.province) || '-',
+        kota: getCityName(customerInfo.city) || '-',
+        kecamatan: getDistrictName(customerInfo.district) || '-',
+        alamat: customerInfo.address || '-'
+      }
+
+      // Prepare order data
+      const estimasi = selectedShipping?.etd || selectedShipping?.duration || null
+      const orderData = {
+        uuidStore: storeUuid,
+        voucher: null,
+        totalHarga: getTotalWithShipping(),
+        ekspedisi: selectedShipping ? `${selectedShipping.courier} - ${selectedShipping.service_name}` : 'Digital Product',
+        estimasiTiba: estimasi,
+        uuidBankAccount: selectedPayment.uuid
+      }
+
+      // Prepare items data
+      const items = cartItems.map(item => ({
+        uuidProduct: item.uuid || '',
+        quantity: item.quantity,
+        price: item.salePrice || item.price
+      }))
+
+      // Debug: Log data being sent
+      console.log('Selected Shipping:', selectedShipping)
+      console.log('Estimasi Tiba:', estimasi)
+      console.log('Cart Items:', cartItems)
+      console.log('Prepared Items:', items)
+      console.log('Customer Data:', customerData)
+      console.log('Order Data:', orderData)
+
+      // Send to API
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          customer: customerData,
+          order: orderData,
+          items: items
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        // Clear cart after successful checkout
+        localStorage.removeItem('store_cart_items')
+
+        // Save checkout data for confirmation page
+        setCheckoutData({
+          customerInfo,
+          payment: selectedPayment,
+          shipping: selectedShipping
+        })
+
+        // Move to next step with order UUID
+        handleNext(undefined, result.data.order.uuid)
+      } else {
+        // Show detailed error message
+        console.error('Checkout Error:', result)
+        let errorMessage = 'Gagal membuat order: ' + result.message
+
+        if (result.errors) {
+          const errorDetails = Object.entries(result.errors)
+            .map(([field, messages]: [string, any]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n')
+          errorMessage += '\n\nDetail Error:\n' + errorDetails
+        }
+
+        alert(errorMessage)
+      }
+    } catch (error) {
+      console.error('Error during checkout:', error)
+      alert('Terjadi kesalahan saat checkout. Silakan coba lagi.')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
   return (
     <Grid container spacing={{ xs: 3, md: 4, lg: 6 }}>
       <Grid size={{ xs: 12, lg: 8 }} className='flex flex-col gap-4'>
@@ -303,14 +416,25 @@ const StepCart = ({ handleNext }: { handleNext: () => void }) => {
         ) : (
           <div className='border rounded'>
             {cartItems.map((product: CartItem, index: number) => (
-              <div
+              <Box
                 key={product.id}
-                className='flex flex-col sm:flex-row items-center gap-4 p-6 relative [&:not(:last-child)]:border-be'
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: { xs: 2, sm: 3 },
+                  p: { xs: 2, sm: 4 },
+                  borderBottom: index !== cartItems.length - 1 ? '1px solid #e0e0e0' : 'none',
+                  '&:hover': {
+                    bgcolor: '#fafafa'
+                  }
+                }}
               >
+                {/* Product Image */}
                 <Box
                   sx={{
-                    width: 80,
-                    height: 80,
+                    width: { xs: 60, sm: 80 },
+                    height: { xs: 60, sm: 80 },
+                    minWidth: { xs: 60, sm: 80 },
                     bgcolor: '#f5f5f5',
                     borderRadius: 2,
                     display: 'flex',
@@ -321,44 +445,85 @@ const StepCart = ({ handleNext }: { handleNext: () => void }) => {
                 >
                   {product.image && product.image !== '/placeholder.jpg' ? (
                     <img
-                      height={80}
-                      width={80}
                       src={product.image}
                       alt={product.name}
                       style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                     />
                   ) : (
-                    <Typography sx={{ fontSize: '2rem' }}>📦</Typography>
+                    <Typography sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>📦</Typography>
                   )}
                 </Box>
-                <IconButton
-                  size='small'
-                  className='absolute block-start-4 inline-end-4'
-                  onClick={() => removeFromCart(product.id)}
-                >
-                  <i className='tabler-x text-lg' />
-                </IconButton>
-                <div className='flex flex-col sm:flex-row items-center sm:justify-between is-full'>
-                  <div className='flex flex-col items-center gap-2 sm:items-start'>
-                    <Typography color='text.primary' className='font-medium'>
-                      {product.name}
+
+                {/* Product Info - takes available space */}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    color='text.primary'
+                    sx={{
+                      fontWeight: 'medium',
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                      mb: 0.5,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical'
+                    }}
+                  >
+                    {product.name}
+                  </Typography>
+
+                  {/* Price */}
+                  <Box sx={{ mb: 1 }}>
+                    {product.salePrice ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        <Typography
+                          color='primary.main'
+                          sx={{ fontWeight: 'medium', fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                        >
+                          {formatRupiah(product.salePrice)}
+                        </Typography>
+                        <Typography
+                          className='line-through'
+                          sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                          color='text.disabled'
+                        >
+                          {formatRupiah(product.price)}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Typography
+                        color='primary.main'
+                        sx={{ fontWeight: 'medium', fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                      >
+                        {formatRupiah(product.price)}
+                      </Typography>
+                    )}
+                  </Box>
+
+                  {/* Product Type Badge */}
+                  {product.jenis_produk === 'digital' ? (
+                    <Chip
+                      size='small'
+                      label='Digital'
+                      color='info'
+                      variant='outlined'
+                      sx={{ fontSize: '0.7rem', height: '20px', mb: 1 }}
+                    />
+                  ) : (
+                    <Chip
+                      size='small'
+                      label='Fisik'
+                      color='default'
+                      variant='outlined'
+                      sx={{ fontSize: '0.7rem', height: '20px', mb: 1 }}
+                    />
+                  )}
+
+                  {/* Quantity Selector */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                    <Typography variant='caption' color='text.secondary' sx={{ mr: 1 }}>
+                      Qty:
                     </Typography>
-                    <Typography variant='body2' color='text.secondary' sx={{ mb: 1 }}>
-                      Dijual oleh: {product.brand || 'AiDareU Store'}
-                    </Typography>
-                    <Typography variant='caption' color='text.disabled' sx={{ mb: 1 }}>
-                      UUID Toko: {product.storeUuid || '-'}
-                    </Typography>
-                    <Typography variant='caption' color='text.disabled' sx={{ mb: 1 }}>
-                      Jenis Produk: {product.jenis_produk === 'digital' ? (
-                        <Chip size='small' label='Digital' color='info' variant='outlined' sx={{ fontSize: '0.7rem', height: '20px' }} />
-                      ) : (
-                        <Chip size='small' label='Fisik' color='default' variant='outlined' sx={{ fontSize: '0.7rem', height: '20px' }} />
-                      )}
-                    </Typography>
-                    <div className='flex items-center gap-4'>
-                      <Chip variant='tonal' size='small' color='success' label='Tersedia' />
-                    </div>
                     <CustomTextField
                       size='small'
                       type='number'
@@ -370,36 +535,35 @@ const StepCart = ({ handleNext }: { handleNext: () => void }) => {
                         }
                       }}
                       inputProps={{ min: 1 }}
-                      className='block max-is-[152px]'
+                      sx={{
+                        width: { xs: '60px', sm: '80px' },
+                        '& .MuiInputBase-input': {
+                          padding: '4px 8px',
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                        }
+                      }}
                     />
-                  </div>
-                  <div className='flex flex-col justify-between items-center gap-4 sm:items-end'>
-                    <div className='flex flex-col items-end'>
-                      {product.salePrice ? (
-                        <>
-                          <Typography color='primary.main' className='font-medium'>
-                            {formatRupiah(product.salePrice)}
-                          </Typography>
-                          <Typography className='line-through text-sm' color='text.disabled'>
-                            {formatRupiah(product.price)}
-                          </Typography>
-                        </>
-                      ) : (
-                        <Typography color='primary.main' className='font-medium'>
-                          {formatRupiah(product.price)}
-                        </Typography>
-                      )}
-                    </div>
-                    <Button
-                      variant='tonal'
-                      size='small'
-                      onClick={() => removeFromCart(product.id)}
-                    >
-                      Hapus dari keranjang
-                    </Button>
-                  </div>
-                </div>
-              </div>
+                  </Box>
+                </Box>
+
+                {/* Delete Button */}
+                <IconButton
+                  size='small'
+                  onClick={() => removeFromCart(product.id)}
+                  sx={{
+                    color: '#E91E63',
+                    border: '1px solid #E91E63',
+                    borderRadius: '8px',
+                    padding: { xs: '6px', sm: '8px' },
+                    '&:hover': {
+                      bgcolor: '#FCE4EC',
+                      borderColor: '#C2185B'
+                    }
+                  }}
+                >
+                  <i className='tabler-trash' style={{ fontSize: '18px' }} />
+                </IconButton>
+              </Box>
             ))}
           </div>
         )}
@@ -681,20 +845,28 @@ const StepCart = ({ handleNext }: { handleNext: () => void }) => {
           <Button
             className='max-sm:is-full lg:is-full'
             variant='contained'
-            onClick={handleNext}
-            disabled={!isFormValid()}
+            onClick={handleCheckout}
+            disabled={!isFormValid() || !selectedPayment || isProcessing}
             sx={{
               bgcolor: '#E91E63',
               '&:hover': { bgcolor: '#C2185B' },
               '&:disabled': { bgcolor: '#ccc' }
             }}
           >
-            {cartItems.length === 0
-              ? 'Keranjang Kosong'
-              : !isFormValid()
-                ? 'Lengkapi Data Dulu'
-                : `Bayar Sekarang - ${formatRupiah(getTotalWithShipping())}`
-            }
+            {isProcessing ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
+                Memproses...
+              </>
+            ) : cartItems.length === 0 ? (
+              'Keranjang Kosong'
+            ) : !isFormValid() ? (
+              'Lengkapi Data Dulu'
+            ) : !selectedPayment ? (
+              'Pilih Metode Pembayaran'
+            ) : (
+              `Bayar Sekarang - ${formatRupiah(getTotalWithShipping())}`
+            )}
           </Button>
         </div>
         </Box>
