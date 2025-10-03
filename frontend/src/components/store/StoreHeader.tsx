@@ -91,6 +91,8 @@ interface StoreHeaderProps {
   onRemoveItem?: (productId: string) => void
   onUpdateQuantity?: (productId: string, quantity: number) => void
   onAddToCart?: (productId: string, event: React.MouseEvent) => void
+  storeName?: string
+  storeLogo?: string
 }
 
 const StoreHeader = ({
@@ -98,6 +100,8 @@ const StoreHeader = ({
   onCartClick,
   cartItems = [],
   onRemoveItem,
+  storeName = 'AiDareU Store',
+  storeLogo,
   onUpdateQuantity,
   onAddToCart
 }: StoreHeaderProps) => {
@@ -136,10 +140,19 @@ const StoreHeader = ({
         <Container maxWidth="lg">
           <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 0, sm: 2 } }}>
             {/* Logo */}
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Logo variant="h6">
-                ❤️ AiDareU
-              </Logo>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {storeLogo ? (
+                <Box
+                  component="img"
+                  src={storeLogo}
+                  alt={storeName}
+                  sx={{ height: 40, width: 'auto', objectFit: 'contain' }}
+                />
+              ) : (
+                <Logo variant="h6">
+                  ❤️ {storeName}
+                </Logo>
+              )}
             </Box>
 
             {/* Desktop Navigation */}
@@ -238,7 +251,18 @@ const StoreHeader = ({
         }}
       >
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Logo variant="h6">❤️ AiDareU</Logo>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {storeLogo ? (
+              <Box
+                component="img"
+                src={storeLogo}
+                alt={storeName}
+                sx={{ height: 32, width: 'auto', objectFit: 'contain' }}
+              />
+            ) : (
+              <Logo variant="h6">❤️ {storeName}</Logo>
+            )}
+          </Box>
           <IconButton onClick={() => setMobileMenuOpen(false)}>
             <CloseIcon />
           </IconButton>

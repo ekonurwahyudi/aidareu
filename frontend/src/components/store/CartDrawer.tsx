@@ -4,7 +4,7 @@
 import { useState } from 'react'
 
 // Next Imports
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams, usePathname } from 'next/navigation'
 
 // MUI Imports
 import {
@@ -74,6 +74,12 @@ const CartDrawerComponent = ({
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const router = useRouter()
+  const params = useParams()
+  const pathname = usePathname()
+
+  // Detect if we're in subdomain route or store route
+  const subdomain = params?.subdomain as string | undefined
+  const isSubdomainRoute = pathname?.startsWith('/s/')
 
   const totalPrice = cartItems.reduce((total, item) => {
     const price = item.salePrice || item.price
@@ -86,7 +92,13 @@ const CartDrawerComponent = ({
     console.log('CartDrawer handleCheckout called')
     onClose()
     console.log('Navigating to checkout from drawer...')
-    router.push('/store/checkout')
+
+    // Route based on current path
+    if (isSubdomainRoute && subdomain) {
+      router.push(`/s/${subdomain}/checkout`)
+    } else {
+      router.push('/store/checkout')
+    }
   }
 
   return (
@@ -181,7 +193,7 @@ const CartDrawerComponent = ({
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <IconButton
                       size="small"
-                      onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                      onClick={() => onUpdateQuantity(item.uuid || item.id, Math.max(1, item.quantity - 1))}
                       sx={{ width: 28, height: 28, border: '1px solid #E5E7EB' }}
                     >
                       <Typography variant="body2">-</Typography>
@@ -191,14 +203,14 @@ const CartDrawerComponent = ({
                     </Typography>
                     <IconButton
                       size="small"
-                      onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                      onClick={() => onUpdateQuantity(item.uuid || item.id, item.quantity + 1)}
                       sx={{ width: 28, height: 28, border: '1px solid #E5E7EB' }}
                     >
                       <Typography variant="body2">+</Typography>
                     </IconButton>
                     <IconButton
                       size="small"
-                      onClick={() => onRemoveItem(item.id)}
+                      onClick={() => onRemoveItem(item.uuid || item.id)}
                       sx={{ ml: 1, color: '#EF4444' }}
                     >
                       <DeleteIcon fontSize="small" />

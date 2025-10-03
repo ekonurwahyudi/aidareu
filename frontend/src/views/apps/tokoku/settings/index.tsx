@@ -11,25 +11,53 @@ import Tab from '@mui/material/Tab'
 import TabContext from '@mui/lab/TabContext'
 import TabPanel from '@mui/lab/TabPanel'
 import Typography from '@mui/material/Typography'
+import Box from '@mui/material/Box'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 
 // Component Imports
 import CustomTabList from '@core/components/mui/TabList'
 
+// Context Imports
+import { useRBAC } from '@/contexts/rbacContext'
+
 const Settings = ({ tabContentList }: { tabContentList: { [key: string]: ReactElement } }) => {
   // States
   const [activeTab, setActiveTab] = useState('store-details')
+  const { currentStore } = useRBAC()
+
+  // Get subdomain from current store
+  const subdomain = currentStore?.slug || currentStore?.subdomain
 
   const handleChange = (event: SyntheticEvent, value: string) => {
     setActiveTab(value)
+  }
+
+  const handleViewWebsite = () => {
+    if (subdomain) {
+      window.open(`http://localhost:3000/s/${subdomain}`, '_blank')
+    }
   }
 
   return (
     <TabContext value={activeTab}>
       <Grid container spacing={6}>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Typography variant='h5' className='mbe-4'>
-            Getting Started
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+            <Typography variant='h5'>
+              Getting Started
+            </Typography>
+            {subdomain && (
+              <Button
+                variant='outlined'
+                size='small'
+                startIcon={<OpenInNewIcon />}
+                onClick={handleViewWebsite}
+                sx={{ whiteSpace: 'nowrap' }}
+              >
+                View Website
+              </Button>
+            )}
+          </Box>
           <CustomTabList orientation='vertical' onChange={handleChange} className='is-full' pill='true'>
             <Tab
               label='Store Details'

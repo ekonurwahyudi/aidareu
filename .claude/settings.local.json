@@ -38,7 +38,9 @@
       "WebFetch(domain:biteship.com)",
       "Bash(npx tsx:*)",
       "Bash(npm uninstall:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(PORT=3000 npm run dev)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": [],

@@ -15,6 +15,118 @@ use Illuminate\Support\Facades\Storage;
 
 class SettingTokoController extends Controller
 {
+    // Get store data by subdomain with all theme settings and products
+    public function getStoreBySubdomain($subdomain)
+    {
+        try {
+            // Find store by subdomain
+            $store = Store::where('subdomain', $subdomain)->first();
+
+            if (!$store) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store not found'
+                ], 404);
+            }
+
+            $storeUuid = $store->uuid;
+
+            // Get theme settings
+            $settings = SettingToko::where('uuid_store', $storeUuid)->first();
+            $slideData = SlideToko::where('uuid_store', $storeUuid)->first();
+
+            // Convert slides to array format for frontend
+            $slides = [];
+            if ($slideData) {
+                if ($slideData->slide_1) {
+                    $slides[] = [
+                        'id' => 1,
+                        'gambar_slide' => 'http://localhost:8000/storage/' . $slideData->slide_1,
+                        'image' => 'http://localhost:8000/storage/' . $slideData->slide_1
+                    ];
+                }
+                if ($slideData->slide_2) {
+                    $slides[] = [
+                        'id' => 2,
+                        'gambar_slide' => 'http://localhost:8000/storage/' . $slideData->slide_2,
+                        'image' => 'http://localhost:8000/storage/' . $slideData->slide_2
+                    ];
+                }
+                if ($slideData->slide_3) {
+                    $slides[] = [
+                        'id' => 3,
+                        'gambar_slide' => 'http://localhost:8000/storage/' . $slideData->slide_3,
+                        'image' => 'http://localhost:8000/storage/' . $slideData->slide_3
+                    ];
+                }
+            }
+
+            $faqs = FaqToko::where('uuid_store', $storeUuid)->ordered()->get();
+            $testimonials = TestimoniToko::where('uuid_store', $storeUuid)->get();
+            $seo = SeoToko::where('uuid_store', $storeUuid)->first();
+
+            // Get products
+            $products = \App\Models\Product::where('uuid_store', $storeUuid)
+                ->where('status_produk', 'active')
+                ->get()
+                ->map(function ($product) {
+                    // Get first image from upload_gambar_produk (already JSON/array)
+                    $images = $product->upload_gambar_produk;
+                    $firstImage = null;
+
+                    if (is_string($images)) {
+                        $images = json_decode($images, true);
+                    }
+
+                    if (is_array($images) && count($images) > 0) {
+                        $firstImage = $images[0];
+                    }
+
+                    return [
+                        'id' => $product->id,
+                        'uuid' => $product->uuid,
+                        'name' => $product->nama_produk,
+                        'slug' => $product->slug,
+                        'brand' => null,
+                        'price' => (float) $product->harga_produk,
+                        'salePrice' => $product->harga_diskon ? (float) $product->harga_diskon : null,
+                        'rating' => 4.9,
+                        'reviews' => 0,
+                        'image' => $firstImage ? 'http://localhost:8000/storage/' . $firstImage : '/placeholder.jpg',
+                        'isNew' => $product->created_at->diffInDays(now()) <= 30,
+                        'inStock' => ($product->stock ?? 0) > 0,
+                        'storeUuid' => $product->uuid_store,
+                        'jenis_produk' => $product->jenis_produk ?? 'fisik'
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'store' => [
+                        'uuid' => $store->uuid,
+                        'name' => $store->name,
+                        'subdomain' => $store->subdomain,
+                        'logo' => $store->logo,
+                        'description' => $store->description ?? null,
+                    ],
+                    'settings' => $settings,
+                    'slides' => $slides,
+                    'faqs' => $faqs,
+                    'testimonials' => $testimonials,
+                    'seo' => $seo,
+                    'products' => $products,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching store data',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     // Get all theme settings for a store
     public function index(Request $request)
     {

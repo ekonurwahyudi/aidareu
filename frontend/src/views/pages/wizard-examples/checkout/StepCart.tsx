@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 
 // Next Imports
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 
 // MUI Imports
 import Grid from '@mui/material/Grid2'
@@ -46,6 +47,8 @@ interface StepCartProps {
 }
 
 const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
+  const params = useParams()
+  const subdomain = (params?.subdomain as string) || 'store'
   // States
   const [openCollapse, setOpenCollapse] = useState<boolean>(true)
   const [openFade, setOpenFade] = useState<boolean>(true)
@@ -407,7 +410,7 @@ const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
             <Button
               variant="contained"
               component={Link}
-              href="/store"
+              href={subdomain === 'store' ? '/store' : `/s/${subdomain}`}
               sx={{ bgcolor: '#E91E63', '&:hover': { bgcolor: '#C2185B' } }}
             >
               Lanjut Belanja
@@ -569,7 +572,7 @@ const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
         )}
         {cartItems.length > 0 && (
           <Typography
-            href='/store'
+            href={subdomain === 'store' ? '/store' : `/s/${subdomain}`}
             component={Link}
             className='flex items-center justify-between gap-4 plb-2 pli-5 border border-primary rounded'
             color='primary.main'

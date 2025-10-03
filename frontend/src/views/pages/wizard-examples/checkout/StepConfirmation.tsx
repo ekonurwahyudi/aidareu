@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 
 // Next Imports
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 
 // MUI Imports
 import Grid from '@mui/material/Grid2'
@@ -40,6 +41,9 @@ interface StepConfirmationProps {
 }
 
 const StepConfirmation = ({ checkoutData, orderUuid }: StepConfirmationProps) => {
+  const params = useParams()
+  const subdomain = (params?.subdomain as string) || 'store'
+
   const [orderData, setOrderData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -132,7 +136,7 @@ Saya sudah melakukan transfer. Mohon dicek ya! Terima kasih 🙏`
         </Typography>
         <Button
           component={Link}
-          href="/store"
+          href={subdomain === 'store' ? '/store' : `/s/${subdomain}`}
           variant="contained"
           sx={{ bgcolor: '#E91E63', '&:hover': { bgcolor: '#C2185B' } }}
         >
@@ -369,7 +373,7 @@ Saya sudah melakukan transfer. Mohon dicek ya! Terima kasih 🙏`
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
           <Button
             component={Link}
-            href="/store"
+            href={subdomain === 'store' ? '/store' : `/s/${subdomain}`}
             variant="outlined"
             sx={{
               borderColor: '#E91E63',
@@ -381,7 +385,7 @@ Saya sudah melakukan transfer. Mohon dicek ya! Terima kasih 🙏`
           </Button>
           <Button
             component={Link}
-            href={`/store/invoice/${orderUuid}`}
+            href={subdomain === 'store' ? `/store/invoice/${orderUuid}` : `/s/${subdomain}/invoice/${orderUuid}`}
             target="_blank"
             variant="contained"
             sx={{ bgcolor: '#E91E63', '&:hover': { bgcolor: '#C2185B' } }}
