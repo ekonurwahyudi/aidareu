@@ -333,6 +333,9 @@ Route::get('/landing/slug/{slug}', [LandingPageController::class, 'showBySlug'])
 // Public: Theme Settings API (no auth required for public store view)
 Route::get('/theme-settings', [SettingTokoController::class, 'index']);
 
+// Public: Get store by subdomain with all data
+Route::get('/store/{subdomain}', [SettingTokoController::class, 'getStoreBySubdomain']);
+
 // Protected: Theme Settings Management
 Route::middleware(['auth:sanctum,web'])->group(function () {
     Route::post('/theme-settings/general', [SettingTokoController::class, 'updateGeneral']);
