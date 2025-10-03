@@ -17,6 +17,7 @@ use App\Http\Controllers\EditorImageController;
 use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Api\SettingTokoController;
+use App\Http\Controllers\Api\CustomerController;
 
 // Test endpoint
 Route::get('/test', function () {
@@ -151,6 +152,13 @@ Route::post('/checkout', [CheckoutController::class, 'processCheckout']);
 Route::get('/order/{uuid}', [CheckoutController::class, 'getOrder']);
 Route::get('/stores/{storeUuid}/orders', [CheckoutController::class, 'getStoreOrders']);
 Route::put('/order/{uuid}/status', [CheckoutController::class, 'updateOrderStatus']);
+
+// Public: Customer API (no auth required)
+Route::get('/stores/{storeUuid}/customers', [CustomerController::class, 'index']);
+Route::get('/customers/{uuid}', [CustomerController::class, 'show']);
+Route::post('/customers', [CustomerController::class, 'store']);
+Route::put('/customers/{uuid}', [CustomerController::class, 'update']);
+Route::delete('/customers/{uuid}', [CustomerController::class, 'destroy']);
 
 // Public: Products API (no auth required for testing)
 Route::get('/public/products', [ProductController::class, 'index']);
