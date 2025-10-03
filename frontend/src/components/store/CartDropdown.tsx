@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react'
 
 // Next Imports
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams, usePathname } from 'next/navigation'
 
 // MUI Imports
 import {
@@ -62,7 +62,13 @@ const CartDropdown = ({
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const router = useRouter()
+  const params = useParams()
+  const pathname = usePathname()
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null)
+
+  // Detect if we're in subdomain route or store route
+  const subdomain = params?.subdomain as string | undefined
+  const isSubdomainRoute = pathname?.startsWith('/s/')
 
   const totalPrice = cartItems.reduce((total, item) => {
     const price = item.salePrice || item.price
@@ -99,7 +105,13 @@ const CartDropdown = ({
     console.log('CartDropdown handleCheckout called')
     handleClose()
     console.log('Navigating to checkout from dropdown...')
-    router.push('/store/checkout')
+
+    // Route based on current path
+    if (isSubdomainRoute && subdomain) {
+      router.push(`/s/${subdomain}/checkout`)
+    } else {
+      router.push('/store/checkout')
+    }
   }
 
   const open = Boolean(anchorEl)
@@ -284,7 +296,7 @@ const CartDropdown = ({
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <IconButton
                               size="small"
-                              onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                              onClick={() => onUpdateQuantity(item.uuid || item.id, Math.max(1, item.quantity - 1))}
                               sx={{
                                 width: 28,
                                 height: 28,
@@ -316,7 +328,7 @@ const CartDropdown = ({
 
                             <IconButton
                               size="small"
-                              onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                              onClick={() => onUpdateQuantity(item.uuid || item.id, item.quantity + 1)}
                               sx={{
                                 width: 28,
                                 height: 28,
@@ -334,7 +346,7 @@ const CartDropdown = ({
 
                           <IconButton
                             size="small"
-                            onClick={() => onRemoveItem(item.id)}
+                            onClick={() => onRemoveItem(item.uuid || item.id)}
                             sx={{
                               color: '#E53E3E',
                               '&:hover': {

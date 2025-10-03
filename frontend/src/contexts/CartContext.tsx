@@ -88,12 +88,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   // Add item to cart
   const addToCart = (product: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
     setCartItems(prev => {
-      const existingItem = prev.find(item => item.id === product.id)
+      // Use UUID as unique identifier, fallback to id if uuid is not available
+      const productIdentifier = product.uuid || product.id
+      const existingItem = prev.find(item => (item.uuid || item.id) === productIdentifier)
 
       if (existingItem) {
         // Update quantity if item already exists
         return prev.map(item =>
-          item.id === product.id
+          (item.uuid || item.id) === productIdentifier
             ? { ...item, quantity: item.quantity + quantity }
             : item
         )
@@ -111,7 +113,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   // Remove item from cart
   const removeFromCart = (productId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== productId))
+    setCartItems(prev => prev.filter(item => (item.uuid || item.id) !== productId))
   }
 
   // Update item quantity
@@ -123,7 +125,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
     setCartItems(prev =>
       prev.map(item =>
-        item.id === productId
+        (item.uuid || item.id) === productId
           ? { ...item, quantity }
           : item
       )
