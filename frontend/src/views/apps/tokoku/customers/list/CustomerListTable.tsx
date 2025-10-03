@@ -1,13 +1,11 @@
 'use client'
 
 // React Imports
-import { useState, useEffect, useMemo } from 'react'
-
-// Next Imports
-import Link from 'next/link'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 
 // MUI Imports
 import Card from '@mui/material/Card'
+import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
@@ -15,6 +13,9 @@ import Checkbox from '@mui/material/Checkbox'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
+import Divider from '@mui/material/Divider'
+import Alert from '@mui/material/Alert'
+import Skeleton from '@mui/material/Skeleton'
 
 // Third-party Imports
 import classnames from 'classnames'
@@ -25,27 +26,21 @@ import {
   getCoreRowModel,
   useReactTable,
   getFilteredRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  getFacetedMinMaxValues,
   getPaginationRowModel,
   getSortedRowModel
 } from '@tanstack/react-table'
 import type { ColumnDef, FilterFn } from '@tanstack/react-table'
 import type { RankingInfo } from '@tanstack/match-sorter-utils'
 
-// Type Imports
-import type { ThemeColor } from '@core/types'
-import type { Customer } from '@/types/apps/ecommerceTypes'
-
 // Component Imports
-import AddCustomerDrawer from './AddCustomerDrawer'
-import CustomAvatar from '@core/components/mui/Avatar'
 import CustomTextField from '@core/components/mui/TextField'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 
-// Util Imports
-import { getInitials } from '@/utils/getInitials'
+// Context Imports
+import { useRBAC } from '@/contexts/rbacContext'
+
+// Hook Imports
+import { useDebounce } from '@/hooks/useDebounce'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -59,43 +54,28 @@ declare module '@tanstack/table-core' {
   }
 }
 
-type PayementStatusType = {
-  text: string
-  color: ThemeColor
+type Customer = {
+  id: number
+  uuid: string
+  nama: string
+  no_hp: string
+  email: string | null
+  provinsi: string
+  kota: string
+  kecamatan: string
+  alamat: string
+  uuid_store: string
+  created_at: string
+  updated_at: string
 }
 
-type StatusChipColorType = {
-  color: ThemeColor
-}
-
-export const paymentStatus: { [key: number]: PayementStatusType } = {
-  1: { text: 'Paid', color: 'success' },
-  2: { text: 'Pending', color: 'warning' },
-  3: { text: 'Cancelled', color: 'secondary' },
-  4: { text: 'Failed', color: 'error' }
-}
-
-export const statusChipColor: { [key: string]: StatusChipColorType } = {
-  Delivered: { color: 'success' },
-  'Out for Delivery': { color: 'primary' },
-  'Ready to Pickup': { color: 'info' },
-  Dispatched: { color: 'warning' }
-}
-
-type ECommerceOrderTypeWithAction = Customer & {
+type CustomerWithActionsType = Customer & {
   action?: string
 }
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
-  // Rank the item
   const itemRank = rankItem(row.getValue(columnId), value)
-
-  // Store the itemRank info
-  addMeta({
-    itemRank
-  })
-
-  // Return if the item should be filtered in/out
+  addMeta({ itemRank })
   return itemRank.passed
 }
 
@@ -109,7 +89,6 @@ const DebouncedInput = ({
   onChange: (value: string | number) => void
   debounce?: number
 } & Omit<TextFieldProps, 'onChange'>) => {
-  // States
   const [value, setValue] = useState(initialValue)
 
   useEffect(() => {
@@ -120,255 +99,336 @@ const DebouncedInput = ({
     const timeout = setTimeout(() => {
       onChange(value)
     }, debounce)
-
     return () => clearTimeout(timeout)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
+  }, [value, onChange, debounce])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
 // Column Definitions
-const columnHelper = createColumnHelper<ECommerceOrderTypeWithAction>()
+const columnHelper = createColumnHelper<CustomerWithActionsType>()
 
-const CustomerListTable = ({ customerData }: { customerData?: Customer[] }) => {
+const CustomerListTable = () => {
+  // RBAC Context
+  const { currentStore, isLoading: rbacLoading } = useRBAC()
+
   // States
-  const [customerUserOpen, setCustomerUserOpen] = useState(false)
-  const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState(...[customerData])
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [globalFilter, setGlobalFilter] = useState('')
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10
+  })
+  const [totalRows, setTotalRows] = useState(0)
 
-  // Hooks
+  const debouncedSearch = useDebounce(globalFilter, 300)
 
-  const columns = useMemo<ColumnDef<ECommerceOrderTypeWithAction, any>[]>(
-    () => [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <Checkbox
-            {...{
-              checked: table.getIsAllRowsSelected(),
-              indeterminate: table.getIsSomeRowsSelected(),
-              onChange: table.getToggleAllRowsSelectedHandler()
-            }}
-          />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            {...{
-              checked: row.getIsSelected(),
-              disabled: !row.getCanSelect(),
-              indeterminate: row.getIsSomeSelected(),
-              onChange: row.getToggleSelectedHandler()
-            }}
-          />
-        )
-      },
-      columnHelper.accessor('customer', {
-        header: 'Customers',
-        cell: ({ row }) => (
-          <div className='flex items-center gap-3'>
-            {getAvatar({ avatar: row.original.avatar, customer: row.original.customer })}
-            <div className='flex flex-col items-start'>
-              <Typography
-                component={Link}
-                color='text.primary'
-                href={`/apps/ecommerce/customers/details/${row.original.customerId}`}
-                className='font-medium hover:text-primary'
-              >
-                {row.original.customer}
-              </Typography>
-              <Typography variant='body2'>{row.original.email}</Typography>
-            </div>
-          </div>
-        )
-      }),
-      columnHelper.accessor('customerId', {
-        header: 'Customer Id',
-        cell: ({ row }) => <Typography color='text.primary'>#{row.original.customerId}</Typography>
-      }),
-      columnHelper.accessor('country', {
-        header: 'Country',
-        cell: ({ row }) => (
-          <div className='flex items-center gap-2'>
-            <img src={row.original.countryFlag} height={22} />
-            <Typography>{row.original.country}</Typography>
-          </div>
-        )
-      }),
-      columnHelper.accessor('order', {
-        header: 'Orders',
-        cell: ({ row }) => <Typography>{row.original.order}</Typography>
-      }),
-      columnHelper.accessor('totalSpent', {
-        header: 'Total Spent',
-        cell: ({ row }) => (
-          <Typography className='font-medium' color='text.primary'>
-            ${row.original.totalSpent.toLocaleString()}
-          </Typography>
-        )
-      })
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  )
+  // Fetch customers from API
+  const fetchCustomers = useCallback(async () => {
+    const storeUuid = currentStore?.uuid || currentStore?.id
+    if (!storeUuid) {
+      console.warn('No current store UUID available for fetching customers')
+      return
+    }
 
-  const table = useReactTable({
-    data: data as Customer[],
-    columns,
-    filterFns: {
-      fuzzy: fuzzyFilter
-    },
-    state: {
-      rowSelection,
-      globalFilter
-    },
-    initialState: {
-      pagination: {
-        pageSize: 10
+    try {
+      setLoading(true)
+      setError(null)
+
+      const queryParams = new URLSearchParams()
+      queryParams.append('page', String(pagination.pageIndex + 1))
+      queryParams.append('per_page', String(pagination.pageSize))
+
+      if (debouncedSearch) {
+        queryParams.append('search', debouncedSearch)
       }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const response = await fetch(`${apiUrl}/stores/${storeUuid}/customers?${queryParams.toString()}`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (result.status === 'success') {
+        setCustomers(result.data.data || [])
+        setTotalRows(result.data.total || 0)
+      } else {
+        throw new Error(result.message || 'Failed to fetch customers')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch customers')
+      console.error('Error fetching customers:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [currentStore?.uuid, currentStore?.id, debouncedSearch, pagination.pageIndex, pagination.pageSize])
+
+  // Fetch customers when dependencies change
+  useEffect(() => {
+    if (currentStore && !rbacLoading) {
+      fetchCustomers()
+    }
+  }, [fetchCustomers, currentStore, rbacLoading])
+
+  // Columns
+  const columns = useMemo<ColumnDef<CustomerWithActionsType, any>[]>(() => [
+    columnHelper.accessor('id', {
+      header: 'No',
+      cell: ({ row }) => (
+        <Typography color="text.primary">
+          {pagination.pageIndex * pagination.pageSize + row.index + 1}
+        </Typography>
+      )
+    }),
+    columnHelper.accessor('nama', {
+      header: 'Nama',
+      cell: ({ row }) => (
+        <Typography color="text.primary" className="font-medium">
+          {row.original.nama}
+        </Typography>
+      )
+    }),
+    columnHelper.accessor('no_hp', {
+      header: 'No HP',
+      cell: ({ row }) => (
+        <Typography>{row.original.no_hp}</Typography>
+      )
+    }),
+    columnHelper.accessor('email', {
+      header: 'Email',
+      cell: ({ row }) => (
+        <Typography>{row.original.email || '-'}</Typography>
+      )
+    }),
+    columnHelper.accessor('kota', {
+      header: 'Kota',
+      cell: ({ row }) => (
+        <Typography>{row.original.kota}</Typography>
+      )
+    }),
+    columnHelper.accessor('alamat', {
+      header: 'Alamat',
+      cell: ({ row }) => (
+        <div className="max-w-[300px]">
+          <Typography sx={{ wordWrap: 'break-word', whiteSpace: 'normal' }}>
+            {row.original.alamat}
+          </Typography>
+        </div>
+      )
+    })
+  ], [pagination.pageIndex, pagination.pageSize])
+
+  // Table setup
+  const table = useReactTable({
+    data: customers,
+    columns,
+    filterFns: { fuzzy: fuzzyFilter },
+    state: {
+      globalFilter,
+      pagination
     },
-    enableRowSelection: true, //enable row selection for all rows
-    // enableRowSelection: row => row.original.age > 18, // or enable row selection conditionally per row
     globalFilterFn: fuzzyFilter,
-    onRowSelectionChange: setRowSelection,
-    getCoreRowModel: getCoreRowModel(),
     onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues()
+    manualPagination: true,
+    manualFiltering: true,
+    pageCount: Math.ceil(totalRows / pagination.pageSize)
   })
 
-  const getAvatar = (params: Pick<Customer, 'avatar' | 'customer'>) => {
-    const { avatar, customer } = params
+  // Skeleton loading component
+  const renderSkeleton = () => (
+    <Card>
+      <CardHeader
+        title={<Skeleton variant="text" width={150} height={32} />}
+        action={
+          <div className="flex gap-3">
+            <Skeleton variant="rounded" width={100} height={40} />
+          </div>
+        }
+      />
+      <Divider />
+      <CardContent>
+        {/* Filter row skeleton */}
+        <div className="flex justify-between items-center mb-4">
+          <Skeleton variant="rounded" width={80} height={40} />
+          <Skeleton variant="rounded" width={200} height={40} />
+        </div>
+        {/* Table skeleton */}
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="flex items-center gap-4 p-4 border-b">
+              <Skeleton variant="rectangular" width={40} height={20} />
+              <Skeleton variant="text" width={50} />
+              <Skeleton variant="text" width={150} />
+              <Skeleton variant="text" width={120} />
+              <Skeleton variant="text" width={180} />
+              <Skeleton variant="text" width={100} />
+              <Skeleton variant="text" width={200} />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
 
-    if (avatar) {
-      return <CustomAvatar src={avatar} skin='light' size={34} />
-    } else {
-      return (
-        <CustomAvatar skin='light' size={34}>
-          {getInitials(customer as string)}
-        </CustomAvatar>
-      )
-    }
+  // Show loading state
+  if (rbacLoading) {
+    return renderSkeleton()
+  }
+
+  if (!currentStore) {
+    return (
+      <Card>
+        <div className="text-center p-8">
+          <Alert severity="warning">
+            No store found. Please create a store first.
+          </Alert>
+        </div>
+      </Card>
+    )
   }
 
   return (
-    <>
-      <Card>
-        <CardContent className='flex justify-between flex-wrap max-sm:flex-col sm:items-center gap-4'>
-          <DebouncedInput
-            value={globalFilter ?? ''}
-            onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search'
-            className='max-sm:is-full'
-          />
-          <div className='flex max-sm:flex-col items-start sm:items-center gap-4 max-sm:is-full'>
-            <CustomTextField
-              select
-              value={table.getState().pagination.pageSize}
-              onChange={e => table.setPageSize(Number(e.target.value))}
-              className='is-full sm:is-[70px]'
-            >
-              <MenuItem value='10'>10</MenuItem>
-              <MenuItem value='25'>25</MenuItem>
-              <MenuItem value='50'>50</MenuItem>
-              <MenuItem value='100'>100</MenuItem>
-            </CustomTextField>
+    <Card>
+      <CardHeader
+        title="Customer List"
+        action={
+          <div className="flex gap-3">
             <Button
-              variant='tonal'
-              className='max-sm:is-full'
-              color='secondary'
-              startIcon={<i className='tabler-upload' />}
+              variant="outlined"
+              startIcon={<i className="tabler-refresh" />}
+              onClick={() => fetchCustomers()}
+              disabled={loading}
             >
-              Export
-            </Button>
-            <Button
-              variant='contained'
-              color='primary'
-              className='max-sm:is-full'
-              startIcon={<i className='tabler-plus' />}
-              onClick={() => setCustomerUserOpen(!customerUserOpen)}
-            >
-              Add Customer
+              {loading ? 'Refreshing...' : 'Refresh'}
             </Button>
           </div>
-        </CardContent>
-        <div className='overflow-x-auto'>
-          <table className={tableStyles.table}>
+        }
+      />
+
+      <Divider />
+
+      {error && (
+        <Alert severity="error" className="m-6">
+          {error}
+        </Alert>
+      )}
+
+      {/* Filter Row */}
+      <CardContent>
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+          <CustomTextField
+            select
+            value={pagination.pageSize}
+            onChange={e => setPagination(prev => ({ ...prev, pageSize: Number(e.target.value), pageIndex: 0 }))}
+            className="w-[80px]"
+          >
+            <MenuItem value="10">10</MenuItem>
+            <MenuItem value="25">25</MenuItem>
+            <MenuItem value="50">50</MenuItem>
+          </CustomTextField>
+
+          <DebouncedInput
+            value={globalFilter ?? ''}
+            onChange={val => setGlobalFilter(String(val))}
+            placeholder="Search Customer"
+            className="w-[200px]"
+          />
+        </div>
+
+        {/* Table */}
+        {loading && customers.length === 0 ? (
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="flex items-center gap-4 p-4 border-b">
+                <Skeleton variant="rectangular" width={40} height={20} />
+                <Skeleton variant="text" width={50} />
+                <Skeleton variant="text" width={150} />
+                <Skeleton variant="text" width={120} />
+                <Skeleton variant="text" width={180} />
+                <Skeleton variant="text" width={100} />
+                <Skeleton variant="text" width={200} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className={tableStyles.table}>
             <thead>
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map(header => (
                     <th key={header.id}>
                       {header.isPlaceholder ? null : (
-                        <>
-                          <div
-                            className={classnames({
-                              'flex items-center': header.column.getIsSorted(),
-                              'cursor-pointer select-none': header.column.getCanSort()
-                            })}
-                            onClick={header.column.getToggleSortingHandler()}
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                            {{
-                              asc: <i className='tabler-chevron-up text-xl' />,
-                              desc: <i className='tabler-chevron-down text-xl' />
-                            }[header.column.getIsSorted() as 'asc' | 'desc'] ?? null}
-                          </div>
-                        </>
+                        <div
+                          className={classnames({
+                            'flex items-center': header.column.getIsSorted(),
+                            'cursor-pointer select-none': header.column.getCanSort()
+                          })}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {{
+                            asc: <i className="tabler-chevron-up text-xl" />,
+                            desc: <i className="tabler-chevron-down text-xl" />
+                          }[header.column.getIsSorted() as 'asc' | 'desc'] ?? null}
+                        </div>
                       )}
                     </th>
                   ))}
                 </tr>
               ))}
             </thead>
-            {table.getFilteredRowModel().rows.length === 0 ? (
+            {customers.length === 0 ? (
               <tbody>
                 <tr>
-                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                    No data available
+                  <td colSpan={table.getVisibleFlatColumns().length} className="text-center">
+                    {loading ? 'Loading...' : 'No customers found'}
                   </td>
                 </tr>
               </tbody>
             ) : (
               <tbody>
-                {table
-                  .getRowModel()
-                  .rows.slice(0, table.getState().pagination.pageSize)
-                  .map(row => {
-                    return (
-                      <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
-                        {row.getVisibleCells().map(cell => (
-                          <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                        ))}
-                      </tr>
-                    )
-                  })}
+                {table.getRowModel().rows.map(row => (
+                  <tr key={row.id}>
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             )}
           </table>
         </div>
-        <TablePagination
-          component={() => <TablePaginationComponent table={table} />}
-          count={table.getFilteredRowModel().rows.length}
-          rowsPerPage={table.getState().pagination.pageSize}
-          page={table.getState().pagination.pageIndex}
-          onPageChange={(_, page) => {
-            table.setPageIndex(page)
-          }}
-        />
-      </Card>
-      <AddCustomerDrawer
-        open={customerUserOpen}
-        handleClose={() => setCustomerUserOpen(!customerUserOpen)}
-        setData={setData}
-        customerData={data}
+        )}
+      </CardContent>
+
+      {/* Pagination */}
+      <TablePagination
+        component={() => <TablePaginationComponent table={table} />}
+        count={totalRows}
+        rowsPerPage={pagination.pageSize}
+        page={pagination.pageIndex}
+        onPageChange={(_, page) => {
+          setPagination(prev => ({ ...prev, pageIndex: page }))
+        }}
       />
-    </>
+    </Card>
   )
 }
 

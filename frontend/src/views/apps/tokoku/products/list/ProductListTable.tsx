@@ -10,6 +10,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 // MUI Imports
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
+import CardContent from '@mui/material/CardContent'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import Checkbox from '@mui/material/Checkbox'
@@ -21,6 +22,7 @@ import TablePagination from '@mui/material/TablePagination'
 import Typography from '@mui/material/Typography'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
+import Skeleton from '@mui/material/Skeleton'
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
@@ -185,7 +187,6 @@ const ProductListTable = () => {
   const { currentStore, user, isLoading: rbacLoading } = useRBAC()
 
   // States
-  const [rowSelection, setRowSelection] = useState({})
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
@@ -511,28 +512,14 @@ const ProductListTable = () => {
 
   // Columns
   const columns = useMemo<ColumnDef<ProductWithActionsType, any>[]>(() => [
-    {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          {...{
-            checked: table.getIsAllRowsSelected(),
-            indeterminate: table.getIsSomeRowsSelected(),
-            onChange: table.getToggleAllRowsSelectedHandler()
-          }}
-        />
-      ),
+    columnHelper.accessor('id', {
+      header: 'No',
       cell: ({ row }) => (
-        <Checkbox
-          {...{
-            checked: row.getIsSelected(),
-            disabled: !row.getCanSelect(),
-            indeterminate: row.getIsSomeSelected(),
-            onChange: row.getToggleSelectedHandler()
-          }}
-        />
+        <Typography color="text.primary">
+          {pagination.pageIndex * pagination.pageSize + row.index + 1}
+        </Typography>
       )
-    },
+    }),
     columnHelper.accessor('nama_produk', {
       header: 'Produk',
       cell: ({ row }) => {
@@ -544,11 +531,11 @@ const ProductListTable = () => {
         return (
           <div className="flex items-center gap-4">
             {imageUrl ? (
-              <img 
+              <img
                 src={imageUrl}
-                width={38} 
-                height={38} 
-                className="rounded bg-actionHover object-cover" 
+                width={38}
+                height={38}
+                className="rounded bg-actionHover object-cover"
                 alt={row.original.nama_produk}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
@@ -562,13 +549,13 @@ const ProductListTable = () => {
                 }}
               />
             ) : null}
-            <ProductPlaceholder 
-              width={38} 
-              height={38} 
+            <ProductPlaceholder
+              width={38}
+              height={38}
               className={`product-placeholder ${imageUrl ? 'hidden' : ''}`}
             />
-            <div className="flex flex-col">
-              <Typography className="font-medium" color="text.primary">
+            <div className="flex flex-col max-w-[300px]">
+              <Typography className="font-medium" color="text.primary" sx={{ wordWrap: 'break-word', whiteSpace: 'normal' }}>
                 {row.original.nama_produk}
               </Typography>
             </div>
@@ -674,21 +661,18 @@ const ProductListTable = () => {
       ),
       enableSorting: false
     })
-  ], [products, handleStatusUpdate, handleDeleteClick])
+  ], [pagination.pageIndex, pagination.pageSize, handleStatusUpdate, handleDeleteClick])
 
   // Table setup with server-side pagination
   const table = useReactTable({
     data: products,
     columns,
     filterFns: { fuzzy: fuzzyFilter },
-    state: { 
-      rowSelection, 
+    state: {
       globalFilter,
-      pagination 
+      pagination
     },
-    enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
-    onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
@@ -697,16 +681,51 @@ const ProductListTable = () => {
     pageCount: Math.ceil(totalRows / pagination.pageSize)
   })
 
+  // Skeleton loading component
+  const renderSkeleton = () => (
+    <Card>
+      <CardHeader
+        title={<Skeleton variant="text" width={150} height={32} />}
+        action={
+          <div className="flex gap-3">
+            <Skeleton variant="rounded" width={120} height={40} />
+            <Skeleton variant="rounded" width={140} height={40} />
+          </div>
+        }
+      />
+      <Divider />
+      <CardContent>
+        {/* Filter row skeleton */}
+        <div className="flex justify-between items-center mb-4">
+          <Skeleton variant="rounded" width={80} height={40} />
+          <div className="flex gap-3">
+            <Skeleton variant="rounded" width={200} height={40} />
+            <Skeleton variant="rounded" width={150} height={40} />
+            <Skeleton variant="rounded" width={150} height={40} />
+          </div>
+        </div>
+        {/* Table skeleton */}
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="flex items-center gap-4 p-4 border-b">
+              <Skeleton variant="rectangular" width={40} height={20} />
+              <Skeleton variant="rectangular" width={60} height={60} />
+              <Skeleton variant="text" width={200} />
+              <Skeleton variant="text" width={120} />
+              <Skeleton variant="text" width={100} />
+              <Skeleton variant="text" width={80} />
+              <Skeleton variant="rounded" width={80} height={24} />
+              <Skeleton variant="circular" width={32} height={32} />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+
   // Show loading or error states
   if (rbacLoading) {
-    return (
-      <Card>
-        <div className="flex justify-center items-center p-8">
-          <CircularProgress />
-          <Typography className="ml-2">Loading user data...</Typography>
-        </div>
-      </Card>
-    )
+    return renderSkeleton()
   }
 
   if (!currentStore) {
@@ -768,57 +787,64 @@ const ProductListTable = () => {
       )}
 
       {/* Filter Row */}
-      <div className="flex flex-wrap justify-between items-center gap-4 p-6">
-        {/* Kiri bawah: Show entries */}
-        <CustomTextField
-          select
-          value={pagination.pageSize}
-          onChange={e => setPagination(prev => ({ ...prev, pageSize: Number(e.target.value), pageIndex: 0 }))}
-          className="w-[80px]"
-        >
-          <MenuItem value="10">10</MenuItem>
-          <MenuItem value="25">25</MenuItem>
-          <MenuItem value="50">50</MenuItem>
-        </CustomTextField>
-
-        {/* Kanan bawah: Search + Filter */}
-        <div className="flex gap-3 items-center">
-          <DebouncedInput
-            value={globalFilter ?? ''}
-            onChange={val => setGlobalFilter(String(val))}
-            placeholder="Search Product"
-            className="w-[200px]"
-          />
-
-          <CustomTextField select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-[150px]">
-            <MenuItem value="all">All Status</MenuItem>
-            {Object.entries(productStatusObj).map(([key, status]) => (
-              <MenuItem key={key} value={key}>{status.title}</MenuItem>
-            ))}
+      <CardContent>
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+          {/* Kiri bawah: Show entries */}
+          <CustomTextField
+            select
+            value={pagination.pageSize}
+            onChange={e => setPagination(prev => ({ ...prev, pageSize: Number(e.target.value), pageIndex: 0 }))}
+            className="w-[80px]"
+          >
+            <MenuItem value="10">10</MenuItem>
+            <MenuItem value="25">25</MenuItem>
+            <MenuItem value="50">50</MenuItem>
           </CustomTextField>
 
-          <CustomTextField select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="w-[150px]">
-            <MenuItem value="all">All Categories</MenuItem>
-            {categories.map(category => (
-              <MenuItem key={category.id} value={category.id}>{category.judul_kategori}</MenuItem>
-            ))}
-          </CustomTextField>
-        </div>
-      </div>
+          {/* Kanan bawah: Search + Filter */}
+          <div className="flex gap-3 items-center">
+            <DebouncedInput
+              value={globalFilter ?? ''}
+              onChange={val => setGlobalFilter(String(val))}
+              placeholder="Search Product"
+              className="w-[200px]"
+            />
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        {/* Only show loading for initial load or when no data exists */}
-        {loading && products.length === 0 && (
-          <div className="flex justify-center items-center p-8">
-            <CircularProgress size={24} />
-            <Typography className="ml-2">Loading products...</Typography>
+            <CustomTextField select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-[150px]">
+              <MenuItem value="all">All Status</MenuItem>
+              {Object.entries(productStatusObj).map(([key, status]) => (
+                <MenuItem key={key} value={key}>{status.title}</MenuItem>
+              ))}
+            </CustomTextField>
+
+            <CustomTextField select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="w-[150px]">
+              <MenuItem value="all">All Categories</MenuItem>
+              {categories.map(category => (
+                <MenuItem key={category.id} value={category.id}>{category.judul_kategori}</MenuItem>
+              ))}
+            </CustomTextField>
           </div>
-        )}
-        
-        {/* Show table immediately if we have data, even while loading new data */}
-        {!loading || products.length > 0 ? (
-          <table className={tableStyles.table}>
+        </div>
+
+        {/* Table */}
+        {loading && products.length === 0 ? (
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="flex items-center gap-4 p-4 border-b">
+                <Skeleton variant="rectangular" width={40} height={20} />
+                <Skeleton variant="rectangular" width={60} height={60} />
+                <Skeleton variant="text" width={200} />
+                <Skeleton variant="text" width={120} />
+                <Skeleton variant="text" width={100} />
+                <Skeleton variant="text" width={80} />
+                <Skeleton variant="rounded" width={80} height={24} />
+                <Skeleton variant="circular" width={32} height={32} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className={tableStyles.table}>
             <thead>
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id}>
@@ -864,8 +890,9 @@ const ProductListTable = () => {
               </tbody>
             )}
           </table>
-        ) : null}
-      </div>
+        </div>
+        )}
+      </CardContent>
 
       {/* Pagination */}
       <TablePagination
