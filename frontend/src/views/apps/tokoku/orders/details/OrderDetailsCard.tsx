@@ -1,293 +1,174 @@
 'use client'
 
-// React Imports
-import { useState, useMemo } from 'react'
-
 // MUI Imports
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
-import Checkbox from '@mui/material/Checkbox'
 import Typography from '@mui/material/Typography'
-
-// Third-party Imports
-import classnames from 'classnames'
-import { rankItem } from '@tanstack/match-sorter-utils'
-import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  getFilteredRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  getFacetedMinMaxValues,
-  getPaginationRowModel,
-  getSortedRowModel
-} from '@tanstack/react-table'
-import type { ColumnDef, FilterFn } from '@tanstack/react-table'
+import Divider from '@mui/material/Divider'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
 
 // Component Imports
-import Link from '@components/Link'
+import { ProductPlaceholder } from '@/components/ProductPlaceholder'
 
-// Style Imports
-import tableStyles from '@core/styles/table.module.css'
-
-const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
-  // Rank the item
-  const itemRank = rankItem(row.getValue(columnId), value)
-
-  // Store the itemRank info
-  addMeta({
-    itemRank
-  })
-
-  // Return if the item should be filtered in/out
-  return itemRank.passed
+// Order Type
+type Order = {
+  total_harga: number
+  ekspedisi: string
+  detailOrders?: Array<{
+    uuid: string
+    quantity: number
+    price: number
+    product?: {
+      uuid: string
+      nama_produk: string
+      upload_gambar_produk?: string | string[]
+      sku?: string
+    }
+  }>
 }
 
-type dataType = {
-  productName: string
-  productImage: string
-  brand: string
-  price: number
-  quantity: number
-  total: number
+// Utility function to generate proper image URLs
+const getImageUrl = (imagePath: string): string => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+  return `${baseUrl}/storage/${imagePath}`
 }
 
-const orderData: dataType[] = [
-  {
-    productName: 'OnePlus 7 Pro',
-    productImage: '/images/apps/ecommerce/product-21.png',
-    brand: 'OnePluse',
-    price: 799,
-    quantity: 1,
-    total: 799
-  },
-  {
-    productName: 'Magic Mouse',
-    productImage: '/images/apps/ecommerce/product-22.png',
-    brand: 'Google',
-    price: 89,
-    quantity: 1,
-    total: 89
-  },
-  {
-    productName: 'Wooden Chair',
-    productImage: '/images/apps/ecommerce/product-23.png',
-    brand: 'Insofar',
-    price: 289,
-    quantity: 2,
-    total: 578
-  },
-  {
-    productName: 'Air Jorden',
-    productImage: '/images/apps/ecommerce/product-24.png',
-    brand: 'Nike',
-    price: 299,
-    quantity: 2,
-    total: 598
+// Utility function to extract images from product data
+const getProductImages = (imageData: any): string[] => {
+  if (!imageData) return []
+
+  if (typeof imageData === 'string') {
+    try {
+      const parsed = JSON.parse(imageData)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return [imageData]
+    }
   }
-]
 
-// Column Definitions
-const columnHelper = createColumnHelper<dataType>()
-
-const OrderTable = () => {
-  // States
-  const [rowSelection, setRowSelection] = useState({})
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [data, setData] = useState(...[orderData])
-  const [globalFilter, setGlobalFilter] = useState('')
-
-  const columns = useMemo<ColumnDef<dataType, any>[]>(
-    () => [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <Checkbox
-            {...{
-              checked: table.getIsAllRowsSelected(),
-              indeterminate: table.getIsSomeRowsSelected(),
-              onChange: table.getToggleAllRowsSelectedHandler()
-            }}
-          />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            {...{
-              checked: row.getIsSelected(),
-              disabled: !row.getCanSelect(),
-              indeterminate: row.getIsSomeSelected(),
-              onChange: row.getToggleSelectedHandler()
-            }}
-          />
-        )
-      },
-      columnHelper.accessor('productName', {
-        header: 'Product',
-        cell: ({ row }) => (
-          <div className='flex items-center gap-3'>
-            <img src={row.original.productImage} alt={row.original.productName} height={34} className='rounded' />
-            <div className='flex flex-col items-start'>
-              <Typography color='text.primary' className='font-medium'>
-                {row.original.productName}
-              </Typography>
-              <Typography variant='body2'>{row.original.brand}</Typography>
-            </div>
-          </div>
-        )
-      }),
-      columnHelper.accessor('price', {
-        header: 'Price',
-        cell: ({ row }) => <Typography>{`$${row.original.price}`}</Typography>
-      }),
-      columnHelper.accessor('quantity', {
-        header: 'Qty',
-        cell: ({ row }) => <Typography>{`${row.original.quantity}`}</Typography>
-      }),
-      columnHelper.accessor('total', {
-        header: 'Total',
-        cell: ({ row }) => <Typography>{`$${row.original.total}`}</Typography>
-      })
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  )
-
-  const table = useReactTable({
-    data: data as dataType[],
-    columns,
-    filterFns: {
-      fuzzy: fuzzyFilter
-    },
-    state: {
-      rowSelection,
-      globalFilter
-    },
-    initialState: {
-      pagination: {
-        pageSize: 10
-      }
-    },
-    enableRowSelection: true, //enable row selection for all rows
-    // enableRowSelection: row => row.original.age > 18, // or enable row selection conditionally per row
-    globalFilterFn: fuzzyFilter,
-    onRowSelectionChange: setRowSelection,
-    getCoreRowModel: getCoreRowModel(),
-    onGlobalFilterChange: setGlobalFilter,
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues()
-  })
-
-  return (
-    <div className='overflow-x-auto'>
-      <table className={tableStyles.table}>
-        <thead>
-          {table.getHeaderGroups().map(headerGroup => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map(header => (
-                <th key={header.id}>
-                  {header.isPlaceholder ? null : (
-                    <>
-                      <div
-                        className={classnames({
-                          'flex items-center': header.column.getIsSorted(),
-                          'cursor-pointer select-none': header.column.getCanSort()
-                        })}
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {{
-                          asc: <i className='tabler-chevron-up text-xl' />,
-                          desc: <i className='tabler-chevron-down text-xl' />
-                        }[header.column.getIsSorted() as 'asc' | 'desc'] ?? null}
-                      </div>
-                    </>
-                  )}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        {table.getFilteredRowModel().rows.length === 0 ? (
-          <tbody>
-            <tr>
-              <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                No data available
-              </td>
-            </tr>
-          </tbody>
-        ) : (
-          <tbody className='border-be'>
-            {table
-              .getRowModel()
-              .rows.slice(0, table.getState().pagination.pageSize)
-              .map(row => {
-                return (
-                  <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
-                    {row.getVisibleCells().map(cell => (
-                      <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                    ))}
-                  </tr>
-                )
-              })}
-          </tbody>
-        )}
-      </table>
-    </div>
-  )
+  return Array.isArray(imageData) ? imageData : []
 }
 
-const OrderDetailsCard = () => {
+const OrderDetailsCard = ({ order }: { order: Order }) => {
+  // Calculate subtotal
+  const subtotal = order.detailOrders?.reduce((sum, item) => {
+    return sum + (item.price * item.quantity)
+  }, 0) || 0
+
+  // For now, we'll set shipping fee to 0 since it's included in total_harga
+  const shippingFee = 0
+
   return (
     <Card>
-      <CardHeader
-        title='Order Details'
-        action={
-          <Typography component={Link} color='primary.main' className='font-medium'>
-            Edit
-          </Typography>
-        }
-      />
-      <OrderTable />
-      <CardContent className='flex justify-end'>
-        <div>
-          <div className='flex items-center gap-12'>
-            <Typography color='text.primary' className='min-is-[100px]'>
-              Subtotal:
-            </Typography>
-            <Typography color='text.primary' className='font-medium'>
-              $2,093
-            </Typography>
-          </div>
-          <div className='flex items-center gap-12'>
-            <Typography color='text.primary' className='min-is-[100px]'>
-              Shipping Fee:
-            </Typography>
-            <Typography color='text.primary' className='font-medium'>
-              $2
-            </Typography>
-          </div>
-          <div className='flex items-center gap-12'>
-            <Typography color='text.primary' className='min-is-[100px]'>
-              Tax:
-            </Typography>
-            <Typography color='text.primary' className='font-medium'>
-              $28
-            </Typography>
-          </div>
-          <div className='flex items-center gap-12'>
-            <Typography color='text.primary' className='font-medium min-is-[100px]'>
-              Total:
-            </Typography>
-            <Typography color='text.primary' className='font-medium'>
-              $2113
-            </Typography>
+      <CardHeader title='Order Details' />
+      <CardContent>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Product</TableCell>
+                <TableCell align="center">SKU</TableCell>
+                <TableCell align="right">Price</TableCell>
+                <TableCell align="center">Qty</TableCell>
+                <TableCell align="right">Total</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {order.detailOrders && order.detailOrders.length > 0 ? (
+                order.detailOrders.map((item) => {
+                  const images = getProductImages(item.product?.upload_gambar_produk)
+                  const mainImagePath = images.length > 0 ? images[0] : null
+                  const imageUrl = mainImagePath ? getImageUrl(mainImagePath) : null
+
+                  return (
+                    <TableRow key={item.uuid}>
+                      <TableCell>
+                        <div className='flex items-center gap-3'>
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={item.product?.nama_produk || 'Product'}
+                              width={50}
+                              height={50}
+                              className='rounded bg-actionHover object-cover'
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.style.display = 'none'
+                              }}
+                            />
+                          ) : (
+                            <ProductPlaceholder width={50} height={50} />
+                          )}
+                          <div className='flex flex-col'>
+                            <Typography className='font-medium' color='text.primary'>
+                              {item.product?.nama_produk || 'Unknown Product'}
+                            </Typography>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="body2" color="text.secondary">
+                          {item.product?.sku || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography>
+                          Rp {new Intl.NumberFormat('id-ID').format(item.price)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography>{item.quantity}</Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography className="font-medium">
+                          Rp {new Intl.NumberFormat('id-ID').format(item.price * item.quantity)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">
+                    <Typography color="text.secondary">No products found</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <Divider className="my-4" />
+
+        <div className='flex justify-end'>
+          <div className="min-w-[300px]">
+            <div className='flex justify-between items-center mb-2'>
+              <Typography color='text.primary'>Subtotal:</Typography>
+              <Typography color='text.primary' className='font-medium'>
+                Rp {new Intl.NumberFormat('id-ID').format(subtotal)}
+              </Typography>
+            </div>
+            <div className='flex justify-between items-center mb-2'>
+              <Typography color='text.primary'>Shipping ({order.ekspedisi}):</Typography>
+              <Typography color='text.primary' className='font-medium'>
+                {shippingFee > 0 ? `Rp ${new Intl.NumberFormat('id-ID').format(shippingFee)}` : 'Included'}
+              </Typography>
+            </div>
+            <Divider className="my-2" />
+            <div className='flex justify-between items-center'>
+              <Typography color='text.primary' className='font-medium text-lg'>
+                Total:
+              </Typography>
+              <Typography color='primary.main' className='font-bold text-lg'>
+                Rp {new Intl.NumberFormat('id-ID').format(order.total_harga)}
+              </Typography>
+            </div>
           </div>
         </div>
       </CardContent>

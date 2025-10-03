@@ -180,14 +180,36 @@ class CheckoutController extends Controller
     public function getStoreOrders(Request $request, $storeUuid)
     {
         try {
-            $orders = Order::with([
+            $perPage = $request->get('per_page', 20);
+            $search = $request->get('search');
+            $status = $request->get('status');
+
+            $query = Order::with([
                 'customer',
                 'bankAccount',
                 'detailOrders.product'
             ])
-            ->where('uuid_store', $storeUuid)
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->where('uuid_store', $storeUuid);
+
+            // Search filter
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('nomor_order', 'like', "%{$search}%")
+                      ->orWhereHas('customer', function($customerQuery) use ($search) {
+                          $customerQuery->where('nama', 'like', "%{$search}%")
+                                        ->orWhere('email', 'like', "%{$search}%")
+                                        ->orWhere('no_hp', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            // Status filter
+            if ($status) {
+                $query->where('status', $status);
+            }
+
+            $orders = $query->orderBy('created_at', 'desc')
+                           ->paginate($perPage);
 
             return response()->json([
                 'success' => true,

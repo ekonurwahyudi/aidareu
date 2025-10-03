@@ -40,7 +40,8 @@
       "Bash(npm uninstall:*)",
       "Bash(cd:*)",
       "Bash(PORT=3000 npm run dev)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": [],

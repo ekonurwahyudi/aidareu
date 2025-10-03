@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Box, Container, Typography, Button, Divider, CircularProgress } from '@mui/material'
+import { Box, Container, Typography, Button, Divider, Skeleton, Card, CardContent } from '@mui/material'
 import PrintIcon from '@mui/icons-material/Print'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
@@ -106,9 +106,55 @@ export default function InvoicePage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="md" sx={{ py: 4, bgcolor: 'white', minHeight: '100vh' }}>
+        {/* Header Skeleton */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
+          <Box>
+            <Skeleton variant="text" width={150} height={40} />
+            <Skeleton variant="text" width={200} height={25} />
+          </Box>
+          <Box sx={{ textAlign: 'right' }}>
+            <Skeleton variant="text" width={180} height={30} />
+            <Skeleton variant="text" width={120} height={20} />
+          </Box>
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* Customer & Payment Info Skeleton */}
+        <Box sx={{ display: 'flex', gap: 4, mb: 4 }}>
+          <Box sx={{ flex: 1 }}>
+            <Skeleton variant="text" width={150} height={25} sx={{ mb: 2 }} />
+            <Skeleton variant="text" width="100%" />
+            <Skeleton variant="text" width="80%" />
+            <Skeleton variant="text" width="90%" />
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <Skeleton variant="text" width={180} height={25} sx={{ mb: 2 }} />
+            <Skeleton variant="text" width="100%" />
+            <Skeleton variant="text" width="85%" />
+            <Skeleton variant="text" width="95%" />
+          </Box>
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* Items Table Skeleton */}
+        <Box sx={{ mb: 4 }}>
+          <Skeleton variant="text" width={120} height={25} sx={{ mb: 2 }} />
+          <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 1 }} />
+        </Box>
+
+        {/* Summary Skeleton */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 4 }}>
+          <Box sx={{ minWidth: 300 }}>
+            <Skeleton variant="text" width="100%" />
+            <Skeleton variant="text" width="100%" />
+            <Divider sx={{ my: 1 }} />
+            <Skeleton variant="text" width="100%" height={35} />
+          </Box>
+        </Box>
+      </Container>
     )
   }
 

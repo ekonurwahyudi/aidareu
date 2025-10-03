@@ -165,13 +165,13 @@ const HorizontalMenu = () => {
             </svg>
           }
         >
-            <MenuItem href="#" icon={<i className='tabler-package' />}>
+            <MenuItem href="/apps/tokoku/orders" activeUrl='/apps/tokoku/orders' exactMatch={false}  icon={<i className='tabler-package' />}>
               My Order
             </MenuItem>
             <MenuItem href="/apps/tokoku/products" activeUrl='/apps/tokoku/products' exactMatch={false}  icon={<i className='tabler-augmented-reality' />}>
               My Product
             </MenuItem>
-            <MenuItem href="#" icon={<i className='tabler-users' />}>
+            <MenuItem href="/apps/tokoku/customers" activeUrl='/apps/tokoku/customers' exactMatch={false}  icon={<i className='tabler-users' />}>
               List Customer
             </MenuItem>
             <MenuItem href="/apps/settings" icon={<i className='tabler-settings' />}>

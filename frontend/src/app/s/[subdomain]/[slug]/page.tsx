@@ -21,7 +21,7 @@ import {
   Link,
   Avatar,
   Alert,
-  CircularProgress,
+  Skeleton,
   useMediaQuery,
   Dialog,
   DialogTitle,
@@ -826,8 +826,39 @@ function ProductDetailPage() {
             animation: 'pulse 1.5s ease-in-out infinite'
           }} />
         </Box>
-        <Container maxWidth="lg" sx={{ py: 8, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <CircularProgress size={60} sx={{ color: '#E91E63' }} />
+        <Container maxWidth="lg" sx={{ py: 6 }}>
+          <Grid container spacing={4}>
+            {/* Image Skeleton */}
+            <Grid item xs={12} md={6}>
+              <Skeleton variant="rectangular" height={500} sx={{ borderRadius: 2 }} />
+              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} variant="rectangular" width={80} height={80} sx={{ borderRadius: 1 }} />
+                ))}
+              </Box>
+            </Grid>
+
+            {/* Product Info Skeleton */}
+            <Grid item xs={12} md={6}>
+              <Skeleton variant="text" width={150} height={25} sx={{ mb: 2 }} />
+              <Skeleton variant="text" width="90%" height={45} sx={{ mb: 2 }} />
+              <Skeleton variant="text" width={200} height={40} sx={{ mb: 3 }} />
+
+              <Box sx={{ mb: 3 }}>
+                <Skeleton variant="text" width={120} height={25} sx={{ mb: 1 }} />
+                <Skeleton variant="rectangular" height={100} sx={{ borderRadius: 1 }} />
+              </Box>
+
+              <Skeleton variant="rectangular" width="100%" height={56} sx={{ borderRadius: 1, mb: 2 }} />
+              <Skeleton variant="rectangular" width="100%" height={56} sx={{ borderRadius: 1 }} />
+            </Grid>
+          </Grid>
+
+          {/* Description Skeleton */}
+          <Box sx={{ mt: 6 }}>
+            <Skeleton variant="text" width={200} height={35} sx={{ mb: 2 }} />
+            <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
+          </Box>
         </Container>
         <style jsx global>{`
           @keyframes pulse {
