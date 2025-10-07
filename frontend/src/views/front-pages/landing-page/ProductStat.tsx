@@ -26,28 +26,28 @@ type StatData = {
 // Data
 const statData: StatData[] = [
   {
-    title: 'Support Tickets Resolved',
-    value: '7.1k+',
+    title: 'Website Toko Online',
+    value: '1000+',
     svg: <LaptopCharging color='var(--mui-palette-primary-main)' />,
     color: 'var(--mui-palette-primary-darkerOpacity)',
     isHover: false
   },
   {
-    title: 'Join creatives community',
-    value: '50k+',
+    title: 'UMKM & Entrepreneur',
+    value: '500+',
     svg: <User color='var(--mui-palette-success-main)' />,
     color: 'var(--mui-palette-success-darkerOpacity)',
     isHover: false
   },
   {
-    title: 'Highly Rated Products',
-    value: '4.8/5',
+    title: 'Tingkat Kepuasan',
+    value: '4.9/5',
     svg: <Diamond color='var(--mui-palette-info-main)' />,
     color: 'var(--mui-palette-info-darkerOpacity)',
     isHover: false
   },
   {
-    title: 'Money Back Guarantee',
+    title: 'Gratis Selamanya',
     value: '100%',
     svg: <Check color='var(--mui-palette-warning-main)' />,
     color: 'var(--mui-palette-warning-darkerOpacity)',

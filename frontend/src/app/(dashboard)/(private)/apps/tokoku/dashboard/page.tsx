@@ -3,84 +3,70 @@ import Grid from '@mui/material/Grid2'
 
 // Components Imports
 import CongratulationsJohn from '@/views/apps/tokoku/dashboard/Congratulations'
-import StatisticsCard from '@/views/apps/tokoku/dashboard/StatisticsCard'
-import LineChartProfit from '@/views/apps/tokoku/dashboard/LineChartProfit'
-import RadialBarChart from '@/views/apps/tokoku/dashboard/RadialBarChart'
-import DonutChartGeneratedLeads from '@/views/apps/tokoku/dashboard/DonutChartGeneratedLeads'
-import RevenueReport from '@/views/apps/tokoku/dashboard/RevenueReport'
-import EarningReports from '@/views/apps/tokoku/dashboard/EarningReports'
-import PopularProducts from '@/views/apps/tokoku/dashboard/PopularProducts'
-import Orders from '@/views/apps/tokoku/dashboard/Orders'
-import Transactions from '@/views/apps/tokoku/dashboard/Transactions'
-import InvoiceListTable from '@/views/apps/tokoku/dashboard/InvoiceListTable'
+import DashboardContent from '@/views/apps/tokoku/dashboard/DashboardContent'
+
+
 
 // Data Imports
-import { getInvoiceData } from '@/app/server/actions'
-
-/**
- * ! If you need data using an API call, uncomment the below API code, update the `process.env.API_URL` variable in the
- * ! `.env` file found at root of your project and also update the API endpoints like `/apps/invoice` in below example.
- * ! Also, remove the above server action import and the action itself from the `src/app/server/actions.ts` file to clean up unused code
- * ! because we've used the server action for getting our static data.
- */
-
-/* const getInvoiceData = async () => {
-  // Vars
-  const res = await fetch(`${process.env.API_URL}/apps/invoice`)
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch invoice data')
-  }
-
-  return res.json()
-}
- */
+import {
+  getInvoiceData,
+  getUserStoreUuid,
+  getUserInfo,
+  getDashboardStats,
+  getRevenueData,
+  getPopularProducts,
+  getRecentOrders
+} from '@/app/server/actions'
 
 const EcommerceDashboard = async () => {
-  // Vars
-  const invoiceData = await getInvoiceData()
+  try {
+    // Get user info and store UUID
+    const [userInfo, storeUuid] = await Promise.all([getUserInfo(), getUserStoreUuid()])
 
-  return (
-    <Grid container spacing={6}>
-      <Grid size={{ xs: 12, md: 4 }}>
-        <CongratulationsJohn />
-      </Grid>
-      <Grid size={{ xs: 12, md: 8 }}>
-        <StatisticsCard />
-      </Grid>
-      <Grid size={{ xs: 12, xl: 4 }}>
-        <Grid container spacing={6}>
-          <Grid size={{ xs: 12, sm: 6, md: 3, xl: 6 }}>
-            <LineChartProfit />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3, xl: 6 }}>
-            <RadialBarChart />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6, xl: 12 }}>
-            <DonutChartGeneratedLeads />
-          </Grid>
+    console.log('Dashboard - User Info:', userInfo)
+    console.log('Dashboard - Store UUID:', storeUuid)
+
+    // Fetch dashboard data with error handling
+    const [invoiceData, dashboardStats, revenueData, popularProducts, recentOrders] = await Promise.allSettled([
+      getInvoiceData(),
+      getDashboardStats(storeUuid || undefined),
+      getRevenueData(storeUuid || undefined, 'month'),
+      getPopularProducts(storeUuid || undefined, 5),
+      getRecentOrders(storeUuid || undefined, 10)
+    ])
+
+    // Extract successful results or use defaults
+    const stats = dashboardStats.status === 'fulfilled' ? dashboardStats.value : null
+    const revenue = revenueData.status === 'fulfilled' ? revenueData.value : null
+
+    // Calculate monthly revenue from stats
+    const monthlyRevenue = stats?.total_revenue || 0
+
+    return (
+      <Grid container spacing={6}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <CongratulationsJohn
+            userName={userInfo?.name || userInfo?.username || null}
+            monthlyRevenue={monthlyRevenue}
+            storeName={userInfo?.store?.name || null}
+          />
         </Grid>
+        <DashboardContent dashboardStats={stats} revenueData={revenue} />
       </Grid>
-      <Grid size={{ xs: 12, xl: 8 }}>
-        <RevenueReport />
+    )
+  } catch (error) {
+    console.error('Error loading dashboard:', error)
+
+    // Return dashboard with default values on error
+    return (
+      <Grid container spacing={6}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <CongratulationsJohn userName={null} monthlyRevenue={null} storeName={null} />
+        </Grid>
+        <DashboardContent dashboardStats={null} revenueData={null} />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <EarningReports />
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <PopularProducts />
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <Orders />
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <Transactions />
-      </Grid>
-      <Grid size={{ xs: 12, lg: 8 }}>
-        <InvoiceListTable invoiceData={invoiceData} />
-      </Grid>
-    </Grid>
-  )
+    )
+  }
 }
 
 export default EcommerceDashboard

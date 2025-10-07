@@ -20,7 +20,7 @@ import { getServerMode } from '@core/utils/serverHelpers'
 const DashboardCRM = async () => {
   // Vars
   const serverMode = await getServerMode()
-
+ 
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>

@@ -29,28 +29,40 @@ type FaqsDataTypes = {
 const FaqsData: FaqsDataTypes[] = [
   {
     id: 'panel1',
-    question: 'Do you charge for each upgrade?',
+    question: 'Apakah benar-benar gratis?',
+    active: true,
     answer:
-      'Lemon drops chocolate cake gummies carrot cake chupa chups muffin topping. Sesame snaps icing marzipan gummi bears macaroon dragée danish caramels powder. Bear claw dragée pastry topping soufflé. Wafer gummi bears marshmallow pastry pie.'
+      'Ya, 100% gratis selamanya! Website, domain (20 slot pertama), AI mentor, learning center, produk digital, dan komunitas—semua tanpa biaya.'
   },
   {
     id: 'panel2',
-    question: 'What is regular license?',
-    active: true,
+    question: 'Bagaimana cara dapat domain gratis?',
     answer:
-      'Regular license can be used for end products that do not charge users for access or service(access is free and there will be no monthly subscription fee). Single regular license can be used for single end product and end product can be used by you or your client. If you want to sell end product to multiple clients then you will need to purchase separate license for each client. The same rule applies if you want to use the same end product on multiple domains(unique setup). For more info on regular license you can check official description.'
+      'Daftar sekarang dan klaim domain gratis (.com/.id/.net) untuk 20 pendaftar tercepat. Setelah kuota habis, tetap bisa pakai subdomain gratis!'
   },
   {
     id: 'panel3',
-    question: 'What is extended license?',
+    question: 'Perlu keahlian coding?',
     answer:
-      'Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis et aliquid quaerat possimus maxime! Mollitia reprehenderit neque repellat deleniti delectus architecto dolorum maxime, blanditiis earum ea, incidunt quam possimus cumque.'
+      'Tidak perlu! Drag & drop builder yang mudah. Website jadi dalam 5-10 menit. Calista AI siap bantu 24/7.'
   },
   {
     id: 'panel4',
-    question: 'Which license is applicable for SASS application?',
+    question: 'Apa itu Calista AI?',
     answer:
-      'Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis et aliquid quaerat possimus maxime! Mollitia reprehenderit neque repellat deleniti delectus architecto dolorum maxime, blanditiis earum ea, incidunt quam possimus cumque.'
+      'Mentor bisnis AI pribadi Anda. Tanya strategi marketing, ide konten, copywriting, atau tips jualan—dapat jawaban instan 24/7, gratis!'
+  },
+  {
+    id: 'panel5',
+    question: 'Belum punya produk, bisa jualan apa?',
+    answer:
+      'Kami sediakan produk digital siap jual gratis: ebook, template, panduan marketing, course. Langsung upload ke toko, mulai jualan tanpa modal!'
+  },
+  {
+    id: 'panel6',
+    question: 'Apakah SEO-friendly?',
+    answer:
+      'Ya! Auto-optimized untuk Google. Cepat, mobile-responsive, dan ada materi SEO lengkap di Learning Center.'
   }
 ]
 
@@ -81,26 +93,26 @@ const Faqs = () => {
   }, [])
 
   return (
-    <section id='faq' ref={ref} className={classnames('plb-[100px] bg-backgroundDefault', styles.sectionStartRadius)}>
+    <section id='faq' ref={ref} className={classnames('py-7 mb-1 bg-backgroundDefault', styles.sectionStartRadius)}>
       <div className={classnames('flex flex-col gap-16', frontCommonStyles.layoutSpacing)}>
         <div className='flex flex-col gap-y-4 items-center justify-center'>
           <Chip size='small' variant='tonal' color='primary' label='FAQ' />
           <div className='flex flex-col items-center gap-y-1 justify-center flex-wrap'>
             <div className='flex items-center gap-x-2'>
-              <Typography color='text.primary' variant='h4'>
-                Frequently asked
+              <Typography color='text.primary' variant='h4' className='text-center'>
                 <span className='relative z-[1] font-extrabold'>
+                  Pertanyaan
                   <img
                     src='/images/front-pages/landing-page/bg-shape.png'
                     alt='bg-shape'
                     className='absolute block-end-0 z-[1] bs-[40%] is-[132%] -inline-start-[8%] block-start-[17px]'
-                  />{' '}
-                  questions
-                </span>
+                  />
+                </span>{' '}
+                yang Sering Ditanyakan
               </Typography>
             </div>
-            <Typography className='text-center'>
-              Browse through these FAQs to find answers to commonly asked questions.
+            <Typography className='text-center text-lg max-w-[700px]'>
+              Temukan jawaban lengkap untuk pertanyaan umum seputar platform kami dan cara memaksimalkan bisnis online Anda
             </Typography>
           </div>
         </div>

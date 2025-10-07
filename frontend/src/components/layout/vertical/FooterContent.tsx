@@ -1,7 +1,11 @@
 'use client'
 
-// Next Imports
-import Link from 'next/link'
+// MUI Imports
+import IconButton from '@mui/material/IconButton'
+import Typography from '@mui/material/Typography'
+
+// Component Imports
+import Link from '@components/Link'
 
 // Third-party Imports
 import classnames from 'classnames'
@@ -18,36 +22,33 @@ const FooterContent = () => {
 
   return (
     <div
-      className={classnames(verticalLayoutClasses.footerContent, 'flex items-center justify-between flex-wrap gap-4')}
-    >
-      <p>
-        <span className='text-textSecondary'>{`© ${new Date().getFullYear()}, Made with `}</span>
-        <span>{`❤️`}</span>
-        <span className='text-textSecondary'>{` by `}</span>
-        <Link href='https://pixinvent.com' target='_blank' className='text-primary uppercase'>
-          Pixinvent
-        </Link>
-      </p>
-      {!isBreakpointReached && (
-        <div className='flex items-center gap-4'>
-          <Link href='https://themeforest.net/licenses/standard' target='_blank' className='text-primary'>
-            License
-          </Link>
-          <Link href='https://themeforest.net/user/pixinvent/portfolio' target='_blank' className='text-primary'>
-            More Themes
-          </Link>
-          <Link
-            href='https://demos.pixinvent.com/vuexy-nextjs-admin-template/documentation'
-            target='_blank'
-            className='text-primary'
-          >
-            Documentation
-          </Link>
-          <Link href='https://pixinvent.ticksy.com' target='_blank' className='text-primary'>
-            Support
-          </Link>
-        </div>
+      className={classnames(
+        verticalLayoutClasses.footerContent,
+        'flex items-center justify-center sm:justify-between flex-wrap gap-4 !pli-6 !plb-4'
       )}
+    >
+      <Typography className='text-white' variant='body2'>
+        <span>{`Copyright © ${new Date().getFullYear()}, Made with `}</span>
+        <span>{`❤️`}</span>
+        <span>{` by `}</span>
+        <Link href='https://aidareu.com/' target='_blank' className='font-medium text-white'>
+          AiDareU
+        </Link>
+      </Typography>
+      <div className='flex gap-1.5 items-center'>
+        <IconButton component={Link} size='small' href='https://www.instagram.com/aidareu/' target='_blank'>
+          <i className='tabler-brand-instagram-filled text-white text-lg' />
+        </IconButton>
+        <IconButton component={Link} size='small' href='#' target='_blank'>
+          <i className='tabler-brand-twitter-filled text-white text-lg' />
+        </IconButton>
+        <IconButton component={Link} size='small' href='#' target='_blank'>
+          <i className='tabler-brand-tiktok-filled text-white text-lg' />
+        </IconButton>
+        <IconButton component={Link} size='small' href='#' target='_blank'>
+          <i className='tabler-brand-youtube-filled text-white text-lg' />
+        </IconButton>
+      </div>
     </div>
   )
 }
