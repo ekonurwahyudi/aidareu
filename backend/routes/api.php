@@ -18,6 +18,7 @@ use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Api\SettingTokoController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\DashboardController;
 
 // Test endpoint
 Route::get('/test', function () {
@@ -180,6 +181,13 @@ Route::options('/upload-editor-image', function() {
 // Public: User API for testing (no auth required)
 Route::get('/users/me', [UserController::class, 'me']);
 Route::put('/users/{uuid}', [UserController::class, 'update']);
+
+// Public: Dashboard API for testing (no auth required)
+Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+Route::get('/dashboard/revenue', [DashboardController::class, 'revenue']);
+Route::get('/dashboard/popular-products', [DashboardController::class, 'popularProducts']);
+Route::get('/dashboard/recent-orders', [DashboardController::class, 'recentOrders']);
+Route::get('/dashboard/customers', [DashboardController::class, 'customers']);
 
 // Public: Alternative API endpoints for frontend (no auth required)
 Route::get('/public/stores', [\App\Http\Controllers\StoreController::class, 'index']);

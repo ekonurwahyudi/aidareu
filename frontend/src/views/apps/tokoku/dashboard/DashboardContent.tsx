@@ -8,6 +8,7 @@ import DistributedBarChartOrder from '@views/dashboards/crm/DistributedBarChartO
 import LineAreaYearlySalesChart from '@views/dashboards/crm/LineAreaYearlySalesChart'
 import CardStatVertical from '@/components/card-statistics/Vertical'
 import RevenueReport from '@/views/apps/tokoku/dashboard/RevenueReport'
+import PopularProducts from '@/views/apps/tokoku/dashboard/PopularProducts'
 
 interface DashboardStats {
   total_orders: number
@@ -26,12 +27,21 @@ interface RevenueData {
   orders: number
 }
 
+interface PopularProduct {
+  uuid: string
+  name: string
+  image: string | null
+  total_sold: number
+  revenue: number
+}
+
 interface DashboardContentProps {
   dashboardStats?: DashboardStats | null
   revenueData?: RevenueData[] | null
+  popularProducts?: PopularProduct[] | null
 }
 
-const DashboardContent = ({ dashboardStats, revenueData }: DashboardContentProps) => {
+const DashboardContent = ({ dashboardStats, revenueData, popularProducts }: DashboardContentProps) => {
   // Safe access with defaults
   const stats = dashboardStats || {
     total_orders: 0,
@@ -63,13 +73,13 @@ const DashboardContent = ({ dashboardStats, revenueData }: DashboardContentProps
 
   return (
     <>
-      <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+      <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2, xl: 2 }}>
         <DistributedBarChartOrder orders={stats.total_orders || 0} growth={stats.orders_growth || 0} />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-        <LineAreaYearlySalesChart revenue={stats.total_revenue || 0} growth={stats.revenue_growth || 0} />
+      <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2, xl: 2 }}>
+        <LineAreaYearlySalesChart customers={stats.total_customers || 0} growth={stats.customers_growth || 0} />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+      <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2, xl: 2 }}>
         <CardStatVertical
           title='Total Product'
           stats={`${stats.total_products || 0} Produk`}
@@ -82,7 +92,7 @@ const DashboardContent = ({ dashboardStats, revenueData }: DashboardContentProps
           chipVariant='tonal'
         />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+      <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2, xl: 2 }}>
         <CardStatVertical
           title='Total Revenue'
           stats={formatCurrency(stats.total_revenue)}
@@ -95,8 +105,11 @@ const DashboardContent = ({ dashboardStats, revenueData }: DashboardContentProps
           chipVariant='tonal'
         />
       </Grid>
-      <Grid size={{ xs: 12, xl: 8 }}>
+      <Grid size={{ xs: 12, lg: 8 }}>
         <RevenueReport revenueData={revenueData || []} />
+      </Grid>
+      <Grid size={{ xs: 12, lg: 4 }}>
+        <PopularProducts products={popularProducts} />
       </Grid>
     </>
   )

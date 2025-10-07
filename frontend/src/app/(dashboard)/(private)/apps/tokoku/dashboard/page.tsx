@@ -38,6 +38,7 @@ const EcommerceDashboard = async () => {
     // Extract successful results or use defaults
     const stats = dashboardStats.status === 'fulfilled' ? dashboardStats.value : null
     const revenue = revenueData.status === 'fulfilled' ? revenueData.value : null
+    const products = popularProducts.status === 'fulfilled' ? popularProducts.value : null
 
     // Calculate monthly revenue from stats
     const monthlyRevenue = stats?.total_revenue || 0
@@ -51,7 +52,7 @@ const EcommerceDashboard = async () => {
             storeName={userInfo?.store?.name || null}
           />
         </Grid>
-        <DashboardContent dashboardStats={stats} revenueData={revenue} />
+        <DashboardContent dashboardStats={stats} revenueData={revenue} popularProducts={products} />
       </Grid>
     )
   } catch (error) {
@@ -63,7 +64,7 @@ const EcommerceDashboard = async () => {
         <Grid size={{ xs: 12, md: 4 }}>
           <CongratulationsJohn userName={null} monthlyRevenue={null} storeName={null} />
         </Grid>
-        <DashboardContent dashboardStats={null} revenueData={null} />
+        <DashboardContent dashboardStats={null} revenueData={null} popularProducts={null} />
       </Grid>
     )
   }

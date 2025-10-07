@@ -74,37 +74,56 @@ class UserController extends Controller
     {
         try {
             $user = auth()->user();
-            
+
             if (!$user) {
                 // Try to get user from session if available
                 $user = auth('web')->user();
-                
+
                 if (!$user) {
                     // For development/testing - try to find the specific user by UUID
                     $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8'; // Your login UUID
                     $user = \App\Models\User::where('uuid', $targetUuid)->first();
-                    
+
                     if (!$user) {
                         // Fallback to first user from database
                         $user = \App\Models\User::first();
                     }
-                    
+
                     if (!$user) {
                         return response()->json([
-                            'success' => false,
-                            'message' => 'No user found'
+                            'status' => 'error',
+                            'message' => 'No user found',
+                            'data' => null
                         ], 404);
                     }
                 }
             }
 
+            // Load store relationship
+            $user->load('stores');
+            $store = $user->stores->first(); // Get first store
+
+            $storeData = null;
+            if ($store) {
+                $storeData = [
+                    'uuid' => $store->uuid,
+                    'name' => $store->nama_toko ?? $store->name ?? null,
+                    'subdomain' => $store->subdomain,
+                    'description' => $store->description ?? null,
+                    'logo' => $store->logo ?? null,
+                ];
+            }
+
             return response()->json([
-                'success' => true,
+                'status' => 'success',
+                'message' => 'User data retrieved successfully',
                 'data' => [
                     'uuid' => $user->uuid,
                     'name' => $user->name,
+                    'username' => $user->name, // alias
                     'nama_lengkap' => $user->nama_lengkap,
                     'email' => $user->email,
+                    'phone' => $user->no_hp,
                     'no_hp' => $user->no_hp,
                     'location' => $user->location,
                     'address' => $user->address,
@@ -112,13 +131,16 @@ class UserController extends Controller
                     'paket' => $user->paket,
                     'created_at' => $user->created_at,
                     'roles' => $user->getRoleNames()->isEmpty() ? ['user'] : $user->getRoleNames()->toArray(),
-                    'email_verified_at' => $user->email_verified_at
+                    'email_verified_at' => $user->email_verified_at,
+                    'store' => $storeData
                 ]
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error in UserController@me: ' . $e->getMessage());
             return response()->json([
-                'success' => false,
-                'message' => 'Error retrieving user data'
+                'status' => 'error',
+                'message' => 'Error retrieving user data: ' . $e->getMessage(),
+                'data' => null
             ], 500);
         }
     }
