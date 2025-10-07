@@ -93,6 +93,7 @@ interface StoreHeaderProps {
   onAddToCart?: (productId: string, event: React.MouseEvent) => void
   storeName?: string
   storeLogo?: string
+  primaryColor?: string
 }
 
 const StoreHeader = ({
@@ -103,7 +104,8 @@ const StoreHeader = ({
   storeName = 'AiDareU Store',
   storeLogo,
   onUpdateQuantity,
-  onAddToCart
+  onAddToCart,
+  primaryColor = '#E91E63'
 }: StoreHeaderProps) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -149,7 +151,7 @@ const StoreHeader = ({
                   sx={{ height: 40, width: 'auto', objectFit: 'contain' }}
                 />
               ) : (
-                <Logo variant="h6">
+                <Logo variant="h6" sx={{ color: primaryColor }}>
                   ❤️ {storeName}
                 </Logo>
               )}
@@ -162,6 +164,12 @@ const StoreHeader = ({
                   <NavButton
                     key={item.label}
                     onClick={() => handleMenuClick(item.href)}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: `${primaryColor}22`,
+                        color: primaryColor
+                      }
+                    }}
                   >
                     {item.label}
                   </NavButton>
@@ -189,13 +197,14 @@ const StoreHeader = ({
                   onUpdateQuantity={onUpdateQuantity || (() => {})}
                   onAddToCart={onAddToCart || (() => {})}
                   autoOpen={true}
+                  primaryColor={primaryColor}
                 />
               ) : (
                 <Box sx={{ position: 'relative' }}>
                   <Button
                     onClick={onCartClick}
                     sx={{
-                      backgroundColor: '#E91E63',
+                      backgroundColor: primaryColor,
                       color: 'white',
                       fontWeight: 'bold',
                       textTransform: 'none',
@@ -203,7 +212,7 @@ const StoreHeader = ({
                       padding: '8px 20px',
                       minWidth: 'auto',
                       '&:hover': {
-                        backgroundColor: '#C2185B'
+                        backgroundColor: `${primaryColor}dd`
                       }
                     }}
                   >
@@ -215,7 +224,7 @@ const StoreHeader = ({
                         position: 'absolute',
                         top: -8,
                         right: -8,
-                        backgroundColor: '#DC2626',
+                        backgroundColor: primaryColor,
                         color: 'white',
                         borderRadius: '50%',
                         minWidth: 20,

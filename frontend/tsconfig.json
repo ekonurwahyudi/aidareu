@@ -58,7 +58,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "src/app/s/[subdomain]/checkout/page.tsx.backup"  ],
   "exclude": [
     "node_modules"
   ]

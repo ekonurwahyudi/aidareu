@@ -184,6 +184,7 @@ class SettingTokoController extends Controller
                 'primary_color' => 'nullable|string|max:7',
                 'logo' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:2048',
                 'favicon' => 'nullable|image|mimes:jpeg,jpg,png,gif,ico|max:512',
+                'delete_logo' => 'nullable|string',
             ]);
 
             if ($validator->fails()) {
@@ -196,8 +197,24 @@ class SettingTokoController extends Controller
 
             $data = $request->only(['uuid_store', 'site_title', 'site_tagline', 'primary_color']);
 
+            // Get existing settings
+            $existingSettings = SettingToko::where('uuid_store', $request->uuid_store)->first();
+
+            // Handle logo deletion
+            if ($request->input('delete_logo') === 'true') {
+                if ($existingSettings && $existingSettings->logo) {
+                    // Delete old logo file
+                    Storage::disk('public')->delete($existingSettings->logo);
+                }
+                $data['logo'] = null;
+            }
             // Handle logo upload
-            if ($request->hasFile('logo')) {
+            elseif ($request->hasFile('logo')) {
+                // Delete old logo if exists
+                if ($existingSettings && $existingSettings->logo) {
+                    Storage::disk('public')->delete($existingSettings->logo);
+                }
+
                 $logo = $request->file('logo');
                 $logoPath = $logo->store('theme/logos', 'public');
                 $data['logo'] = $logoPath;
@@ -205,6 +222,11 @@ class SettingTokoController extends Controller
 
             // Handle favicon upload
             if ($request->hasFile('favicon')) {
+                // Delete old favicon if exists
+                if ($existingSettings && $existingSettings->favicon) {
+                    Storage::disk('public')->delete($existingSettings->favicon);
+                }
+
                 $favicon = $request->file('favicon');
                 $faviconPath = $favicon->store('theme/favicons', 'public');
                 $data['favicon'] = $faviconPath;

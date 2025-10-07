@@ -38,9 +38,10 @@ const formatDate = (dateString: string): string => {
 interface StepConfirmationProps {
   checkoutData: any
   orderUuid: string | null
+  primaryColor?: string
 }
 
-const StepConfirmation = ({ checkoutData, orderUuid }: StepConfirmationProps) => {
+const StepConfirmation = ({ checkoutData, orderUuid, primaryColor = '#E91E63' }: StepConfirmationProps) => {
   const params = useParams()
   const subdomain = (params?.subdomain as string) || 'store'
 
@@ -138,7 +139,7 @@ Saya sudah melakukan transfer. Mohon dicek ya! Terima kasih 🙏`
           component={Link}
           href={subdomain === 'store' ? '/store' : `/s/${subdomain}`}
           variant="contained"
-          sx={{ bgcolor: '#E91E63', '&:hover': { bgcolor: '#C2185B' } }}
+          sx={{ bgcolor: primaryColor, '&:hover': { bgcolor: `${primaryColor}dd` }, boxShadow: 'none !important' }}
         >
           Kembali ke Store
         </Button>
@@ -302,7 +303,7 @@ Saya sudah melakukan transfer. Mohon dicek ya! Terima kasih 🙏`
                     </div>
                   </div>
                   <div className='flex items-center'>
-                    <Typography color='primary.main' className='font-medium'>
+                    <Typography sx={{ color: primaryColor }} className='font-medium'>
                       {formatRupiah(detail.price)}
                     </Typography>
                   </div>
@@ -376,9 +377,10 @@ Saya sudah melakukan transfer. Mohon dicek ya! Terima kasih 🙏`
             href={subdomain === 'store' ? '/store' : `/s/${subdomain}`}
             variant="outlined"
             sx={{
-              borderColor: '#E91E63',
-              color: '#E91E63',
-              '&:hover': { borderColor: '#C2185B', bgcolor: 'rgba(233, 30, 99, 0.04)' }
+              borderColor: primaryColor,
+              color: primaryColor,
+              '&:hover': { borderColor: `${primaryColor}dd`, bgcolor: `${primaryColor}08` },
+              boxShadow: 'none !important'
             }}
           >
             Belanja Lagi
@@ -388,7 +390,7 @@ Saya sudah melakukan transfer. Mohon dicek ya! Terima kasih 🙏`
             href={subdomain === 'store' ? `/store/invoice/${orderUuid}` : `/s/${subdomain}/invoice/${orderUuid}`}
             target="_blank"
             variant="contained"
-            sx={{ bgcolor: '#E91E63', '&:hover': { bgcolor: '#C2185B' } }}
+            sx={{ bgcolor: primaryColor, '&:hover': { bgcolor: `${primaryColor}dd` }, boxShadow: 'none !important' }}
           >
             Lihat Invoice
           </Button>

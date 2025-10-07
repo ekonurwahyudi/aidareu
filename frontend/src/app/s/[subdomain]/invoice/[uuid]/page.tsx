@@ -173,8 +173,24 @@ export default function InvoicePage() {
   ) || 0
   const ongkir = orderData.total_harga - subtotal
 
+  // Get primary color from store settings
+  const primaryColor = storeData?.settings?.primary_color || '#E91E63'
+
   return (
     <>
+      {/* Apply dynamic primary color */}
+      <style jsx global>{`
+        :root {
+          --primary-color: ${primaryColor};
+        }
+        .MuiButton-containedPrimary {
+          background-color: ${primaryColor} !important;
+        }
+        .MuiButton-containedPrimary:hover {
+          background-color: ${primaryColor}dd !important;
+        }
+      `}</style>
+
       {/* Print Button - Hidden when printing */}
       <Box className="no-print" sx={{ p: 2, display: 'flex', gap: 2, justifyContent: 'center', bgcolor: '#f5f5f5' }}>
         <Button
@@ -186,9 +202,9 @@ export default function InvoicePage() {
         </Button>
         <Button
           variant="contained"
+          color="primary"
           startIcon={<PrintIcon />}
           onClick={handlePrint}
-          sx={{ bgcolor: '#E91E63', '&:hover': { bgcolor: '#C2185B' } }}
         >
           Cetak Invoice
         </Button>

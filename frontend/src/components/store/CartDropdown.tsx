@@ -50,6 +50,7 @@ interface CartDropdownProps {
   onUpdateQuantity: (productId: string, quantity: number) => void
   onAddToCart: (productId: string, event: React.MouseEvent) => void
   autoOpen?: boolean
+  primaryColor?: string
 }
 
 const CartDropdown = ({
@@ -57,7 +58,8 @@ const CartDropdown = ({
   onRemoveItem,
   onUpdateQuantity,
   onAddToCart,
-  autoOpen = false
+  autoOpen = false,
+  primaryColor = '#E91E63'
 }: CartDropdownProps) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -124,7 +126,7 @@ const CartDropdown = ({
           data-cart-button
           onClick={handleClick}
           sx={{
-            backgroundColor: '#E91E63',
+            backgroundColor: primaryColor,
             color: 'white',
             fontWeight: 'bold',
             textTransform: 'none',
@@ -147,7 +149,7 @@ const CartDropdown = ({
               position: 'absolute',
               top: -8,
               right: -8,
-              backgroundColor: '#DC2626',
+              backgroundColor: primaryColor,
               color: 'white',
               borderRadius: '50%',
               minWidth: 20,
@@ -195,9 +197,9 @@ const CartDropdown = ({
           {/* Header */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-              <ShoppingCartIcon sx={{ color: '#E91E63' }} />
+              <ShoppingCartIcon sx={{ color: primaryColor }} />
               Keranjang Belanja
-            <Badge sx={{ ml: 3 }} badgeContent={totalItems} color="error" />
+            <Badge sx={{ ml: 3, '& .MuiBadge-badge': { backgroundColor: primaryColor } }} badgeContent={totalItems} />
             </Typography>
             
           </Box>
@@ -218,7 +220,7 @@ const CartDropdown = ({
                 variant="contained"
                 onClick={handleClose}
                 sx={{
-                  backgroundColor: '#E91E63',
+                  backgroundColor: primaryColor,
                   '&:hover': { backgroundColor: '#C2185B' },
                   borderRadius: '8px',
                   textTransform: 'none',
@@ -271,7 +273,7 @@ const CartDropdown = ({
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                           {item.salePrice ? (
                             <>
-                              <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#E91E63' }}>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold', color: primaryColor }}>
                                 {formatRupiah(item.salePrice)}
                               </Typography>
                               <Typography
@@ -285,7 +287,7 @@ const CartDropdown = ({
                               </Typography>
                             </>
                           ) : (
-                            <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#E91E63' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold', color: primaryColor }}>
                               {formatRupiah(item.price)}
                             </Typography>
                           )}
@@ -372,7 +374,7 @@ const CartDropdown = ({
                   <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                     Total:
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#E91E63' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: primaryColor }}>
                     {formatRupiah(totalPrice)}
                   </Typography>
                 </Box>
@@ -383,7 +385,7 @@ const CartDropdown = ({
                   size="large"
                   onClick={handleCheckout}
                   sx={{
-                    backgroundColor: '#E91E63',
+                    backgroundColor: primaryColor,
                     '&:hover': { backgroundColor: '#C2185B' },
                     borderRadius: '8px',
                     py: 1.5,

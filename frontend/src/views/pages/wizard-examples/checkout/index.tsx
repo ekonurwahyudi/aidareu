@@ -37,6 +37,10 @@ interface CheckoutData {
   shipping: any
 }
 
+interface CheckoutWizardProps {
+  primaryColor?: string
+}
+
 // Vars
 const steps = [
   {
@@ -122,10 +126,10 @@ const Stepper = styled(MuiStepper)<StepperProps>(({ theme }) => ({
       },
       '&.Mui-active, &.Mui-completed': {
         '& .MuiTypography-root': {
-          color: 'var(--mui-palette-primary-main)'
+          color: 'var(--primary-color, var(--mui-palette-primary-main))'
         },
         '& svg': {
-          fill: 'var(--mui-palette-primary-main)'
+          fill: 'var(--primary-color, var(--mui-palette-primary-main))'
         }
       },
       [theme.breakpoints.down('md')]: {
@@ -136,8 +140,8 @@ const Stepper = styled(MuiStepper)<StepperProps>(({ theme }) => ({
         border: '1px solid #e0e0e0',
         transition: 'all 0.3s ease',
         '&.Mui-active': {
-          backgroundColor: '#FFF0F5',
-          borderColor: '#E91E63'
+          backgroundColor: 'rgba(var(--primary-color-rgb, 233, 30, 99), 0.08)',
+          borderColor: 'var(--primary-color, #E91E63)'
         },
         '& .MuiTypography-root': {
           fontSize: '0.875rem',
@@ -146,7 +150,7 @@ const Stepper = styled(MuiStepper)<StepperProps>(({ theme }) => ({
       }
     },
     '&.Mui-completed + i': {
-      color: 'var(--mui-palette-primary-main) !important'
+      color: 'var(--primary-color, var(--mui-palette-primary-main)) !important'
     },
 
     [theme.breakpoints.up('md')]: {
@@ -168,19 +172,20 @@ const getStepContent = (
   handleNext: () => void,
   checkoutData: CheckoutData | null,
   setCheckoutData: (data: CheckoutData) => void,
-  orderUuid: string | null
+  orderUuid: string | null,
+  primaryColor?: string
 ) => {
   switch (step) {
     case 0:
-      return <StepCart handleNext={handleNext} setCheckoutData={setCheckoutData} />
+      return <StepCart handleNext={handleNext} setCheckoutData={setCheckoutData} primaryColor={primaryColor} />
     case 1:
-      return <StepConfirmation checkoutData={checkoutData} orderUuid={orderUuid} />
+      return <StepConfirmation checkoutData={checkoutData} orderUuid={orderUuid} primaryColor={primaryColor} />
     default:
       return null
   }
 }
 
-const CheckoutWizard = () => {
+const CheckoutWizard = ({ primaryColor = '#E91E63' }: CheckoutWizardProps) => {
   // States
   const [activeStep, setActiveStep] = useState<number>(0)
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null)
@@ -234,7 +239,7 @@ const CheckoutWizard = () => {
       <Divider />
 
       <CardContent sx={{ px: { xs: 3, sm: 4, md: 6 }, py: { xs: 3, md: 4 } }}>
-        {getStepContent(activeStep, handleNext, checkoutData, setCheckoutData, orderUuid)}
+        {getStepContent(activeStep, handleNext, checkoutData, setCheckoutData, orderUuid, primaryColor)}
       </CardContent>
     </Card>
   )
