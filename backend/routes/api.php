@@ -19,6 +19,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Api\SettingTokoController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\ProductDigitalController;
 
 // Test endpoint
 Route::get('/test', function () {
@@ -168,6 +169,15 @@ Route::get('/public/products/{product}', [ProductController::class, 'show']);
 Route::put('/public/products/{product}', [ProductController::class, 'update']);
 Route::post('/public/products/{product}', [ProductController::class, 'update']); // Handle POST with _method=PUT
 Route::delete('/public/products/{product}', [ProductController::class, 'destroy']);
+
+// Public: Products Digital API (no auth required for testing)
+Route::get('/public/products-digital', [ProductDigitalController::class, 'index']);
+Route::get('/public/products-digital/categories', [ProductDigitalController::class, 'getCategories']);
+Route::post('/public/products-digital', [ProductDigitalController::class, 'store']);
+Route::get('/public/products-digital/{uuid}', [ProductDigitalController::class, 'show']);
+Route::put('/public/products-digital/{uuid}', [ProductDigitalController::class, 'update']);
+Route::post('/public/products-digital/{uuid}', [ProductDigitalController::class, 'update']); // Handle POST with _method=PUT
+Route::delete('/public/products-digital/{uuid}', [ProductDigitalController::class, 'destroy']);
 
 // Public: Editor Image Upload (no auth required for testing)
 Route::post('/upload-editor-image', [EditorImageController::class, 'upload']);
