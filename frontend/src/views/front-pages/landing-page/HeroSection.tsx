@@ -67,7 +67,7 @@ const HeroSection = ({ mode }: { mode: SystemMode }) => {
   return (
     <section id='home' className='overflow-hidden pbs-[75px] -mbs-[75px] relative'>
       <img
-        src={heroSectionBg}
+        // src={heroSectionBg}
         alt='hero-bg'
         className={classnames('bs-[95%] sm:bs-[85%] md:bs-[80%]', styles.heroSectionBg, {
           [styles.bgLight]: _mode === 'light',
@@ -75,31 +75,37 @@ const HeroSection = ({ mode }: { mode: SystemMode }) => {
         })}
       />
       <div className={classnames('pbs-[88px] overflow-hidden', frontCommonStyles.layoutSpacing)}>
-        <div className='md:max-is-[550px] mbs-0 mbe-7 mli-auto text-center relative'>
+        <div className='md:max-is-[750px] mbs-0 mli-auto text-center relative'>
           <Typography
-            className={classnames('font-extrabold sm:text-[42px] text-3xl mbe-4 leading-[48px]', styles.heroText)}
+            className={classnames('font-extrabold sm:text-[52px] text-4xl mbe-4 leading-tight', styles.heroText)}
           >
-            All in one sass application for your business
+            Platform Website Profesional untuk UMKM Indonesia
           </Typography>
-          <Typography className='font-medium' color='text.primary'>
-            No coding required to make customizations. The live customizer has everything your marketing need.
+          <Typography className='font-medium text-base sm:text-lg mbe-3' color='text.primary'>
+            Jangkau Pelanggan Lebih Luas dengan Website Toko Online Sendiri, Kami siap membantu brand kamu tumbuh di era transformasi digital.
           </Typography>
-          <div className='flex mbs-6 items-baseline justify-center relative'>
-            <div className='flex gap-2 absolute inline-start-[0%] block-start-[41%] max-md:hidden'>
-              <Typography className='font-medium'>Join community</Typography>
-              <img src='/images/front-pages/landing-page/join-community-arrow.png' alt='arrow' height='48' width='60' />
-            </div>
+          <Typography className='font-medium text-sm sm:text-base mbe-4' color='text.primary'>
+            ✓ Tanpa Coding  ✓ 100% Gratis  ✓ Siap dalam 5 Menit
+          </Typography>
+          {/* <div className='flex gap-2 items-center justify-center'>
+              <Typography className='font-medium text-sm sm:text-base mbe-4' color='text.primary'>
+                🔥 Domain Gratis untuk 20 Pendaftar Pertama!
+              </Typography>
+            </div> */}
+        </div>
+        <div className='flex items-center justify-center gap-4 relative flex-wrap'>
             <Button
               component={Link}
               size='large'
-              href='/front-pages/landing-page#pricing-plans'
+              href='/registrasi'
               variant='contained'
               color='primary'
+              className='pli-10 plb-4 text-lg font-bold'
+              startIcon={<i className='tabler-rocket' />}
             >
-              Get Early Access
+              Buat Website Gratis
             </Button>
           </div>
-        </div>
       </div>
       <div
         className={classnames('relative text-center', frontCommonStyles.layoutSpacing)}

@@ -350,7 +350,7 @@ const Register = ({ mode }: { mode: SystemMode }) => {
                 Sign in instead
               </Typography>
             </div>
-            <Divider className='gap-2'>or</Divider>
+            {/* <Divider className='gap-2'>or</Divider>
             <div className='flex justify-center items-center gap-1.5'>
               <IconButton className='text-facebook' size='small'>
                 <i className='tabler-brand-facebook-filled' />
@@ -364,7 +364,7 @@ const Register = ({ mode }: { mode: SystemMode }) => {
               <IconButton className='text-error' size='small'>
                 <i className='tabler-brand-google-filled' />
               </IconButton>
-            </div>
+            </div> */}
           </form>
         </div>
       </div>

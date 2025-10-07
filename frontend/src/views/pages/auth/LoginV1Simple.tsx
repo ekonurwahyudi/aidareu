@@ -229,7 +229,7 @@ const LoginV1Simple = () => {
               </Typography>
             </div>
             
-            <Divider className='gap-2 text-textPrimary'>or</Divider>
+            {/* <Divider className='gap-2 text-textPrimary'>or</Divider>
             
             <div className='flex justify-center items-center gap-1.5'>
               <IconButton className='text-facebook' size='small'>
@@ -244,7 +244,7 @@ const LoginV1Simple = () => {
               <IconButton className='text-error' size='small'>
                 <i className='tabler-brand-google-filled' />
               </IconButton>
-            </div>
+            </div> */}
           </form>
         </CardContent>
       </Card>

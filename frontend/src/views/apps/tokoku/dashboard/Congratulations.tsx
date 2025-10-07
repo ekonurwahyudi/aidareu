@@ -5,30 +5,52 @@ import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import Grid from '@mui/material/Grid2'
 
-const CongratulationsJohn = () => {
+interface CongratulationsProps {
+  userName?: string | null
+  monthlyRevenue?: number | null
+  storeName?: string | null
+}
+
+const CongratulationsJohn = ({ userName, monthlyRevenue, storeName }: CongratulationsProps) => {
+  // Format currency
+  const formatCurrency = (value: number | null | undefined) => {
+    const safeValue = Number(value) || 0
+
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(safeValue)
+  }
+
+  // Display name (fallback to "Sobat" if no name)
+  const displayName = userName || 'Sobat'
+  const displayStore = storeName ? ` - ${storeName}` : ''
+
   return (
     <Card>
       <Grid container>
         <Grid size={{ xs: 8 }}>
           <CardContent>
             <Typography variant='h5' className='mbe-0.5'>
-              Congratulations John 🎉
+              Selamat Datang {displayName} 🎉
             </Typography>
             <Typography variant='subtitle1' className='mbe-2'>
-              Best seller of the month
+              Revenue bulan tokomu{displayStore} bulan ini
             </Typography>
             <Typography variant='h4' color='primary.main' className='mbe-1'>
-              $48.9k
+              {formatCurrency(monthlyRevenue)}
             </Typography>
-            <Button variant='contained' color='primary'>
-              View Sales
+            <Button variant='contained' color='primary' href='/dashboards/ecommerce'>
+              Lihat Order
             </Button>
           </CardContent>
         </Grid>
         <Grid size={{ xs: 4 }}>
           <div className='relative bs-full is-full'>
             <img
-              alt='Congratulations John'
+              alt={`Congratulations ${displayName}`}
               src='/images/illustrations/characters/8.png'
               className='max-bs-[150px] absolute block-end-0 inline-end-6 max-is-full'
             />

@@ -95,13 +95,13 @@ const FrontMenu = (props: Props) => {
         className={classnames('font-medium plb-3 pli-1.5 hover:text-primary', {
           'text-primary':
             !intersections.features &&
-            !intersections.team &&
+            !intersections.testimonials &&
             !intersections.faq &&
-            !intersections['contact-us'] &&
             pathname === '/front-pages/landing-page'
         })}
+        onClick={() => isBelowLgScreen && setIsDrawerOpen(false)}
       >
-        Home
+        Beranda
       </Typography>
       <Typography
         color='text.primary'
@@ -110,18 +110,20 @@ const FrontMenu = (props: Props) => {
         className={classnames('font-medium plb-3 pli-1.5 hover:text-primary', {
           'text-primary': intersections.features
         })}
+        onClick={() => isBelowLgScreen && setIsDrawerOpen(false)}
       >
-        Features
+        Fitur
       </Typography>
       <Typography
         color='text.primary'
         component={Link}
-        href='/front-pages/landing-page#team'
+        href='/front-pages/landing-page#testimonials'
         className={classnames('font-medium plb-3 pli-1.5 hover:text-primary', {
-          'text-primary': intersections.team
+          'text-primary': intersections.testimonials
         })}
+        onClick={() => isBelowLgScreen && setIsDrawerOpen(false)}
       >
-        Team
+        Testimoni
       </Typography>
       <Typography
         color='text.primary'
@@ -130,33 +132,19 @@ const FrontMenu = (props: Props) => {
         className={classnames('font-medium plb-3 pli-1.5 hover:text-primary', {
           'text-primary': intersections.faq
         })}
+        onClick={() => isBelowLgScreen && setIsDrawerOpen(false)}
       >
         FAQ
       </Typography>
       <Typography
         color='text.primary'
         component={Link}
-        href='/front-pages/landing-page#contact-us'
-        className={classnames('font-medium plb-3 pli-1.5 hover:text-primary', {
-          'text-primary': intersections['contact-us']
-        })}
-      >
-        Contact us
-      </Typography>
-      <DropdownMenu
-        mode={mode}
-        isBelowLgScreen={isBelowLgScreen}
-        isDrawerOpen={isDrawerOpen}
-        setIsDrawerOpen={setIsDrawerOpen}
-      />
-      <Typography
-        component={Link}
-        color='text.primary'
-        href='/'
+        href='https://wa.me/6208121555423'
         target='_blank'
         className='font-medium plb-3 pli-1.5 hover:text-primary'
+        onClick={() => isBelowLgScreen && setIsDrawerOpen(false)}
       >
-        Admin
+        Hubungi Kami
       </Typography>
     </Wrapper>
   )

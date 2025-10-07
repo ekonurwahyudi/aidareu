@@ -19,9 +19,27 @@ const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexChart
 // Vars
 const series = [{ data: [77, 55, 23, 43, 77, 55, 89] }]
 
-const DistributedBarChartOrder = () => {
+interface DistributedBarChartOrderProps {
+  orders?: number
+  growth?: number
+}
+
+const DistributedBarChartOrder = ({ orders = 0, growth = 0 }: DistributedBarChartOrderProps) => {
   // Hooks
   const theme = useTheme()
+
+  // Format number for display
+  const formatNumber = (num: number) => {
+    const safeNum = Number(num) || 0
+
+    if (safeNum >= 1000000) return `${(safeNum / 1000000).toFixed(1)}M`
+    if (safeNum >= 1000) return `${(safeNum / 1000).toFixed(1)}k`
+
+    return safeNum.toString()
+  }
+
+  // Safe growth value
+  const safeGrowth = Number(growth) || 0
 
   // Vars
   const actionSelectedColor = 'var(--mui-palette-action-selected)'
@@ -108,15 +126,16 @@ const DistributedBarChartOrder = () => {
 
   return (
     <Card>
-      <CardHeader title='Order' subheader='Last Week' className='pbe-0' />
+      <CardHeader title='Total Order' className='pbe-0' />
       <CardContent className='flex flex-col'>
         <AppReactApexCharts type='bar' height={84} width='100%' options={options} series={series} />
         <div className='flex items-center justify-between flex-wrap gap-x-4 gap-y-0.5'>
           <Typography variant='h4' color='text.primary'>
-            124k
+            {formatNumber(orders || 0)}
           </Typography>
-          <Typography variant='body2' color='success.main'>
-            +12.6%
+          <Typography variant='body2' color={safeGrowth >= 0 ? 'success.main' : 'error.main'}>
+            {safeGrowth > 0 ? '+' : ''}
+            {safeGrowth.toFixed(1)}%
           </Typography>
         </div>
       </CardContent>
