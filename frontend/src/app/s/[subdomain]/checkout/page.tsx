@@ -106,8 +106,98 @@ const CheckoutPage = () => {
     )
   }
 
+  // Get primary color from store settings
+  const primaryColor = storeData?.settings?.primary_color || '#E91E63'
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {/* Apply dynamic primary color */}
+      <style jsx global>{`
+        :root,
+        body,
+        #__next {
+          --primary-color: ${primaryColor};
+          --primary-color-rgb: ${parseInt(primaryColor.slice(1, 3), 16)}, ${parseInt(primaryColor.slice(3, 5), 16)}, ${parseInt(primaryColor.slice(5, 7), 16)};
+        }
+
+        /* Remove all button shadows */
+        .MuiButton-root {
+          box-shadow: none !important;
+        }
+
+        /* Buttons */
+        .MuiButton-containedPrimary {
+          background-color: ${primaryColor} !important;
+        }
+        .MuiButton-containedPrimary:hover {
+          background-color: ${primaryColor}dd !important;
+        }
+        .MuiButton-outlinedPrimary {
+          color: ${primaryColor} !important;
+          border-color: ${primaryColor} !important;
+        }
+
+        /* Stepper */
+        .MuiStepper .Mui-active, .MuiStepper .Mui-completed {
+          color: ${primaryColor} !important;
+        }
+        .MuiStepIcon-root.Mui-active, .MuiStepIcon-root.Mui-completed {
+          color: ${primaryColor} !important;
+        }
+        .MuiStepConnector-line {
+          border-color: ${primaryColor}33 !important;
+        }
+
+        /* Override all pink colors (RGB 233, 30, 99 = E91E63) */
+        [style*="233, 30, 99"],
+        [style*="rgb(233, 30, 99)"],
+        [style*="E91E63"],
+        [style*="#E91E63"] {
+          color: ${primaryColor} !important;
+        }
+
+        button[style*="233, 30, 99"],
+        button[style*="E91E63"],
+        .MuiButton-root[style*="E91E63"] {
+          background-color: ${primaryColor} !important;
+        }
+
+        button[style*="233, 30, 99"]:hover,
+        button[style*="E91E63"]:hover {
+          background-color: ${primaryColor}dd !important;
+        }
+
+        /* Override darker pink (C2185B) for hover states */
+        [style*="C2185B"],
+        [style*="#C2185B"],
+        button:hover[style*="C2185B"] {
+          background-color: ${primaryColor}dd !important;
+          border-color: ${primaryColor}dd !important;
+        }
+
+        /* Override borders with pink */
+        [style*="border-color: rgb(233, 30, 99)"],
+        [style*="borderColor: rgb(233, 30, 99)"],
+        [style*="border-color: #E91E63"],
+        [style*="borderColor: #E91E63"],
+        div[style*="borderColor"][style*="E91E63"],
+        button[style*="borderColor"][style*="E91E63"] {
+          border-color: ${primaryColor} !important;
+        }
+
+        /* Override red badge/counter colors */
+        .MuiBadge-colorError .MuiBadge-badge,
+        .MuiBadge-badge {
+          background-color: ${primaryColor} !important;
+        }
+
+        /* Override specific inline styles - more aggressive */
+        div[style*="E91E63"],
+        span[style*="E91E63"],
+        p[style*="E91E63"] {
+          color: ${primaryColor} !important;
+        }
+      `}</style>
       <StoreHeader
         cartItemCount={cartItems.reduce((total, item) => total + item.quantity, 0)}
         onCartClick={handleCartClick}
@@ -116,6 +206,7 @@ const CheckoutPage = () => {
         onUpdateQuantity={updateCartQuantity}
         storeName={storeData?.store?.name || 'AiDareU Store'}
         storeLogo={storeData?.settings?.logo ? `http://localhost:8000/storage/${storeData.settings.logo}` : undefined}
+        primaryColor={primaryColor}
       />
 
       <Box sx={{ flex: 1, py: { xs: 3, md: 6 }, bgcolor: '#FAFBFC' }}>
@@ -126,7 +217,7 @@ const CheckoutPage = () => {
             maxWidth: { xs: '100%', sm: '100%', md: '95%', lg: '90%', xl: '1200px' }
           }}
         >
-          <CheckoutWizard />
+          <CheckoutWizard primaryColor={primaryColor} />
         </Container>
       </Box>
 

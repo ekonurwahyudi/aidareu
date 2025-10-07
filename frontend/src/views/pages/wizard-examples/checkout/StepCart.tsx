@@ -44,9 +44,10 @@ const formatRupiah = (amount: number): string => {
 interface StepCartProps {
   handleNext: (data?: any, uuid?: string) => void
   setCheckoutData: (data: any) => void
+  primaryColor?: string
 }
 
-const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
+const StepCart = ({ handleNext, setCheckoutData, primaryColor = '#E91E63' }: StepCartProps) => {
   const params = useParams()
   const subdomain = (params?.subdomain as string) || 'store'
   // States
@@ -411,7 +412,7 @@ const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
               variant="contained"
               component={Link}
               href={subdomain === 'store' ? '/store' : `/s/${subdomain}`}
-              sx={{ bgcolor: '#E91E63', '&:hover': { bgcolor: '#C2185B' } }}
+              sx={{ bgcolor: primaryColor, '&:hover': { bgcolor: `${primaryColor}dd` } }}
             >
               Lanjut Belanja
             </Button>
@@ -480,8 +481,7 @@ const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
                     {product.salePrice ? (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <Typography
-                          color='primary.main'
-                          sx={{ fontWeight: 'medium', fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                          sx={{ fontWeight: 'medium', fontSize: { xs: '0.875rem', sm: '1rem' }, color: primaryColor }}
                         >
                           {formatRupiah(product.salePrice)}
                         </Typography>
@@ -495,8 +495,7 @@ const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
                       </Box>
                     ) : (
                       <Typography
-                        color='primary.main'
-                        sx={{ fontWeight: 'medium', fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                        sx={{ fontWeight: 'medium', fontSize: { xs: '0.875rem', sm: '1rem' }, color: primaryColor }}
                       >
                         {formatRupiah(product.price)}
                       </Typography>
@@ -554,13 +553,13 @@ const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
                   size='small'
                   onClick={() => removeFromCart(product.id)}
                   sx={{
-                    color: '#E91E63',
-                    border: '1px solid #E91E63',
+                    color: primaryColor,
+                    border: `1px solid ${primaryColor}`,
                     borderRadius: '8px',
                     padding: { xs: '6px', sm: '8px' },
                     '&:hover': {
-                      bgcolor: '#FCE4EC',
-                      borderColor: '#C2185B'
+                      bgcolor: `${primaryColor}15`,
+                      borderColor: `${primaryColor}dd`
                     }
                   }}
                 >
@@ -574,8 +573,8 @@ const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
           <Typography
             href={subdomain === 'store' ? '/store' : `/s/${subdomain}`}
             component={Link}
-            className='flex items-center justify-between gap-4 plb-2 pli-5 border border-primary rounded'
-            color='primary.main'
+            className='flex items-center justify-between gap-4 plb-2 pli-5 border rounded'
+            sx={{ borderColor: primaryColor, color: primaryColor }}
           >
             Tambah lebih banyak produk dari toko
             <DirectionalIcon ltrIconClass='tabler-arrow-right' rtlIconClass='tabler-arrow-left' className='text-base' />
@@ -803,7 +802,7 @@ const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
               </div>
               <div className='flex items-center flex-wrap justify-between'>
                 <Typography color='text.primary'>Diskon Kupon</Typography>
-                <Typography href='/' component={Link} onClick={e => e.preventDefault()} color='primary.main'>
+                <Typography href='/' component={Link} onClick={e => e.preventDefault()} sx={{ color: primaryColor }}>
                   0
                 </Typography>
               </div>
@@ -851,9 +850,10 @@ const StepCart = ({ handleNext, setCheckoutData }: StepCartProps) => {
             onClick={handleCheckout}
             disabled={!isFormValid() || !selectedPayment || isProcessing}
             sx={{
-              bgcolor: '#E91E63',
-              '&:hover': { bgcolor: '#C2185B' },
-              '&:disabled': { bgcolor: '#ccc' }
+              bgcolor: primaryColor,
+              '&:hover': { bgcolor: `${primaryColor}dd` },
+              '&:disabled': { bgcolor: '#ccc' },
+              boxShadow: 'none !important'
             }}
           >
             {isProcessing ? (

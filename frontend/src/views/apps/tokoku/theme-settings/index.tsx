@@ -18,35 +18,58 @@ import Divider from '@mui/material/Divider'
 // Component Imports
 import CustomTabList from '@core/components/mui/TabList'
 
+// Context Imports
+import { useRBAC } from '@/contexts/rbacContext'
+
 const ThemeSettings = ({ tabContentList }: { tabContentList: { [key: string]: ReactElement } }) => {
+  // RBAC Context
+  const { currentStore } = useRBAC()
+
   // States
   const [activeTab, setActiveTab] = useState('general')
-  const [storeName, setStoreName] = useState<string>('')
 
   useEffect(() => {
-    // Get store name from localStorage
-    const user = localStorage.getItem('user')
-    if (user) {
-      const userData = JSON.parse(user)
-      if (userData.store?.nama_toko) {
-        setStoreName(userData.store.nama_toko)
-      }
-    }
-  }, [])
+    console.log('Current Store from RBAC:', currentStore)
+  }, [currentStore])
 
   const handleChange = (event: SyntheticEvent, value: string) => {
     setActiveTab(value)
   }
 
   const handleViewWebsite = () => {
-    if (storeName) {
-      // Convert store name to URL-friendly format
-      const storeSlug = storeName.toLowerCase().replace(/\s+/g, '-')
-      // Open store in new tab
-      window.open(`http://localhost:8080/store/${storeSlug}`, '_blank')
+    // Get subdomain from RBAC context first
+    const subdomain = currentStore?.subdomain || currentStore?.nama_toko?.toLowerCase().replace(/\s+/g, '-')
+
+    console.log('Opening store with subdomain:', subdomain)
+
+    if (subdomain) {
+      // Open store with subdomain
+      window.open(`http://localhost:8080/s/${subdomain}`, '_blank')
     } else {
-      // Fallback to general store page
-      window.open(`http://localhost:8080/store`, '_blank')
+      // If no subdomain, try to get from localStorage
+      const user = localStorage.getItem('user')
+      if (user) {
+        const userData = JSON.parse(user)
+        const fallbackSubdomain = userData.store?.subdomain
+
+        console.log('Fallback subdomain from localStorage:', fallbackSubdomain)
+
+        if (fallbackSubdomain) {
+          window.open(`http://localhost:8080/s/${fallbackSubdomain}`, '_blank')
+        } else {
+          // Last resort - use store name as slug
+          const storeName = userData.store?.nama_toko
+          if (storeName) {
+            const storeSlug = storeName.toLowerCase().replace(/\s+/g, '-')
+            console.log('Using store name as slug:', storeSlug)
+            window.open(`http://localhost:8080/s/${storeSlug}`, '_blank')
+          } else {
+            window.open(`http://localhost:8080/store`, '_blank')
+          }
+        }
+      } else {
+        window.open(`http://localhost:8080/store`, '_blank')
+      }
     }
   }
 

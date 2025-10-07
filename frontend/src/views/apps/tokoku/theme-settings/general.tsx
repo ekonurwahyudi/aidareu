@@ -45,7 +45,7 @@ const General = () => {
   const [formData, setFormData] = useState({
     site_title: '',
     site_tagline: '',
-    primary_color: '#0da487'
+    primary_color: '#E91E63'
   })
   const [logo, setLogo] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string>('')
@@ -53,7 +53,10 @@ const General = () => {
   const [faviconPreview, setFaviconPreview] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
-  const [tempColor, setTempColor] = useState('#0da487')
+  const [tempColor, setTempColor] = useState('#E91E63')
+
+  // Default primary color
+  const DEFAULT_PRIMARY_COLOR = '#E91E63'
 
   // Get store UUID from RBAC Context - same as Products
   const storeUuid = currentStore?.uuid || currentStore?.id
@@ -90,7 +93,7 @@ const General = () => {
         setFormData({
           site_title: settings.site_title || '',
           site_tagline: settings.site_tagline || '',
-          primary_color: settings.primary_color || '#0da487'
+          primary_color: settings.primary_color || '#E91E63'
         })
 
         if (settings.logo) {
@@ -120,6 +123,48 @@ const General = () => {
         setLogoPreview(reader.result as string)
       }
       reader.readAsDataURL(file)
+    }
+  }
+
+  const handleDeleteLogo = async () => {
+    if (!storeUuid) {
+      toast.error('Store UUID not found')
+      return
+    }
+
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append('uuid_store', storeUuid)
+      formDataToSend.append('delete_logo', 'true')
+
+      const authToken = localStorage.getItem('auth_token')
+
+      const response = await fetch('http://localhost:8000/api/theme-settings/general', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: formDataToSend
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success('Logo deleted successfully')
+        setLogo(null)
+        setLogoPreview('')
+        fetchSettings(storeUuid)
+      } else {
+        toast.error(data.message || 'Failed to delete logo')
+      }
+    } catch (error) {
+      console.error('Error deleting logo:', error)
+      toast.error('An error occurred while deleting logo')
     }
   }
 
@@ -196,10 +241,33 @@ const General = () => {
       </Typography>
       <Box>
         <Grid container spacing={6}>
+                    {/* Site Title */}
+          <Grid size={{ xs: 12 }}>
+            <TextField
+              fullWidth
+              label='Site Title'
+              placeholder={storeName || 'AiDareU'}
+              value={formData.site_title}
+              onChange={(e) => handleInputChange('site_title', e.target.value)}
+              helperText={storeName ? `Your store name: ${storeName}` : ''}
+            />
+          </Grid>
+
+          {/* Site Tagline */}
+          <Grid size={{ xs: 12 }}>
+            <TextField
+              fullWidth
+              label='Site Tag line'
+              placeholder="Where Creativity Meets Innovation"
+              value={formData.site_tagline}
+              onChange={(e) => handleInputChange('site_tagline', e.target.value)}
+            />
+          </Grid>
+          
           {/* Logo Upload */}
           <Grid size={{ xs: 12 }}>
             <Typography variant='body2' className='mbe-2'>
-              Logo Toko
+              Logo Toko (Optional)
             </Typography>
             <Typography variant='caption' color='text.secondary' className='mbe-4'>
               Upload image size 180x50px recommended
@@ -224,20 +292,31 @@ const General = () => {
                 </Box>
               )}
               <div className='flex flex-col gap-4'>
-                <Button
-                  variant='contained'
-                  component='label'
-                  htmlFor='logo-upload'
-                >
-                  Upload Logo
-                  <input
-                    hidden
-                    type='file'
-                    id='logo-upload'
-                    accept='image/png, image/jpeg, image/jpg, image/gif'
-                    onChange={handleLogoChange}
-                  />
-                </Button>
+                <div className='flex gap-2'>
+                  <Button
+                    variant='contained'
+                    component='label'
+                    htmlFor='logo-upload'
+                  >
+                    Upload Logo
+                    <input
+                      hidden
+                      type='file'
+                      id='logo-upload'
+                      accept='image/png, image/jpeg, image/jpg, image/gif'
+                      onChange={handleLogoChange}
+                    />
+                  </Button>
+                  {logoPreview && (
+                    <Button
+                      variant='outlined'
+                      color='error'
+                      onClick={handleDeleteLogo}
+                    >
+                      Delete
+                    </Button>
+                  )}
+                </div>
                 <Typography variant='caption' color='text.secondary'>
                   Allowed PNG, JPG or GIF. Max size of 2MB
                 </Typography>
@@ -294,29 +373,6 @@ const General = () => {
             </Box>
           </Grid>
 
-          {/* Site Title */}
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label='Site Title'
-              placeholder={storeName || 'FastKart Marketplace: Where Vendors Shine Together'}
-              value={formData.site_title}
-              onChange={(e) => handleInputChange('site_title', e.target.value)}
-              helperText={storeName ? `Your store name: ${storeName}` : ''}
-            />
-          </Grid>
-
-          {/* Site Tagline */}
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label='Site Tag line'
-              placeholder="Shop Unique, Sell Exceptional – FastKart's Multi-Vendor Unive"
-              value={formData.site_tagline}
-              onChange={(e) => handleInputChange('site_tagline', e.target.value)}
-            />
-          </Grid>
-
           {/* Primary Color */}
           <Grid size={{ xs: 12 }}>
             <Typography variant='body2' className='mbe-2' sx={{ fontWeight: 500 }}>
@@ -348,17 +404,26 @@ const General = () => {
               >
                 <i className='tabler-pencil' style={{ fontSize: '2rem', color: 'white', opacity: 0.9 }} />
               </Box>
-              <Box sx={{ flex: 1 }}>
+              <Box sx={{ flex: 1, display: 'flex', gap: 2, alignItems: 'start', flexDirection: 'column' }}>
                 <TextField
                   fullWidth
                   label='HEX Color'
                   value={formData.primary_color}
                   onChange={(e) => handleInputChange('primary_color', e.target.value)}
-                  placeholder='#0da487'
+                  placeholder='#E91E63'
                   inputProps={{
                     style: { fontFamily: 'monospace', fontSize: '1rem' }
                   }}
                 />
+                <Button
+                  variant='outlined'
+                  size='small'
+                  startIcon={<i className='tabler-refresh' />}
+                  onClick={() => handleInputChange('primary_color', DEFAULT_PRIMARY_COLOR)}
+                  disabled={formData.primary_color === DEFAULT_PRIMARY_COLOR}
+                >
+                  Reset to Default
+                </Button>
               </Box>
             </Box>
           </Grid>

@@ -903,8 +903,46 @@ function ProductDetailPage() {
   }
   const mainImage = displayImages[selectedImageIndex] || displayImages[0]
 
+  // Get primary color from store settings
+  const primaryColor = storeData?.settings?.primary_color || '#E91E63'
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#FAFBFC' }}>
+      {/* Apply dynamic primary color */}
+      <style jsx global>{`
+        :root {
+          --primary-color: ${primaryColor};
+          --primary-color-rgb: ${parseInt(primaryColor.slice(1, 3), 16)}, ${parseInt(primaryColor.slice(3, 5), 16)}, ${parseInt(primaryColor.slice(5, 7), 16)};
+        }
+
+        /* Remove all button shadows */
+        .MuiButton-root {
+          box-shadow: none !important;
+        }
+
+        .MuiButton-containedPrimary {
+          background-color: ${primaryColor} !important;
+        }
+        .MuiButton-containedPrimary:hover {
+          background-color: ${primaryColor}dd !important;
+        }
+        .MuiButton-outlinedPrimary {
+          color: ${primaryColor} !important;
+          border-color: ${primaryColor} !important;
+        }
+        .MuiIconButton-colorPrimary {
+          color: ${primaryColor} !important;
+        }
+        .MuiChip-colorPrimary {
+          background-color: ${primaryColor}22 !important;
+          color: ${primaryColor} !important;
+        }
+
+        /* Badge colors */
+        .MuiBadge-badge {
+          background-color: ${primaryColor} !important;
+        }
+      `}</style>
       <StoreHeader
         cartItemCount={getTotalItems()}
         onCartClick={handleCartClick}
@@ -914,6 +952,7 @@ function ProductDetailPage() {
         onAddToCart={handleAddToCart}
         storeName={storeData?.store?.name || 'AiDareU Store'}
         storeLogo={storeData?.settings?.logo ? `http://localhost:8000/storage/${storeData.settings.logo}` : undefined}
+        primaryColor={primaryColor}
       />
 
       <Container
