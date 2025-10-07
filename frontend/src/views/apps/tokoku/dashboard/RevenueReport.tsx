@@ -17,7 +17,6 @@ import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
-import PopularProducts from '@/views/apps/tokoku/dashboard/PopularProducts'
 
 // Third Party Imports
 import type { ApexOptions } from 'apexcharts'
@@ -238,17 +237,10 @@ const RevenueReport = ({ revenueData = [] }: RevenueReportProps) => {
 
   return (
     <Card>
-      <Grid container>
-        <Grid size={{ xs: 12, sm: 8 }} className='border-r'>
-          <CardHeader title='Revenue Report' />
-          <CardContent>
-            <AppReactApexCharts type='bar' height={320} width='100%' series={barSeries} options={barOptions} />
-          </CardContent>
-        </Grid>
-       <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <PopularProducts />
-      </Grid>
-      </Grid>
+      <CardHeader title='Revenue Report' />
+      <CardContent>
+        <AppReactApexCharts type='bar' height={320} width='100%' series={barSeries} options={barOptions} />
+      </CardContent>
     </Card>
   )
 }
