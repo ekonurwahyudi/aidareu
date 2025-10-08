@@ -41,8 +41,8 @@ RUN touch src/assets/iconify-icons/generated-icons.css || true
 # Run the icon bundling script manually
 RUN node_modules/.bin/tsx src/assets/iconify-icons/bundle-icons-css.ts || true
 
-# Buat konfigurasi Next.js sementara untuk mengabaikan error TypeScript
-RUN echo 'module.exports = { typescript: { ignoreBuildErrors: true }, eslint: { ignoreDuringBuilds: true } }' > next.config.js
+# Buat konfigurasi Next.js sementara yang mempertahankan output: 'standalone'
+RUN echo 'const originalConfig = require("./next.config.ts"); module.exports = { ...originalConfig, typescript: { ignoreBuildErrors: true }, eslint: { ignoreDuringBuilds: true }, output: "standalone" };' > next.config.js
 
 # Build application dengan flag untuk melewati linting
 RUN npm run build -- --no-lint
