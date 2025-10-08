@@ -79,7 +79,7 @@ const General = () => {
     try {
       // Add cache busting parameter to prevent caching
       const timestamp = new Date().getTime()
-      const response = await fetch(`http://localhost:8000/api/theme-settings?store_uuid=${uuid}&_t=${timestamp}`, {
+      const response = await fetch(`http://aidareu.com/api/theme-settings?store_uuid=${uuid}&_t=${timestamp}`, {
         cache: 'no-store'
       })
       const data = await response.json()
