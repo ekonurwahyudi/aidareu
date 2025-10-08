@@ -1,35 +1,40 @@
-# Git
+# Git files
 .git
 .gitignore
 .gitattributes
 
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-*~
-
-# Dependencies
-vendor/
-node_modules/
-
-# Environment
+# Environment files
 .env
 .env.backup
 .env.production
 
-# Storage & Cache
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
-storage/logs/*
-bootstrap/cache/*
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
 
 # Testing
 tests/
 .phpunit.result.cache
 phpunit.xml
+
+# Storage (will be recreated)
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+
+# Vendor (will be installed in build)
+/vendor
 
 # Documentation
 README.md
@@ -39,7 +44,3 @@ README.md
 Dockerfile
 .dockerignore
 docker-compose.yml
-
-# OS
-.DS_Store
-Thumbs.db

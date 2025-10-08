@@ -1,14 +1,7 @@
-# Git
+# Git files
 .git
 .gitignore
 .gitattributes
-
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-*~
 
 # Dependencies
 node_modules/
@@ -26,25 +19,35 @@ build/
 dist/
 
 # Production
-.vercel
-.netlify
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Environment
+# Environment files
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env*.local
 
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
 
 # OS
-.DS_Store
 Thumbs.db
+
+# Misc
+*.pem
+.cache
 
 # Docker
 Dockerfile
