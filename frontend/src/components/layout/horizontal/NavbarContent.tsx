@@ -1,3 +1,8 @@
+'use client'
+
+// React Imports
+import { useEffect, useState } from 'react'
+
 // Next Imports
 import Link from 'next/link'
 
@@ -63,57 +68,76 @@ const shortcuts: ShortcutsType[] = [
   }
 ]
 
-const notifications: NotificationsType[] = [
-  {
-    avatarImage: '/images/avatars/8.png',
-    title: 'Congratulations Flora 🎉',
-    subtitle: 'Won the monthly bestseller gold badge',
-    time: '1h ago',
-    read: false
-  },
-  {
-    title: 'Cecilia Becker',
-    avatarColor: 'secondary',
-    subtitle: 'Accepted your connection',
-    time: '12h ago',
-    read: false
-  },
-  {
-    avatarImage: '/images/avatars/3.png',
-    title: 'Bernard Woods',
-    subtitle: 'You have new message from Bernard Woods',
-    time: 'May 18, 8:26 AM',
-    read: true
-  },
-  {
-    avatarIcon: 'tabler-chart-bar',
-    title: 'Monthly report generated',
-    subtitle: 'July month financial report is generated',
-    avatarColor: 'info',
-    time: 'Apr 24, 10:30 AM',
-    read: true
-  },
-  {
-    avatarText: 'MG',
-    title: 'Application has been approved 🚀',
-    subtitle: 'Your Meta Gadgets project application has been approved.',
-    avatarColor: 'success',
-    time: 'Feb 17, 12:17 PM',
-    read: true
-  },
-  {
-    avatarIcon: 'tabler-mail',
-    title: 'New message from Harry',
-    subtitle: 'You have new message from Harry',
-    avatarColor: 'error',
-    time: 'Jan 6, 1:48 PM',
-    read: true
-  }
-]
-
 const NavbarContent = () => {
   // Hooks
   const { isBreakpointReached } = useHorizontalNav()
+
+  // States
+  const [orderNotifications, setOrderNotifications] = useState<NotificationsType[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // Fetch order notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true)
+
+        // Get user data from localStorage
+        const userDataStr = localStorage.getItem('user_data')
+
+        if (!userDataStr) {
+          console.warn('⚠️ [Notifications] No user data found in localStorage, using default notifications')
+          return
+        }
+
+        const userData = JSON.parse(userDataStr)
+        const userUuid = userData.uuid
+
+        if (!userUuid) {
+          console.warn('⚠️ [Notifications] No user UUID in user data:', userData)
+          return
+        }
+
+        console.log('📡 [Notifications] Fetching notifications for user:', userUuid)
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/notifications/orders?user_uuid=${userUuid}`,
+          {
+            cache: 'no-store',
+            headers: {
+              'X-User-UUID': userUuid
+            }
+          }
+        )
+
+        const result = await response.json()
+
+        console.log('📬 [Notifications] API Response:', result)
+
+        if (result.success && result.data) {
+          if (result.data.length > 0) {
+            console.log('✅ [Notifications] Setting', result.data.length, 'notifications')
+            setOrderNotifications(result.data)
+          } else {
+            console.log('ℹ️ [Notifications] No new orders found')
+          }
+        } else {
+          console.warn('⚠️ [Notifications] Invalid API response:', result)
+        }
+      } catch (error) {
+        console.error('❌ [Notifications] Error fetching notifications:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchNotifications()
+
+    // Refresh notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <div
@@ -133,7 +157,7 @@ const NavbarContent = () => {
         {/* <NavSearch /> */}
         {/* <ModeDropdown /> */}
         {/* <ShortcutsDropdown shortcuts={shortcuts} /> */}
-        <NotificationsDropdown notifications={notifications} />
+        <NotificationsDropdown notifications={orderNotifications} />
         <UserDropdown />
         {/* Language Dropdown, Notification Dropdown, quick access menu dropdown, user dropdown will be placed here */}
       </div>

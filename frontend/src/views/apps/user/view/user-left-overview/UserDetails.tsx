@@ -74,8 +74,8 @@ const UserDetails = () => {
       
       const result = await response.json()
       console.log('API Response:', result)
-      
-      if (result.success) {
+
+      if (result.success || result.status === 'success') {
         setUserData(result.data)
       } else {
         throw new Error(result.message || 'Gagal mengambil data pengguna')

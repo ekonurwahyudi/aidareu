@@ -14,6 +14,7 @@ import CustomChip from '@core/components/mui/Chip'
 
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
+import { useRBAC } from '@/contexts/rbacContext'
 
 // Styled Component Imports
 import StyledHorizontalNavExpandIcon from '@menu/styles/horizontal/StyledHorizontalNavExpandIcon'
@@ -54,6 +55,7 @@ const HorizontalMenu = () => {
   // Hooks
   const verticalNavOptions = useVerticalNav()
   const theme = useTheme()
+  const { hasRole } = useRBAC()
 
   // Vars
   const { transitionDuration } = verticalNavOptions
@@ -137,10 +139,12 @@ const HorizontalMenu = () => {
               </svg>
             }
           >
-            <MenuItem href="#" icon={<i className='tabler-school' />}>
-              My Course
+            <MenuItem href="#" icon={<i className='tabler-school' />}
+              suffix={<CustomChip label="Coming Soon" size="small" variant="tonal" color="warning" round="true" />}
+            >
+              Materi Pembelajaran (Cooming Soon)
             </MenuItem>
-            <MenuItem href="#" icon={<i className='tabler-search' />}>
+            {/* <MenuItem href="#" icon={<i className='tabler-search' />}>
               Explore Course
             </MenuItem>
             <MenuItem href="#" icon={<i className='tabler-plus' />}>
@@ -148,7 +152,7 @@ const HorizontalMenu = () => {
             </MenuItem>
             <MenuItem href="#" icon={<i className='tabler-category' />}>
               Add Kategory
-            </MenuItem>
+            </MenuItem> */}
           </SubMenu>
           
           <SubMenu label="Tokoku" 
@@ -191,36 +195,38 @@ const HorizontalMenu = () => {
           <MenuItem href="#" icon={<i className='tabler-brand-github-copilot' />}>
             Join Komunitas
           </MenuItem>
-          <SubMenu label="Master Data"
-          icon={
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-              <rect opacity="0.5" x="7" y="2" width="14" height="16" rx="3" fill="currentColor"/>
-    <rect x="3" y="6" width="14" height="16" rx="3" fill="currentColor"/>
-            </svg>
-          }
-        >
-            <MenuItem href="#" icon={<i className='tabler-user-screen' />}>
-              User Management
-            </MenuItem>
-            <MenuItem href="#" icon={<i className='tabler-building-store' />}>
-              Toko Management
-            </MenuItem>
-            <MenuItem href="#" icon={<i className='tabler-tournament' />}>
-              Menu Management
-            </MenuItem>
-            <MenuItem href="#" icon={<i className='tabler-world-www' />}>
-              Domain Management
-            </MenuItem>
-            <MenuItem href="#" icon={<i className='tabler-mood-search' />}>
-              Customer Management
-            </MenuItem>
-            <MenuItem href="#" icon={<i className='tabler-album' />}>
-              Learning Management
-            </MenuItem>
-            <MenuItem href="#" icon={<i className='tabler-augmented-reality' />}>
-              Product Management
-            </MenuItem>
-          </SubMenu>
+          {hasRole('superadmin') && (
+            <SubMenu label="Master Data"
+            icon={
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                <rect opacity="0.5" x="7" y="2" width="14" height="16" rx="3" fill="currentColor"/>
+      <rect x="3" y="6" width="14" height="16" rx="3" fill="currentColor"/>
+              </svg>
+            }
+          >
+              <MenuItem href="#" icon={<i className='tabler-user-screen' />}>
+                User Management
+              </MenuItem>
+              <MenuItem href="#" icon={<i className='tabler-building-store' />}>
+                Toko Management
+              </MenuItem>
+              <MenuItem href="#" icon={<i className='tabler-tournament' />}>
+                Menu Management
+              </MenuItem>
+              <MenuItem href="#" icon={<i className='tabler-world-www' />}>
+                Domain Management
+              </MenuItem>
+              <MenuItem href="#" icon={<i className='tabler-mood-search' />}>
+                Customer Management
+              </MenuItem>
+              <MenuItem href="#" icon={<i className='tabler-album' />}>
+                Learning Management
+              </MenuItem>
+              <MenuItem href="#" icon={<i className='tabler-augmented-reality' />}>
+                Product Management
+              </MenuItem>
+            </SubMenu>
+          )}
           
       </Menu>
       {/* <Menu

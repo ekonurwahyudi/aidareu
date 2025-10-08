@@ -308,7 +308,7 @@ const RecentKeterangan = () => {
             </Button>
           }
         />
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto px-6 pb-6">
           <table className={tableStyles.table}>
             <thead>
               <tr>

@@ -41,7 +41,11 @@
       "Bash(cd:*)",
       "Bash(PORT=3000 npm run dev)",
       "Bash(cat:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": [],
