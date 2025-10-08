@@ -1,7 +1,7 @@
 # Dockerfile untuk Laravel Backend dengan PostgreSQL
 FROM php:8.2-fpm-alpine
 
-# Install system dependencies
+# Install Nginx dan dependensi sistem
 RUN apk add --no-cache \
     git \
     curl \
@@ -13,61 +13,80 @@ RUN apk add --no-cache \
     postgresql-client \
     oniguruma-dev \
     linux-headers \
+    nginx \
     $PHPIZE_DEPS
 
-# Install PHP extensions
+# Install ekstensi PHP
 RUN docker-php-ext-install pdo pdo_pgsql pgsql mbstring exif pcntl bcmath gd xml
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
+# Set direktori kerja
 WORKDIR /var/www/html
 
-# Copy composer files
+# Salin file composer
 COPY composer.json composer.lock ./
 
-# Install dependencies
+# Install dependensi
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 
-# Copy application files
+# Salin file aplikasi
 COPY . .
 
-# Generate autoload files
+# Generate file autoload
 RUN composer dump-autoload --optimize --no-dev
 
-# Set permissions
+# Salin konfigurasi Nginx
+COPY nginx.conf /etc/nginx/http.d/default.conf
+
+# Set izin
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Create entrypoint script
-RUN echo '#!/bin/sh' > /entrypoint.sh && \
-    echo 'set -e' >> /entrypoint.sh && \
-    echo '' >> /entrypoint.sh && \
-    echo 'echo "Waiting for database..."' >> /entrypoint.sh && \
-    echo 'until PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "\q"; do' >> /entrypoint.sh && \
-    echo '  echo "Database is unavailable - sleeping"' >> /entrypoint.sh && \
-    echo '  sleep 2' >> /entrypoint.sh && \
-    echo 'done' >> /entrypoint.sh && \
-    echo '' >> /entrypoint.sh && \
-    echo 'echo "Database is up - executing command"' >> /entrypoint.sh && \
-    echo '' >> /entrypoint.sh && \
-    echo '# Run migrations' >> /entrypoint.sh && \
-    echo 'php artisan migrate --force' >> /entrypoint.sh && \
-    echo '' >> /entrypoint.sh && \
-    echo '# Cache config for production' >> /entrypoint.sh && \
-    echo 'php artisan config:cache' >> /entrypoint.sh && \
-    echo 'php artisan route:cache' >> /entrypoint.sh && \
-    echo 'php artisan view:cache' >> /entrypoint.sh && \
-    echo '' >> /entrypoint.sh && \
-    echo '# Start PHP-FPM in background' >> /entrypoint.sh && \
-    echo 'php-fpm -D' >> /entrypoint.sh && \
-    echo '' >> /entrypoint.sh && \
-    echo '# Start Laravel server' >> /entrypoint.sh && \
-    echo 'exec php artisan serve --host=0.0.0.0 --port=8000' >> /entrypoint.sh && \
-    chmod +x /entrypoint.sh
+# Buat script untuk menjalankan Nginx dan PHP-FPM
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo 'set -e' >> /start.sh && \
+    echo 'cd /var/www/html' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Buat .env dari .env.example jika belum ada' >> /start.sh && \
+    echo 'if [ ! -f ".env" ]; then' >> /start.sh && \
+    echo '  if [ -f ".env.example" ]; then' >> /start.sh && \
+    echo '    cp .env.example .env' >> /start.sh && \
+    echo '  fi' >> /start.sh && \
+    echo 'fi' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Generate APP_KEY jika belum ada' >> /start.sh && \
+    echo 'if [ -z "$APP_KEY" ]; then' >> /start.sh && \
+    echo '  php artisan key:generate --force || true' >> /start.sh && \
+    echo 'fi' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Permission' >> /start.sh && \
+    echo 'chown -R www-data:www-data storage bootstrap/cache' >> /start.sh && \
+    echo 'chmod -R ug+rwx storage bootstrap/cache' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Storage symlink' >> /start.sh && \
+    echo 'php artisan storage:link || true' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Cache config/views/routes' >> /start.sh && \
+    echo 'php artisan config:cache || true' >> /start.sh && \
+    echo 'php artisan route:cache || true' >> /start.sh && \
+    echo 'php artisan view:cache || true' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Migrate jika diminta' >> /start.sh && \
+    echo 'if [ "$RUN_MIGRATIONS" = "true" ]; then' >> /start.sh && \
+    echo '  php artisan migrate --force || true' >> /start.sh && \
+    echo 'fi' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Jalankan PHP-FPM dan Nginx' >> /start.sh && \
+    echo 'php-fpm -D' >> /start.sh && \
+    echo 'echo "Laravel application started on port 8080"' >> /start.sh && \
+    echo 'nginx -g "daemon off;"' >> /start.sh && \
+    chmod +x /start.sh
 
-EXPOSE 8000
+# Expose port 8080 (sesuai dengan nginx.conf)
+EXPOSE 8080
 
-ENTRYPOINT ["/entrypoint.sh"]
+# Jalankan script start
+CMD ["/start.sh"]
