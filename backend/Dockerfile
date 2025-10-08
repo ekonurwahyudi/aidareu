@@ -81,12 +81,12 @@ RUN echo '#!/bin/sh' > /start.sh && \
     echo '' >> /start.sh && \
     echo '# Jalankan PHP-FPM dan Nginx' >> /start.sh && \
     echo 'php-fpm -D' >> /start.sh && \
-    echo 'echo "Laravel application started on port 8080"' >> /start.sh && \
+    echo 'echo "Laravel application started on port 8888"' >> /start.sh && \
     echo 'nginx -g "daemon off;"' >> /start.sh && \
     chmod +x /start.sh
 
-# Expose port 8080 (sesuai dengan nginx.conf)
-EXPOSE 8080
+# Expose port 8888 (sesuai dengan nginx.conf)
+EXPOSE 8888
 
 # Jalankan script start
 CMD ["/start.sh"]
