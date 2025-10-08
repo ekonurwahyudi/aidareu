@@ -10,6 +10,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
+# Menonaktifkan script postinstall saat instalasi dependencies
+RUN npm set-script postinstall ""
 # Install dependencies
 RUN npm ci --legacy-peer-deps
 
@@ -28,6 +30,8 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# Jalankan build icons secara manual setelah semua file tersedia
+RUN npm run build:icons || true
 # Build application
 RUN npm run build
 
