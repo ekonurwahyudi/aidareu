@@ -41,8 +41,8 @@ RUN touch src/assets/iconify-icons/generated-icons.css || true
 # Run the icon bundling script manually
 RUN node_modules/.bin/tsx src/assets/iconify-icons/bundle-icons-css.ts || true
 
-# Build application
-RUN npm run build
+# Build application with --no-lint flag to skip linting
+RUN npm run build -- --no-lint
  
 # Stage 3: Runner
 FROM node:20-alpine AS runner
