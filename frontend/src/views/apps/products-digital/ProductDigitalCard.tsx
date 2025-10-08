@@ -6,6 +6,9 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
+// Context Imports
+import { useRBAC } from '@/contexts/rbacContext'
+
 // MUI Imports
 import Grid from '@mui/material/Grid2'
 import Card from '@mui/material/Card'
@@ -74,6 +77,7 @@ const ProductDigitalCard = (props: Props) => {
 
   // Hooks
   const router = useRouter()
+  const { hasRole } = useRBAC()
 
   // States
   const [category, setCategory] = useState<string>('All')
@@ -198,14 +202,14 @@ const ProductDigitalCard = (props: Props) => {
                 ))}
               </Select>
             </FormControl>
-            <Button
+            {hasRole('superadmin') && (<Button
               variant='contained'
               color='primary'
               startIcon={<i className='tabler-plus' />}
               onClick={handleAddProduct}
             >
               Add Product
-            </Button>
+            </Button>)}
           </div>
         </div>
         {data.length > 0 ? (
@@ -313,7 +317,7 @@ const ProductDigitalCard = (props: Props) => {
       </CardContent>
 
       {/* Menu for Edit/Delete */}
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+      {hasRole('superadmin') && (<Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
         <MenuItem onClick={() => menuProduct && handleEditProduct(menuProduct)}>
           <i className='tabler-edit mie-2' />
           Edit
@@ -322,7 +326,7 @@ const ProductDigitalCard = (props: Props) => {
           <i className='tabler-trash mie-2' />
           Delete
         </MenuItem>
-      </Menu>
+      </Menu>)}
 
       {/* Add/Edit Dialog */}
       <AddEditProductDialog

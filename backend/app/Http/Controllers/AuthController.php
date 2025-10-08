@@ -38,16 +38,10 @@ class AuthController extends Controller
         }
 
         try {
-            // Test without database operations first
-            return response()->json([
-                'message' => 'Validation passed, ready to create user',
-                'data' => $request->all()
-            ], 200);
-            
-            // Create user (commented for debugging)
-            /*
+            // Create user
             $user = User::create([
                 'uuid' => Str::uuid(),
+                'name' => $request->nama_lengkap, // Set name from nama_lengkap
                 'nama_lengkap' => $request->nama_lengkap,
                 'email' => $request->email,
                 'no_hp' => $request->no_hp,
@@ -58,12 +52,11 @@ class AuthController extends Controller
             ]);
 
             // Assign 'owner' role to the user
-            // $user->assignRole('owner'); // Temporarily commented for debugging
+            $user->assignRole('owner');
 
             // Generate verification code
             $verificationCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-            */
-            
+
             // Store verification code in cache for 10 minutes
             Cache::put(
                 'email_verification_' . $user->email, 
@@ -244,12 +237,18 @@ class AuthController extends Controller
      */
     private function sendVerificationEmail($user, $code)
     {
-        // For now, we'll just log the code
-        // In production, you should send actual email
-        Log::info('Verification code for ' . $user->email . ': ' . $code);
-        
-        // TODO: Implement actual email sending
-        // Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
+        try {
+            // Log the code for debugging
+            Log::info('Sending verification code to ' . $user->email . ': ' . $code);
+
+            // Send actual email
+            Mail::to($user->email)->send(new \App\Mail\VerificationCodeMail($code));
+
+            Log::info('Verification email sent successfully to ' . $user->email);
+        } catch (\Exception $e) {
+            Log::error('Failed to send verification email to ' . $user->email . ': ' . $e->getMessage());
+            // Don't throw exception, just log it - user can still use resend feature
+        }
     }
 
     /**
@@ -326,6 +325,166 @@ class AuthController extends Controller
                 'message' => 'Logout failed',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Forgot Password - Send reset code
+     */
+    public function forgotPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $email = $request->email;
+
+            // Find user
+            $user = User::where('email', $email)->first();
+
+            if (!$user) {
+                return response()->json([
+                    'message' => 'If an account exists with this email, you will receive a password reset code.'
+                ], 200); // Don't reveal if user exists or not
+            }
+
+            // Check cooldown (prevent spam)
+            $lastSent = Cache::get('last_password_reset_sent_' . $email);
+            if ($lastSent && $lastSent->diffInSeconds(now()) < 60) {
+                return response()->json([
+                    'message' => 'Please wait before requesting another reset code.'
+                ], 429);
+            }
+
+            // Generate reset code
+            $resetCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            // Store reset code in cache for 15 minutes
+            Cache::put(
+                'password_reset_' . $email,
+                $resetCode,
+                now()->addMinutes(15)
+            );
+
+            // Store last sent time
+            Cache::put(
+                'last_password_reset_sent_' . $email,
+                now(),
+                now()->addMinutes(5)
+            );
+
+            // Send reset email
+            $this->sendPasswordResetEmail($user, $resetCode);
+
+            return response()->json([
+                'message' => 'If an account exists with this email, you will receive a password reset code.',
+                'email' => $email
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Forgot password error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to process password reset request',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset Password with code
+     */
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'code' => 'required|string|size:6',
+            'password' => 'required|string|min:8|confirmed'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $email = $request->email;
+            $code = $request->code;
+            $password = $request->password;
+
+            // Get stored reset code
+            $storedCode = Cache::get('password_reset_' . $email);
+
+            if (!$storedCode) {
+                return response()->json([
+                    'message' => 'Reset code has expired. Please request a new one.'
+                ], 400);
+            }
+
+            if ($storedCode !== $code) {
+                return response()->json([
+                    'message' => 'Invalid reset code.'
+                ], 400);
+            }
+
+            // Find user
+            $user = User::where('email', $email)->first();
+
+            if (!$user) {
+                return response()->json([
+                    'message' => 'User not found.'
+                ], 404);
+            }
+
+            // Update password
+            $user->password = Hash::make($password);
+            $user->save();
+
+            // Remove reset code from cache
+            Cache::forget('password_reset_' . $email);
+            Cache::forget('last_password_reset_sent_' . $email);
+
+            // Revoke all tokens (force re-login)
+            $user->tokens()->delete();
+
+            return response()->json([
+                'message' => 'Password reset successfully! Please login with your new password.'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Reset password error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Password reset failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Send password reset email
+     */
+    private function sendPasswordResetEmail($user, $code)
+    {
+        try {
+            // Log the code for debugging
+            Log::info('Sending password reset code to ' . $user->email . ': ' . $code);
+
+            // Send actual email
+            Mail::to($user->email)->send(new \App\Mail\PasswordResetMail($code));
+
+            Log::info('Password reset email sent successfully to ' . $user->email);
+        } catch (\Exception $e) {
+            Log::error('Failed to send password reset email to ' . $user->email . ': ' . $e->getMessage());
+            // Don't throw exception, just log it
         }
     }
 

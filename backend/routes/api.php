@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\SettingTokoController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\ProductDigitalController;
+use App\Http\Controllers\Api\NotificationController;
 
 // Test endpoint
 Route::get('/test', function () {
@@ -198,6 +199,10 @@ Route::get('/dashboard/revenue', [DashboardController::class, 'revenue']);
 Route::get('/dashboard/popular-products', [DashboardController::class, 'popularProducts']);
 Route::get('/dashboard/recent-orders', [DashboardController::class, 'recentOrders']);
 Route::get('/dashboard/customers', [DashboardController::class, 'customers']);
+
+// Public: Notification API (no auth required for testing)
+Route::get('/notifications/orders', [NotificationController::class, 'getOrderNotifications']);
+Route::post('/notifications/orders/{orderUuid}/read', [NotificationController::class, 'markAsRead']);
 
 // Public: Alternative API endpoints for frontend (no auth required)
 Route::get('/public/stores', [\App\Http\Controllers\StoreController::class, 'index']);

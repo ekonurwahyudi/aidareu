@@ -220,81 +220,87 @@ const NotificationDropdown = ({ notifications }: { notifications: NotificationsT
                     {notificationCount > 0 && (
                       <Chip size='small' variant='tonal' color='primary' label={`${notificationCount} New`} />
                     )}
-                    <Tooltip
-                      title={readAll ? 'Mark all as unread' : 'Mark all as read'}
-                      placement={placement === 'bottom-end' ? 'left' : 'right'}
-                      slotProps={{
-                        popper: {
-                          sx: {
-                            '& .MuiTooltip-tooltip': {
-                              transformOrigin:
-                                placement === 'bottom-end' ? 'right center !important' : 'right center !important'
+                    {notificationsState.length > 0 && (
+                      <Tooltip
+                        title={readAll ? 'Mark all as unread' : 'Mark all as read'}
+                        placement={placement === 'bottom-end' ? 'left' : 'right'}
+                        slotProps={{
+                          popper: {
+                            sx: {
+                              '& .MuiTooltip-tooltip': {
+                                transformOrigin:
+                                  placement === 'bottom-end' ? 'right center !important' : 'right center !important'
+                              }
                             }
                           }
-                        }
-                      }}
-                    >
-                      {notificationsState.length > 0 ? (
+                        }}
+                      >
                         <IconButton size='small' onClick={() => readAllNotifications()} className='text-textPrimary'>
                           <i className={readAll ? 'tabler-mail' : 'tabler-mail-opened'} />
                         </IconButton>
-                      ) : (
-                        <></>
-                      )}
-                    </Tooltip>
+                      </Tooltip>
+                    )}
                   </div>
                   <Divider />
                   <ScrollWrapper hidden={hidden}>
-                    {notificationsState.map((notification, index) => {
-                      const {
-                        title,
-                        subtitle,
-                        time,
-                        read,
-                        avatarImage,
-                        avatarIcon,
-                        avatarText,
-                        avatarColor,
-                        avatarSkin
-                      } = notification
+                    {notificationsState.length > 0 ? (
+                      notificationsState.map((notification, index) => {
+                        const {
+                          title,
+                          subtitle,
+                          time,
+                          read,
+                          avatarImage,
+                          avatarIcon,
+                          avatarText,
+                          avatarColor,
+                          avatarSkin
+                        } = notification
 
-                      return (
-                        <div
-                          key={index}
-                          className={classnames('flex plb-3 pli-4 gap-3 cursor-pointer hover:bg-actionHover group', {
-                            'border-be': index !== notificationsState.length - 1
-                          })}
-                          onClick={e => handleReadNotification(e, true, index)}
-                        >
-                          {getAvatar({ avatarImage, avatarIcon, title, avatarText, avatarColor, avatarSkin })}
-                          <div className='flex flex-col flex-auto'>
-                            <Typography variant='body2' className='font-medium mbe-1' color='text.primary'>
-                              {title}
-                            </Typography>
-                            <Typography variant='caption' color='text.secondary' className='mbe-2'>
-                              {subtitle}
-                            </Typography>
-                            <Typography variant='caption' color='text.disabled'>
-                              {time}
-                            </Typography>
+                        return (
+                          <div
+                            key={`notification-${index}-${title}`}
+                            className={classnames('flex plb-3 pli-4 gap-3 cursor-pointer hover:bg-actionHover group', {
+                              'border-be': index !== notificationsState.length - 1
+                            })}
+                            onClick={e => handleReadNotification(e, true, index)}
+                          >
+                            {getAvatar({ avatarImage, avatarIcon, title, avatarText, avatarColor, avatarSkin })}
+                            <div className='flex flex-col flex-auto'>
+                              <Typography variant='body2' className='font-medium mbe-1' color='text.primary'>
+                                {title}
+                              </Typography>
+                              <Typography variant='caption' color='text.secondary' className='mbe-2'>
+                                {subtitle}
+                              </Typography>
+                              <Typography variant='caption' color='text.disabled'>
+                                {time}
+                              </Typography>
+                            </div>
+                            <div className='flex flex-col items-end gap-2'>
+                              <Badge
+                                variant='dot'
+                                color={read ? 'secondary' : 'primary'}
+                                onClick={e => handleReadNotification(e, !read, index)}
+                                className={classnames('mbs-1 mie-1', {
+                                  'invisible group-hover:visible': read
+                                })}
+                              />
+                              <i
+                                className='tabler-x text-xl invisible group-hover:visible'
+                                onClick={e => handleRemoveNotification(e, index)}
+                              />
+                            </div>
                           </div>
-                          <div className='flex flex-col items-end gap-2'>
-                            <Badge
-                              variant='dot'
-                              color={read ? 'secondary' : 'primary'}
-                              onClick={e => handleReadNotification(e, !read, index)}
-                              className={classnames('mbs-1 mie-1', {
-                                'invisible group-hover:visible': read
-                              })}
-                            />
-                            <i
-                              className='tabler-x text-xl invisible group-hover:visible'
-                              onClick={e => handleRemoveNotification(e, index)}
-                            />
-                          </div>
-                        </div>
-                      )
-                    })}
+                        )
+                      })
+                    ) : (
+                      <div className='flex flex-col items-center justify-center p-8'>
+                        <Typography variant='body2' color='text.secondary'>
+                          No notifications
+                        </Typography>
+                      </div>
+                    )}
                   </ScrollWrapper>
                   <Divider />
                   <div className='p-4'>
