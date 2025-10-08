@@ -9,14 +9,14 @@ import type { PricingPlanType } from '@/types/pages/pricingTypes'
 import RekeningBank from './RekeningBank'
 // import BillingAddress from './BillingAddress'
 
-const BillingPlans = ({ data }: { data?: PricingPlanType[] }) => {
+const BillingPlans = ({ data, storeUuid }: { data?: PricingPlanType[], storeUuid?: string | null }) => {
   return (
     <Grid container spacing={6}>
       {/* <Grid size={{ xs: 12 }}>
         <CurrentPlan data={data} />
       </Grid> */}
       <Grid size={{ xs: 12 }}>
-        <RekeningBank />
+        <RekeningBank storeUuid={storeUuid} />
       </Grid>
       {/* <Grid size={{ xs: 12 }}>
         <BillingAddress />

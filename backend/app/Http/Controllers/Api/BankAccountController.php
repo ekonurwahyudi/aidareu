@@ -122,29 +122,29 @@ class BankAccountController extends Controller
     public function userIndex(): JsonResponse
     {
         try {
-            $user = Auth::user();
-            
-            if (!$user) {
-                // Try to get user from session if available
-                $user = auth('web')->user();
-                
-                if (!$user) {
-                    // For development/testing - try to find the specific user by UUID
-                    $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8'; // Your login UUID
-                    $user = \App\Models\User::where('uuid', $targetUuid)->first();
-                    
-                    if (!$user) {
-                        // Fallback to first user from database
-                        $user = \App\Models\User::first();
-                    }
-                }
+            $user = null;
+
+            // Try Sanctum auth first
+            if (request()->bearerToken()) {
+                $user = auth('sanctum')->user();
             }
-            
+
+            // Try web session auth
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+
+            // Try X-User-UUID header
+            if (!$user && request()->header('X-User-UUID')) {
+                $uuid = request()->header('X-User-UUID');
+                $user = \App\Models\User::where('uuid', $uuid)->first();
+            }
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No user found'
-                ], 404);
+                    'message' => 'User not authenticated. Please login again.'
+                ], 401);
             }
 
             // Get user's store
@@ -212,29 +212,29 @@ class BankAccountController extends Controller
         }
 
         try {
-            $user = Auth::user();
-            
-            if (!$user) {
-                // Try to get user from session if available
-                $user = auth('web')->user();
-                
-                if (!$user) {
-                    // For development/testing - try to find the specific user by UUID
-                    $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8'; // Your login UUID
-                    $user = \App\Models\User::where('uuid', $targetUuid)->first();
-                    
-                    if (!$user) {
-                        // Fallback to first user from database
-                        $user = \App\Models\User::first();
-                    }
-                }
+            $user = null;
+
+            // Try Sanctum auth first
+            if (request()->bearerToken()) {
+                $user = auth('sanctum')->user();
             }
-            
+
+            // Try web session auth
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+
+            // Try X-User-UUID header
+            if (!$user && request()->header('X-User-UUID')) {
+                $uuid = request()->header('X-User-UUID');
+                $user = \App\Models\User::where('uuid', $uuid)->first();
+            }
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No user found'
-                ], 404);
+                    'message' => 'User not authenticated. Please login again.'
+                ], 401);
             }
 
             $store = Store::where('user_id', $user->uuid)->first();
@@ -306,29 +306,29 @@ class BankAccountController extends Controller
         }
 
         try {
-            $user = Auth::user();
-            
-            if (!$user) {
-                // Try to get user from session if available
-                $user = auth('web')->user();
-                
-                if (!$user) {
-                    // For development/testing - try to find the specific user by UUID
-                    $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8'; // Your login UUID
-                    $user = \App\Models\User::where('uuid', $targetUuid)->first();
-                    
-                    if (!$user) {
-                        // Fallback to first user from database
-                        $user = \App\Models\User::first();
-                    }
-                }
+            $user = null;
+
+            // Try Sanctum auth first
+            if (request()->bearerToken()) {
+                $user = auth('sanctum')->user();
             }
-            
+
+            // Try web session auth
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+
+            // Try X-User-UUID header
+            if (!$user && request()->header('X-User-UUID')) {
+                $uuid = request()->header('X-User-UUID');
+                $user = \App\Models\User::where('uuid', $uuid)->first();
+            }
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No user found'
-                ], 404);
+                    'message' => 'User not authenticated. Please login again.'
+                ], 401);
             }
 
             $store = Store::where('user_id', $user->uuid)->first();
@@ -394,29 +394,29 @@ class BankAccountController extends Controller
     public function userDestroy($bankAccountUuid): JsonResponse
     {
         try {
-            $user = Auth::user();
-            
-            if (!$user) {
-                // Try to get user from session if available
-                $user = auth('web')->user();
-                
-                if (!$user) {
-                    // For development/testing - try to find the specific user by UUID
-                    $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8'; // Your login UUID
-                    $user = \App\Models\User::where('uuid', $targetUuid)->first();
-                    
-                    if (!$user) {
-                        // Fallback to first user from database
-                        $user = \App\Models\User::first();
-                    }
-                }
+            $user = null;
+
+            // Try Sanctum auth first
+            if (request()->bearerToken()) {
+                $user = auth('sanctum')->user();
             }
-            
+
+            // Try web session auth
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+
+            // Try X-User-UUID header
+            if (!$user && request()->header('X-User-UUID')) {
+                $uuid = request()->header('X-User-UUID');
+                $user = \App\Models\User::where('uuid', $uuid)->first();
+            }
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No user found'
-                ], 404);
+                    'message' => 'User not authenticated. Please login again.'
+                ], 401);
             }
 
             $store = Store::where('user_id', $user->uuid)->first();

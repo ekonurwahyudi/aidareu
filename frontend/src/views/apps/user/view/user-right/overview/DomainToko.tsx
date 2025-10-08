@@ -38,7 +38,7 @@ type StoreItem = {
   url?: string
 }
 
-const DomainToko = () => {
+function DomainToko({ storeUuid }: { storeUuid?: string | null }) {
   // States
   const [stores, setStores] = useState<StoreItem[]>([])
   const [selectedStoreUuid, setSelectedStoreUuid] = useState<string>('')
@@ -52,18 +52,89 @@ const DomainToko = () => {
   const fetchStores = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/public/stores', { cache: 'no-store' })
-      const json = await res.json()
-      const storesData: StoreItem[] = json?.data || json?.stores || []
-      
-      if (Array.isArray(storesData)) {
-        setStores(storesData)
-        
-        // Auto select first store if available
-        if (storesData.length > 0) {
-          const firstStore = storesData[0]
-          setSelectedStoreUuid(firstStore.uuid)
-          setDomain(firstStore.domain || '')
+
+      // Get user data from localStorage
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      if (!storedUserData) {
+        console.error('No user data found')
+        setLoading(false)
+        return
+      }
+
+      const user = JSON.parse(storedUserData)
+
+      // Build headers for authentication
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (user.uuid) {
+        headers['X-User-UUID'] = user.uuid
+      }
+
+      // Prefer storeUuid prop if provided
+      if (storeUuid) {
+        const res = await fetch(`/api/public/stores/${storeUuid}`, {
+          headers,
+          credentials: 'include',
+          cache: 'no-store'
+        })
+        const json = await res.json()
+
+        if (res.ok && json.data) {
+          const store = json.data
+          const storesData: StoreItem[] = [{
+            id: 0,
+            uuid: store.uuid,
+            name: store.name || '',
+            subdomain: store.subdomain || '',
+            domain: store.domain || '',
+            phone: store.phone || '',
+            category: store.category || '',
+            description: store.description || ''
+          }]
+          setStores(storesData)
+          setSelectedStoreUuid(store.uuid)
+          setDomain(store.domain || '')
+        } else {
+          setStores([])
+        }
+      } else {
+        // Fallback to fetching via /api/users/me
+        const res = await fetch('/api/users/me', {
+          headers,
+          credentials: 'include',
+          cache: 'no-store'
+        })
+
+        const json = await res.json()
+
+        if (json.status === 'success' && json.data?.store) {
+          const store = json.data.store
+          const storesData: StoreItem[] = [{
+            id: 0,
+            uuid: store.uuid,
+            name: store.name || '',
+            subdomain: store.subdomain || '',
+            domain: store.domain || '',
+            phone: store.phone || '',
+            category: store.category || '',
+            description: store.description || ''
+          }]
+
+          setStores(storesData)
+          setSelectedStoreUuid(store.uuid)
+          setDomain(store.domain || '')
+        } else {
+          // No store data
+          setStores([])
         }
       }
     } catch (err) {
@@ -84,7 +155,7 @@ const DomainToko = () => {
   // Handle domain update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!selectedStoreUuid) {
       toast.error('Pilih toko terlebih dahulu')
       return
@@ -92,24 +163,50 @@ const DomainToko = () => {
 
     try {
       setSaving(true)
-      
+
+      // Get auth credentials
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      if (!storedUserData) {
+        toast.error('User data tidak ditemukan')
+        setSaving(false)
+        return
+      }
+
+      const user = JSON.parse(storedUserData)
+
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (user.uuid) {
+        headers['X-User-UUID'] = user.uuid
+      }
+
       const payload = {
         domain: domain.trim()
       }
 
       const res = await fetch(`/api/public/stores/${selectedStoreUuid}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
+        credentials: 'include',
         body: JSON.stringify(payload)
       })
 
       const data = await res.json()
-      
+
       if (res.ok) {
         toast.success('Domain berhasil diperbarui!')
         // Update local state
-        setStores(stores.map(store => 
-          store.uuid === selectedStoreUuid 
+        setStores(stores.map(store =>
+          store.uuid === selectedStoreUuid
             ? { ...store, domain: domain.trim() }
             : store
         ))
@@ -139,24 +236,50 @@ const DomainToko = () => {
 
     try {
       setDeleting(true)
-      
+
+      // Get auth credentials
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      if (!storedUserData) {
+        toast.error('User data tidak ditemukan')
+        setDeleting(false)
+        return
+      }
+
+      const user = JSON.parse(storedUserData)
+
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (user.uuid) {
+        headers['X-User-UUID'] = user.uuid
+      }
+
       const payload = {
         domain: ''
       }
 
       const res = await fetch(`/api/public/stores/${selectedStoreUuid}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
+        credentials: 'include',
         body: JSON.stringify(payload)
       })
 
       const data = await res.json()
-      
+
       if (res.ok) {
         toast.success('Domain berhasil dihapus!')
         // Update local state
-        setStores(stores.map(store => 
-          store.uuid === selectedStoreUuid 
+        setStores(stores.map(store =>
+          store.uuid === selectedStoreUuid
             ? { ...store, domain: '' }
             : store
         ))
@@ -189,26 +312,37 @@ const DomainToko = () => {
       />
       <Divider className="mlb-4" />
       <CardContent className="flex flex-col gap-4">
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={4}>
-            {/* Dropdown pilih Toko */}
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <CustomTextField
-                select
-                fullWidth
-                label="Pilih Toko"
-                value={selectedStoreUuid}
-                onChange={(e) => handleStoreChange(e.target.value)}
-                disabled={loading}
-              >
-                <MenuItem value="">-- Pilih Toko --</MenuItem>
-                {stores.map((store) => (
-                  <MenuItem key={store.uuid} value={store.uuid}>
-                    {store.name}
-                  </MenuItem>
-                ))}
-              </CustomTextField>
-            </Grid>
+        {loading ? (
+          <Box className="flex justify-center items-center py-8">
+            <Typography>Memuat data...</Typography>
+          </Box>
+        ) : stores.length === 0 ? (
+          <Box className="flex justify-center items-center py-8">
+            <Typography color="textSecondary">
+              Data belum tersedia, silakan lengkapi di pengaturan toko
+            </Typography>
+          </Box>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <Grid container spacing={4}>
+              {/* Dropdown pilih Toko */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <CustomTextField
+                  select
+                  fullWidth
+                  label="Pilih Toko"
+                  value={selectedStoreUuid}
+                  onChange={(e) => handleStoreChange(e.target.value)}
+                  disabled={loading}
+                >
+                  <MenuItem value="">-- Pilih Toko --</MenuItem>
+                  {stores.map((store) => (
+                    <MenuItem key={store.uuid} value={store.uuid}>
+                      {store.name}
+                    </MenuItem>
+                  ))}
+                </CustomTextField>
+              </Grid>
 
             {/* Input domain */}
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -279,6 +413,7 @@ const DomainToko = () => {
             </Grid>
           </Grid>
         </form>
+        )}
       </CardContent>
     </Card>
 

@@ -317,7 +317,7 @@ const ProductDigitalCard = (props: Props) => {
       </CardContent>
 
       {/* Menu for Edit/Delete */}
-      {hasRole('superadmin') && (<Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+     <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
         <MenuItem onClick={() => menuProduct && handleEditProduct(menuProduct)}>
           <i className='tabler-edit mie-2' />
           Edit
@@ -326,7 +326,7 @@ const ProductDigitalCard = (props: Props) => {
           <i className='tabler-trash mie-2' />
           Delete
         </MenuItem>
-      </Menu>)}
+      </Menu>
 
       {/* Add/Edit Dialog */}
       <AddEditProductDialog

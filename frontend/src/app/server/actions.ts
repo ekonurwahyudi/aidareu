@@ -65,6 +65,18 @@ export const getDashboardStats = async (storeUuid?: string) => {
   try {
     const cookieStore = await cookies()
     const authToken = cookieStore.get('auth_token')?.value
+    const userDataCookie = cookieStore.get('user_data')?.value
+
+    // Get user UUID from cookies
+    let userUuid = null
+    if (userDataCookie) {
+      try {
+        const userData = JSON.parse(userDataCookie)
+        userUuid = userData.uuid
+      } catch (e) {
+        console.error('Failed to parse user_data cookie:', e)
+      }
+    }
 
     const params = storeUuid ? `?store_uuid=${storeUuid}` : ''
     const response = await fetch(`${API_BASE_URL}/dashboard/stats${params}`, {
@@ -72,6 +84,7 @@ export const getDashboardStats = async (storeUuid?: string) => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...(userUuid ? { 'X-User-UUID': userUuid } : {}),
       },
       cache: 'no-store',
     })
@@ -108,6 +121,15 @@ export const getRevenueData = async (storeUuid?: string, period: 'week' | 'month
   try {
     const cookieStore = await cookies()
     const authToken = cookieStore.get('auth_token')?.value
+    const userDataCookie = cookieStore.get('user_data')?.value
+
+    let userUuid = null
+    if (userDataCookie) {
+      try {
+        const userData = JSON.parse(userDataCookie)
+        userUuid = userData.uuid
+      } catch (e) {}
+    }
 
     const params = new URLSearchParams({ period })
 
@@ -118,6 +140,7 @@ export const getRevenueData = async (storeUuid?: string, period: 'week' | 'month
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...(userUuid ? { 'X-User-UUID': userUuid } : {}),
       },
       cache: 'no-store',
     })
@@ -144,6 +167,15 @@ export const getPopularProducts = async (storeUuid?: string, limit: number = 5) 
   try {
     const cookieStore = await cookies()
     const authToken = cookieStore.get('auth_token')?.value
+    const userDataCookie = cookieStore.get('user_data')?.value
+
+    let userUuid = null
+    if (userDataCookie) {
+      try {
+        const userData = JSON.parse(userDataCookie)
+        userUuid = userData.uuid
+      } catch (e) {}
+    }
 
     const params = new URLSearchParams({ limit: limit.toString() })
 
@@ -154,6 +186,7 @@ export const getPopularProducts = async (storeUuid?: string, limit: number = 5) 
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...(userUuid ? { 'X-User-UUID': userUuid } : {}),
       },
       cache: 'no-store',
     })
@@ -180,6 +213,15 @@ export const getRecentOrders = async (storeUuid?: string, limit: number = 10) =>
   try {
     const cookieStore = await cookies()
     const authToken = cookieStore.get('auth_token')?.value
+    const userDataCookie = cookieStore.get('user_data')?.value
+
+    let userUuid = null
+    if (userDataCookie) {
+      try {
+        const userData = JSON.parse(userDataCookie)
+        userUuid = userData.uuid
+      } catch (e) {}
+    }
 
     const params = new URLSearchParams({ limit: limit.toString() })
 
@@ -190,6 +232,7 @@ export const getRecentOrders = async (storeUuid?: string, limit: number = 10) =>
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...(userUuid ? { 'X-User-UUID': userUuid } : {}),
       },
       cache: 'no-store',
     })
@@ -252,14 +295,24 @@ export const getUserStoreUuid = async () => {
   try {
     const cookieStore = await cookies()
     const authToken = cookieStore.get('auth_token')?.value
+    const userDataCookie = cookieStore.get('user_data')?.value
 
-    if (!authToken) return null
+    let userUuid = null
+    if (userDataCookie) {
+      try {
+        const userData = JSON.parse(userDataCookie)
+        userUuid = userData.uuid
+      } catch (e) {}
+    }
+
+    if (!authToken && !userUuid) return null
 
     const response = await fetch(`${API_BASE_URL}/users/me`, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        Authorization: `Bearer ${authToken}`,
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...(userUuid ? { 'X-User-UUID': userUuid } : {}),
       },
       cache: 'no-store',
     })
@@ -286,9 +339,18 @@ export const getUserInfo = async () => {
   try {
     const cookieStore = await cookies()
     const authToken = cookieStore.get('auth_token')?.value
+    const userDataCookie = cookieStore.get('user_data')?.value
 
-    if (!authToken) {
-      console.log('No auth token found')
+    let userUuid = null
+    if (userDataCookie) {
+      try {
+        const userData = JSON.parse(userDataCookie)
+        userUuid = userData.uuid
+      } catch (e) {}
+    }
+
+    if (!authToken && !userUuid) {
+      console.log('No auth token or user UUID found')
 
       return null
     }
@@ -299,7 +361,8 @@ export const getUserInfo = async () => {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        Authorization: `Bearer ${authToken}`,
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...(userUuid ? { 'X-User-UUID': userUuid } : {}),
       },
       cache: 'no-store',
     })

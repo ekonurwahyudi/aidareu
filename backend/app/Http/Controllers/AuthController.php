@@ -287,18 +287,31 @@ class AuthController extends Controller
             // Create token
             $token = $user->createToken('auth_token')->plainTextToken;
 
+            // Load user store
+            $user->load('stores');
+            $store = $user->stores->first();
+
+            $userData = [
+                'id' => $user->id,
+                'uuid' => $user->uuid,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'roles' => $user->getRoleNames(),
+                'store' => $store ? [
+                    'uuid' => $store->uuid,
+                    'name' => $store->nama_toko ?? $store->name,
+                    'subdomain' => $store->subdomain
+                ] : null
+            ];
+
+            // Set cookies for SSR (server-side rendering)
             return response()->json([
                 'message' => 'Login successful',
-                'user' => [
-                    'id' => $user->id,
-                    'uuid' => $user->uuid,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'roles' => $user->getRoleNames()
-                ],
+                'user' => $userData,
                 'token' => $token
-            ]);
+            ])->cookie('auth_token', $token, 60 * 24 * 7) // 7 days
+              ->cookie('user_data', json_encode($userData), 60 * 24 * 7); // 7 days
 
         } catch (\Exception $e) {
             return response()->json([

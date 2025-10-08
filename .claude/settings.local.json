@@ -45,7 +45,8 @@
       "Bash(grep:*)",
       "Bash(find:*)",
       "Bash(tree:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(/dev/null)"
     ],
     "deny": [],
     "ask": [],

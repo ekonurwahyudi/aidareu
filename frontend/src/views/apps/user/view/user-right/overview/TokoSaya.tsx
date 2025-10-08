@@ -104,7 +104,7 @@ type FormValues = {
   district: string
 }
 
-const TokoSaya = () => {
+function TokoSaya({ storeUuid }: { storeUuid?: string | null }) {
   // States
   const [storeData, setStoreData] = useState<Partial<StoreItem>>({})
   const [selectedStoreUuid, setSelectedStoreUuid] = useState<string | null>(null)
@@ -290,41 +290,143 @@ const TokoSaya = () => {
     const fetchStores = async () => {
       try {
         setLoadingStore(true)
-        const res = await fetch('/api/public/stores', { cache: 'no-store' })
-        const json = await res.json()
-        const stores: StoreItem[] = json?.data || json?.stores || []
-        if (Array.isArray(stores) && stores.length > 0) {
-          const s = stores[0]
-          setStoreData(s)
-          if ((s as any).uuid) setSelectedStoreUuid((s as any).uuid as string)
-          setInitialSubdomain(s.subdomain)
 
-          // Get address values - try both field names
-          const provinceValue = (s as any).province || (s as any).provinsi || ''
-          const cityValue = (s as any).city || (s as any).kota || ''
-          const districtValue = (s as any).district || (s as any).kecamatan || ''
+        // Get user data from localStorage to fetch their store
+        const storedUserData = localStorage.getItem('user_data')
+        const authToken = localStorage.getItem('auth_token')
 
-          // Prefill form values
-          setValue('storeName', s.name || '')
-          setValue('subdomain', s.subdomain || '')
-          setValue('phoneNumber', s.phone || '')
-          setValue('category', CATEGORY_SLUG_TO_LABEL[s.category as string] || CATEGORY_SLUG_TO_LABEL[(s as any).kategori_toko as string] || '')
-          setValue('description', s.description || '')
-          setValue('province', provinceValue)
-          setValue('city', cityValue)
-          setValue('district', districtValue)
+        if (!storedUserData) {
+          console.error('No user data found')
+          setLoadingStore(false)
+          return
+        }
 
-          // Store address data for loading dropdown options later
-          if (provinceValue || cityValue || districtValue) {
-            window.pendingAddressData = {
-              province: provinceValue,
-              city: cityValue,
-              district: districtValue
+        const user = JSON.parse(storedUserData)
+
+        // Build headers for authentication
+        const headers: HeadersInit = {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
+
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`
+        }
+
+        if (user.uuid) {
+          headers['X-User-UUID'] = user.uuid
+        }
+
+        if (storeUuid) {
+          // Fetch store detail directly using provided storeUuid
+          const res = await fetch(`/api/public/stores/${storeUuid}`, {
+            headers,
+            credentials: 'include',
+            cache: 'no-store'
+          })
+
+          const json = await res.json()
+
+          if (res.ok && json.data) {
+            const storeFromUser = json.data
+
+            const s: StoreItem = {
+              id: 0,
+              uuid: storeFromUser.uuid,
+              name: storeFromUser.name || '',
+              subdomain: storeFromUser.subdomain || '',
+              phone: storeFromUser.phone || user.phone || '',
+              category: storeFromUser.category || '',
+              description: storeFromUser.description || ''
             }
+            setStoreData(s)
+            setSelectedStoreUuid(s.uuid || null)
+            setInitialSubdomain(s.subdomain || '')
+
+            const provinceValue = (s as any).province || (s as any).provinsi || ''
+            const cityValue = (s as any).city || (s as any).kota || ''
+            const districtValue = (s as any).district || (s as any).kecamatan || ''
+
+            setValue('storeName', s.name || '')
+            setValue('subdomain', s.subdomain || '')
+            setValue('phoneNumber', s.phone || '')
+            setValue('category', CATEGORY_SLUG_TO_LABEL[s.category as string] || CATEGORY_SLUG_TO_LABEL[(s as any).kategori_toko as string] || '')
+            setValue('description', s.description || '')
+            setValue('province', provinceValue)
+            setValue('city', cityValue)
+            setValue('district', districtValue)
+
+            if (provinceValue || cityValue || districtValue) {
+              window.pendingAddressData = {
+                province: provinceValue,
+                city: cityValue,
+                district: districtValue
+              }
+            }
+
+            // For existing subdomain, mark as available to avoid false error
+            setSubdomainAvailable(true)
+          } else {
+            console.log('No store found for this user')
+          }
+        } else {
+          // Fallback: existing flow via `/api/users/me`
+          const res = await fetch('/api/users/me', {
+            headers,
+            credentials: 'include',
+            cache: 'no-store'
+          })
+
+          const json = await res.json()
+
+          if (!res.ok || json.status === 'error') {
+            console.error('Failed to fetch user data:', json.message)
+            setLoadingStore(false)
+            return
           }
 
-          // For existing subdomain, mark as available to avoid false error
-          setSubdomainAvailable(true)
+          const userData = json.data
+          const storeFromUser = userData?.store
+
+          if (storeFromUser) {
+            const s: StoreItem = {
+              id: 0,
+              uuid: storeFromUser.uuid,
+              name: storeFromUser.name || '',
+              subdomain: storeFromUser.subdomain || '',
+              phone: userData.phone || userData.no_hp || '',
+              category: '',
+              description: storeFromUser.description || ''
+            }
+            setStoreData(s)
+            if ((s as any).uuid) setSelectedStoreUuid((s as any).uuid as string)
+            setInitialSubdomain(s.subdomain)
+
+            const provinceValue = (s as any).province || (s as any).provinsi || ''
+            const cityValue = (s as any).city || (s as any).kota || ''
+            const districtValue = (s as any).district || (s as any).kecamatan || ''
+
+            setValue('storeName', s.name || '')
+            setValue('subdomain', s.subdomain || '')
+            setValue('phoneNumber', s.phone || '')
+            setValue('category', CATEGORY_SLUG_TO_LABEL[s.category as string] || CATEGORY_SLUG_TO_LABEL[(s as any).kategori_toko as string] || '')
+            setValue('description', s.description || '')
+            setValue('province', provinceValue)
+            setValue('city', cityValue)
+            setValue('district', districtValue)
+
+            if (provinceValue || cityValue || districtValue) {
+              window.pendingAddressData = {
+                province: provinceValue,
+                city: cityValue,
+                district: districtValue
+              }
+            }
+
+            setSubdomainAvailable(true)
+          } else {
+            console.log('No store found for this user')
+          }
         }
       } catch (err) {
         console.error('Failed to fetch stores:', err)
@@ -334,7 +436,7 @@ const TokoSaya = () => {
     }
 
     fetchStores()
-  }, [setValue])
+  }, [setValue, storeUuid])
 
   // Check subdomain availability
   const checkSubdomainAvailability = async (subdomain: string) => {
@@ -439,6 +541,56 @@ const TokoSaya = () => {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  // Show loading state
+  if (loadingStore) {
+    return (
+      <Card>
+        <CardHeader title="Pengaturan Toko" subheader='Pengaturan Toko agar lebih mudah dikenali.' sx={{ pb: 1 }} />
+        <Divider className='mlb-4' />
+        <CardContent>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+            <CircularProgress />
+          </Box>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Show empty state if no store
+  if (!selectedStoreUuid) {
+    return (
+      <Card>
+        <CardHeader title="Pengaturan Toko" subheader='Pengaturan Toko agar lebih mudah dikenali.' sx={{ pb: 1 }} />
+        <Divider className='mlb-4' />
+        <CardContent>
+          <Box
+            display="flex"
+            flexDirection="column"
+            justifyContent="center"
+            alignItems="center"
+            minHeight={300}
+            gap={2}
+          >
+            <i className="tabler-shopping-bag" style={{ fontSize: '64px', color: '#999' }} />
+            <Typography variant="h6" color="text.secondary">
+              Toko Belum Ada
+            </Typography>
+            <Typography variant="body2" color="text.secondary" textAlign="center">
+              Silakan isi data toko Anda untuk memulai berjualan
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => setIsEditing(true)}
+              startIcon={<i className="tabler-plus" />}
+            >
+              Buat Toko
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (

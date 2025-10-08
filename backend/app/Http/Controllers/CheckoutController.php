@@ -180,6 +180,22 @@ class CheckoutController extends Controller
     public function getStoreOrders(Request $request, $storeUuid)
     {
         try {
+            // Get authenticated user
+            $user = null;
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
+            }
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+            if (!$user && $request->header('X-User-UUID')) {
+                $uuid = $request->header('X-User-UUID');
+                $user = \App\Models\User::where('uuid', $uuid)->first();
+            }
+
+            // Check if user is superadmin
+            $isSuperadmin = $user && $user->hasRole('superadmin');
+
             $perPage = $request->get('per_page', 20);
             $search = $request->get('search');
             $status = $request->get('status');
@@ -188,8 +204,24 @@ class CheckoutController extends Controller
                 'customer',
                 'bankAccount',
                 'detailOrders.product'
-            ])
-            ->where('uuid_store', $storeUuid);
+            ]);
+
+            // Filter by store UUID
+            if ($storeUuid) {
+                // Both superadmin and regular users: if storeUuid provided, filter by it
+                $query->where('uuid_store', $storeUuid);
+            } elseif (!$isSuperadmin) {
+                // Non-superadmin without storeUuid: should not happen, return empty
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store UUID is required for non-superadmin users',
+                    'data' => [
+                        'data' => [],
+                        'total' => 0
+                    ]
+                ], 400);
+            }
+            // Superadmin without storeUuid: show all orders (no filter)
 
             // Search filter
             if ($search) {

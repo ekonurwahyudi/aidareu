@@ -52,7 +52,7 @@ type DataType = {
   data?: PixelStore
 }
 
-const RecentKeterangan = () => {
+function RecentKeterangan({ storeUuid }: { storeUuid?: string | null }) {
   // States
   const [pixelStores, setPixelStores] = useState<PixelStore[]>([])
   const [loading, setLoading] = useState<boolean>(true)
@@ -126,11 +126,71 @@ const RecentKeterangan = () => {
   const fetchPixelStores = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/public/pixel-stores')
-      const json = await res.json()
-      
-      if (json.success) {
-        setPixelStores(json.data || [])
+
+      // Get user data from localStorage
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      if (!storedUserData) {
+        console.error('No user data found')
+        setLoading(false)
+        return
+      }
+
+      const user = JSON.parse(storedUserData)
+
+      // Build headers for authentication
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (user.uuid) {
+        headers['X-User-UUID'] = user.uuid
+      }
+
+      // Use provided storeUuid if available
+      if (storeUuid) {
+        const res = await fetch(`/api/public/pixel-stores?store_uuid=${storeUuid}`, {
+          headers,
+          credentials: 'include'
+        })
+        const json = await res.json()
+
+        if (json.success) {
+          setPixelStores(json.data || [])
+        } else {
+          setPixelStores([])
+        }
+      } else {
+        // Fallback: get store via /api/users/me
+        const userRes = await fetch('/api/users/me', {
+          headers,
+          credentials: 'include',
+          cache: 'no-store'
+        })
+
+        const userJson = await userRes.json()
+
+        if (userJson.status === 'success' && userJson.data?.store) {
+          const theStoreUuid = userJson.data.store.uuid
+          const res = await fetch(`/api/public/pixel-stores?store_uuid=${theStoreUuid}`, {
+            headers,
+            credentials: 'include'
+          })
+          const json = await res.json()
+
+          if (json.success) {
+            setPixelStores(json.data || [])
+          }
+        } else {
+          // No store data
+          setPixelStores([])
+        }
       }
     } catch (error) {
       console.error('Error fetching pixel stores:', error)
@@ -138,7 +198,7 @@ const RecentKeterangan = () => {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [storeUuid])
 
   // Handle add new pixel
   const handleAddPixel = () => {
@@ -198,41 +258,83 @@ const RecentKeterangan = () => {
     try {
       setSaving(true)
 
+      // Get auth credentials
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      if (!storedUserData) {
+        toast.error('User data tidak ditemukan')
+        setSaving(false)
+        return
+      }
+
+      const user = JSON.parse(storedUserData)
+
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (user.uuid) {
+        headers['X-User-UUID'] = user.uuid
+      }
+
+      // Tentukan storeUuid: pakai prop dulu, kalau tidak ada fallback ke /api/users/me
+      let finalStoreUuid = storeUuid || null
+      if (!finalStoreUuid) {
+        const userRes = await fetch('/api/users/me', {
+          headers,
+          credentials: 'include'
+        })
+        const userJson = await userRes.json()
+
+        if (!userJson.data?.store?.uuid) {
+          toast.error('Store tidak ditemukan')
+          setSaving(false)
+          return
+        }
+        finalStoreUuid = userJson.data.store.uuid
+      }
+
       const isUpdate = editingPixel.data !== undefined
-      
-      const url = isUpdate 
+
+      const url = isUpdate
         ? `/api/public/pixel-stores/${editingPixel.data!.uuid}`
         : '/api/public/pixel-stores'
-      
+
       const method = isUpdate ? 'PUT' : 'POST'
-      
+
       const payload = isUpdate
         ? formData
         : {
             pixel_type: editingPixel.pixelType,
+            store_uuid: finalStoreUuid,
             ...formData
           }
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
+        credentials: 'include',
         body: JSON.stringify(payload)
       })
 
       const result = await res.json()
-      
+
       if (result.success) {
         toast.success(isUpdate ? 'Pixel berhasil diperbarui' : 'Pixel berhasil ditambahkan')
         setDialogOpen(false)
         setEditingPixel(null)
-        // Clear form data
         setFormData({
           nama_pixel: '',
           pixel_id: '',
           convention_event: '',
           test_code: ''
         })
-        // Small delay to ensure backend processing, then refresh data
         setTimeout(() => {
           fetchPixelStores()
         }, 100)
@@ -260,13 +362,40 @@ const RecentKeterangan = () => {
 
     try {
       setDeleting(true)
+
+      // Get auth credentials
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      if (!storedUserData) {
+        toast.error('User data tidak ditemukan')
+        setDeleting(false)
+        return
+      }
+
+      const user = JSON.parse(storedUserData)
+
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (user.uuid) {
+        headers['X-User-UUID'] = user.uuid
+      }
+
       const res = await fetch(`/api/public/pixel-stores/${pixelToDelete.data.uuid}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' }
+        headers,
+        credentials: 'include'
       })
 
       const result = await res.json()
-      
+
       if (result.success) {
         toast.success('Pixel berhasil dihapus')
         setDeleteDialogOpen(false)

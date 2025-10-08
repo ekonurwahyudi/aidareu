@@ -58,40 +58,106 @@ const socialAccountsArr = [
   }
 ]
 
-const ConnectionsTab = () => {
+const ConnectionsTab = ({ storeUuid }: { storeUuid?: string | null }) => {
   // States
   const [socialMediaAccounts, setSocialMediaAccounts] = useState<SocialMedia[]>([])
   const [urls, setUrls] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<Record<string, boolean>>({})
+  const [hasStore, setHasStore] = useState(true)
 
   // Fetch social media accounts from API
   const fetchSocialMedia = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/public/social-media', {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      })
-      
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          const accounts = result.data || []
-          setSocialMediaAccounts(accounts)
-          
-          // Initialize URLs from existing data
-          const initialUrls: Record<string, string> = {}
-          accounts.forEach((account: SocialMedia) => {
-            initialUrls[account.platform] = account.url
-          })
-          setUrls(initialUrls)
+
+      // Get user data from localStorage
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      if (!storedUserData) {
+        console.error('No user data found')
+        setLoading(false)
+        return
+      }
+
+      const user = JSON.parse(storedUserData)
+
+      // Build headers for authentication
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (user.uuid) {
+        headers['X-User-UUID'] = user.uuid
+      }
+
+      // Prefer provided storeUuid
+      if (storeUuid) {
+        setHasStore(true)
+        const response = await fetch(`/api/public/social-media?store_uuid=${storeUuid}`, {
+          headers,
+          credentials: 'include'
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success) {
+            const accounts = result.data || []
+            setSocialMediaAccounts(accounts)
+
+            const initialUrls: Record<string, string> = {}
+            accounts.forEach((account: SocialMedia) => {
+              initialUrls[account.platform] = account.url
+            })
+            setUrls(initialUrls)
+          }
+        } else {
+          console.error('Failed to fetch social media accounts')
         }
       } else {
-        console.error('Failed to fetch social media accounts')
+        // Fallback to fetching via /api/users/me
+        const userRes = await fetch('/api/users/me', {
+          headers,
+          credentials: 'include',
+          cache: 'no-store'
+        })
+
+        const userJson = await userRes.json()
+
+        if (userJson.status === 'success' && userJson.data?.store) {
+          setHasStore(true)
+          const fallbackStoreUuid = userJson.data.store.uuid
+
+          const response = await fetch(`/api/public/social-media?store_uuid=${fallbackStoreUuid}`, {
+            headers,
+            credentials: 'include'
+          })
+
+          if (response.ok) {
+            const result = await response.json()
+            if (result.success) {
+              const accounts = result.data || []
+              setSocialMediaAccounts(accounts)
+
+              const initialUrls: Record<string, string> = {}
+              accounts.forEach((account: SocialMedia) => {
+                initialUrls[account.platform] = account.url
+              })
+              setUrls(initialUrls)
+            }
+          } else {
+            console.error('Failed to fetch social media accounts')
+          }
+        } else {
+          setHasStore(false)
+          setSocialMediaAccounts([])
+        }
       }
     } catch (error) {
       console.error('Error fetching social media accounts:', error)
@@ -107,7 +173,7 @@ const ConnectionsTab = () => {
 
   const handleSubmit = async (platform: string) => {
     const url = urls[platform] || ''
-    
+
     if (!url.trim()) {
       toast.error('URL tidak boleh kosong')
       return
@@ -115,34 +181,74 @@ const ConnectionsTab = () => {
 
     try {
       setUpdating({ ...updating, [platform]: true })
-      
+
+      // Get auth credentials
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      if (!storedUserData) {
+        toast.error('User data tidak ditemukan')
+        setUpdating({ ...updating, [platform]: false })
+        return
+      }
+
+      const user = JSON.parse(storedUserData)
+
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (user.uuid) {
+        headers['X-User-UUID'] = user.uuid
+      }
+
+      // Resolve store UUID: prefer prop, else fallback
+      let finalStoreUuid: string | null = storeUuid ?? null
+      if (!finalStoreUuid) {
+        const userRes = await fetch('/api/users/me', {
+          headers,
+          credentials: 'include'
+        })
+        const userJson = await userRes.json()
+
+        if (!userJson.data?.store?.uuid) {
+          toast.error('Store tidak ditemukan')
+          setUpdating({ ...updating, [platform]: false })
+          return
+        }
+        finalStoreUuid = userJson.data.store.uuid
+      }
+
       // Check if account already exists
       const existingAccount = socialMediaAccounts.find(acc => acc.platform === platform)
-      
+
       const payload = {
         platform: platform,
         url: url.trim(),
-        is_active: true
+        is_active: true,
+        store_uuid: finalStoreUuid
       }
 
-      const apiUrl = existingAccount 
-        ? `/api/public/social-media/${existingAccount.uuid}` 
+      const apiUrl = existingAccount
+        ? `/api/public/social-media/${existingAccount.uuid}`
         : '/api/public/social-media'
-      
+
       const method = existingAccount ? 'PUT' : 'POST'
-      
+
       const response = await fetch(apiUrl, {
         method,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify(payload)
       })
 
       const result = await response.json()
-      
+
       if (response.ok && result.success) {
         toast.success(existingAccount ? 'Akun berhasil diperbarui' : 'Akun berhasil ditambahkan')
         fetchSocialMedia() // Refresh data
@@ -174,6 +280,12 @@ const ConnectionsTab = () => {
               <div className="flex justify-center items-center py-8">
                 <CircularProgress />
                 <Typography className="ml-4">Memuat data akun sosial media...</Typography>
+              </div>
+            ) : !hasStore ? (
+              <div className="flex justify-center items-center py-8">
+                <Typography color="textSecondary">
+                  Data belum tersedia, silakan lengkapi di pengaturan toko
+                </Typography>
               </div>
             ) : (
               socialAccountsArr.map((item, index) => (

@@ -49,12 +49,35 @@ const UserDetails = () => {
       setError(null)
       
       console.log('Fetching user data from:', '/api/users/me')
-      
+
+      // Get stored user data for authentication
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      // Add auth token if available
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      // Add user UUID header as fallback
+      if (storedUserData) {
+        try {
+          const userData = JSON.parse(storedUserData)
+          if (userData.uuid) {
+            headers['X-User-UUID'] = userData.uuid
+          }
+        } catch (e) {
+          console.error('Failed to parse stored user data:', e)
+        }
+      }
+
       const response = await fetch('/api/users/me', {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include' // for session-based auth
       })
       
