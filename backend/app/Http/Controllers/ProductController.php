@@ -19,13 +19,54 @@ class ProductController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
+            // Get authenticated user
+            $user = null;
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
+            }
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+            if (!$user && $request->header('X-User-UUID')) {
+                $uuid = $request->header('X-User-UUID');
+                $user = \App\Models\User::where('uuid', $uuid)->first();
+            }
+
+            // Check if user is superadmin
+            $isSuperadmin = $user && $user->hasRole('superadmin');
+
+            // Log for debugging
+            \Log::info('ProductController@index', [
+                'user_uuid' => $user ? $user->uuid : null,
+                'user_roles' => $user ? $user->getRoleNames()->toArray() : [],
+                'is_superadmin' => $isSuperadmin,
+                'store_uuid_param' => $request->get('store_uuid'),
+                'request_headers' => [
+                    'Authorization' => $request->header('Authorization') ? 'present' : 'missing',
+                    'X-User-UUID' => $request->header('X-User-UUID')
+                ]
+            ]);
+
             $query = Product::with(['category:id,judul_kategori', 'store:uuid,name'])
                 ->select('id', 'uuid', 'nama_produk', 'deskripsi', 'harga_produk', 'harga_diskon', 'status_produk', 'jenis_produk', 'stock', 'category_id', 'uuid_store', 'upload_gambar_produk', 'created_at', 'url_produk');
 
-            // Filter by store if provided
+            // Filter by store UUID
             if ($request->has('store_uuid')) {
+                // Both superadmin and regular users: if store_uuid provided, filter by it
                 $query->where('uuid_store', $request->store_uuid);
+                \Log::info('Filtering products by store', ['uuid_store' => $request->store_uuid]);
+            } elseif (!$isSuperadmin) {
+                // Non-superadmin without store_uuid: should not happen, return empty
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Store UUID is required for non-superadmin users',
+                    'data' => [
+                        'data' => [],
+                        'total' => 0
+                    ]
+                ], 400);
             }
+            // Superadmin without store_uuid: show all products (no filter)
 
             // Filter by category
             if ($request->has('category_id')) {

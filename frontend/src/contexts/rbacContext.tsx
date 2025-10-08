@@ -31,6 +31,7 @@ export const RBACProvider = ({ children }: RBACProviderProps) => {
       
       // Try to get user data from localStorage first (fallback)
       const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
       let userData = null
 
       if (storedUserData) {
@@ -52,29 +53,37 @@ export const RBACProvider = ({ children }: RBACProviderProps) => {
         }
       }
 
-      // Try to fetch fresh user data from API (optional enhancement)
+      // Try to fetch fresh user data from API to get updated store info
       try {
-        const userResponse = await fetch('/api/public/stores', {
-          credentials: 'include'
+        const userResponse = await fetch('/api/users/me', {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+            ...(userData?.uuid && { 'X-User-UUID': userData.uuid })
+          }
         })
 
         if (userResponse.ok) {
-          const storesData = await userResponse.json()
-          console.log('Stores data loaded from API:', storesData)
+          const userApiData = await userResponse.json()
+          console.log('User data loaded from /api/users/me:', userApiData)
 
-          // If we have stored user data, combine it with stores
-          if (userData) {
-            userData.stores = storesData.data || storesData.stores || []
-            setUser(userData)
+          // Update user data with fresh data from API
+          if (userApiData.data || userApiData.status === 'success') {
+            const freshUserData = userApiData.data || userApiData
 
-            // Set default store if user has stores from API
-            if (userData.stores && userData.stores.length > 0) {
-              console.log('Updating current store from API:', userData.stores[0])
-              setCurrentStore(userData.stores[0])
+            // Update user state
+            setUser(freshUserData)
+
+            // Update current store with user's actual store
+            if (freshUserData.store) {
+              console.log('Setting current store from API (user\'s own store):', freshUserData.store)
+              setCurrentStore(freshUserData.store)
             }
           }
         } else {
-          console.warn('Failed to fetch stores data from API:', userResponse.status)
+          console.warn('Failed to fetch user data from API:', userResponse.status)
           // Already have store from localStorage, so this is not critical
         }
       } catch (apiError) {

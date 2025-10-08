@@ -17,22 +17,32 @@ class PixelStoreController extends Controller
     /**
      * Get all pixel stores for authenticated user's store
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $user = Auth::user();
-            
-            // Fallback authentication if no authenticated user
-            if (!$user) {
-                $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8';
-                $user = User::where('uuid', $targetUuid)->first();
+            $user = null;
+
+            // Try Sanctum auth first
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
             }
-            
+
+            // Try web session auth
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+
+            // Try X-User-UUID header
+            if (!$user && $request->header('X-User-UUID')) {
+                $uuid = $request->header('X-User-UUID');
+                $user = User::where('uuid', $uuid)->first();
+            }
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User not found'
-                ], 404);
+                    'message' => 'User not authenticated. Please login again.'
+                ], 401);
             }
 
             $store = Store::where('user_id', $user->uuid)->first();
@@ -86,19 +96,29 @@ class PixelStoreController extends Controller
         }
 
         try {
-            $user = Auth::user();
-            
-            // Fallback authentication if no authenticated user
-            if (!$user) {
-                $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8';
-                $user = User::where('uuid', $targetUuid)->first();
+            $user = null;
+
+            // Try Sanctum auth first
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
             }
-            
+
+            // Try web session auth
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+
+            // Try X-User-UUID header
+            if (!$user && $request->header('X-User-UUID')) {
+                $uuid = $request->header('X-User-UUID');
+                $user = User::where('uuid', $uuid)->first();
+            }
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User not found'
-                ], 404);
+                    'message' => 'User not authenticated. Please login again.'
+                ], 401);
             }
 
             $store = Store::where('user_id', $user->uuid)->first();
@@ -158,19 +178,29 @@ class PixelStoreController extends Controller
         }
 
         try {
-            $user = Auth::user();
-            
-            // Fallback authentication if no authenticated user
-            if (!$user) {
-                $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8';
-                $user = User::where('uuid', $targetUuid)->first();
+            $user = null;
+
+            // Try Sanctum auth first
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
             }
-            
+
+            // Try web session auth
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+
+            // Try X-User-UUID header
+            if (!$user && $request->header('X-User-UUID')) {
+                $uuid = $request->header('X-User-UUID');
+                $user = User::where('uuid', $uuid)->first();
+            }
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User not found'
-                ], 404);
+                    'message' => 'User not authenticated. Please login again.'
+                ], 401);
             }
 
             $store = Store::where('user_id', $user->uuid)->first();
@@ -220,19 +250,29 @@ class PixelStoreController extends Controller
     public function destroy($pixelUuid): JsonResponse
     {
         try {
-            $user = Auth::user();
-            
-            // Fallback authentication if no authenticated user
-            if (!$user) {
-                $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8';
-                $user = User::where('uuid', $targetUuid)->first();
+            $user = null;
+
+            // Try Sanctum auth first
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
             }
-            
+
+            // Try web session auth
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+
+            // Try X-User-UUID header
+            if (!$user && $request->header('X-User-UUID')) {
+                $uuid = $request->header('X-User-UUID');
+                $user = User::where('uuid', $uuid)->first();
+            }
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User not found'
-                ], 404);
+                    'message' => 'User not authenticated. Please login again.'
+                ], 401);
             }
 
             $store = Store::where('user_id', $user->uuid)->first();

@@ -217,6 +217,26 @@ const OrderListTable = () => {
       queryParams.append('page', String(pagination.pageIndex + 1))
       queryParams.append('per_page', String(pagination.pageSize))
 
+      // Get auth headers
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (storedUserData) {
+        const userData = JSON.parse(storedUserData)
+        if (userData.uuid) {
+          headers['X-User-UUID'] = userData.uuid
+        }
+      }
+
       const cacheBuster = forceRefresh ? `&_t=${Date.now()}` : ''
       const cacheControl = forceRefresh ? 'no-cache' : 'default'
 
@@ -225,10 +245,7 @@ const OrderListTable = () => {
         {
           credentials: 'include',
           cache: cacheControl as RequestCache,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          }
+          headers
         }
       )
 

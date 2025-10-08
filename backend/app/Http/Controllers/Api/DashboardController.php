@@ -20,25 +20,42 @@ class DashboardController extends Controller
             $storeUuid = $request->query('store_uuid');
 
             // Get user
-            $user = auth()->user();
+            $user = null;
+
+            // Try Sanctum auth first
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
+            }
+
+            // Try web session auth
             if (!$user) {
                 $user = auth('web')->user();
-                if (!$user) {
-                    // Development fallback
-                    $user = User::where('uuid', 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8')->first();
-                    if (!$user) {
-                        $user = User::first();
-                    }
-                }
             }
+
+            // Try X-User-UUID header
+            if (!$user && $request->header('X-User-UUID')) {
+                $uuid = $request->header('X-User-UUID');
+                $user = User::where('uuid', $uuid)->first();
+            }
+
+            // Log for debugging
+            \Log::info('DashboardController@stats', [
+                'user_uuid' => $user ? $user->uuid : null,
+                'user_roles' => $user ? $user->getRoleNames()->toArray() : [],
+                'store_uuid_param' => $storeUuid,
+                'has_bearer_token' => $request->bearerToken() ? 'yes' : 'no'
+            ]);
 
             if (!$user) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'User not found',
+                    'message' => 'User not authenticated. Please login again.',
                     'data' => null
-                ], 404);
+                ], 401);
             }
+
+            // Check if user is superadmin
+            $isSuperadmin = $user->hasRole('superadmin');
 
             // Get store
             if ($storeUuid) {
@@ -47,7 +64,13 @@ class DashboardController extends Controller
                 $store = $user->stores()->first();
             }
 
-            if (!$store) {
+            \Log::info('DashboardController@stats - Store found', [
+                'store_uuid' => $store ? $store->uuid : null,
+                'store_name' => $store ? $store->nama_toko : null
+            ]);
+
+            // If superadmin and no store specified, return aggregated data from all stores
+            if ($isSuperadmin && !$store) {
                 return response()->json([
                     'status' => 'success',
                     'message' => 'No store found for user',
@@ -166,16 +189,34 @@ class DashboardController extends Controller
             $period = $request->query('period', 'month'); // week, month, year
 
             // Get user
-            $user = auth()->user();
+            $user = null;
+
+            // Try Sanctum auth first
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
+            }
+
+            // Try web session auth
             if (!$user) {
                 $user = auth('web')->user();
-                if (!$user) {
-                    $user = User::where('uuid', 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8')->first();
-                    if (!$user) {
-                        $user = User::first();
-                    }
-                }
             }
+
+            // Try X-User-UUID header
+            if (!$user && $request->header('X-User-UUID')) {
+                $uuid = $request->header('X-User-UUID');
+                $user = User::where('uuid', $uuid)->first();
+            }
+
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User not authenticated. Please login again.',
+                    'data' => null
+                ], 401);
+            }
+
+            // Check if user is superadmin
+            $isSuperadmin = $user->hasRole('superadmin');
 
             if (!$user) {
                 return response()->json([
@@ -262,16 +303,34 @@ class DashboardController extends Controller
             $limit = $request->query('limit', 5);
 
             // Get user
-            $user = auth()->user();
+            $user = null;
+
+            // Try Sanctum auth first
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
+            }
+
+            // Try web session auth
             if (!$user) {
                 $user = auth('web')->user();
-                if (!$user) {
-                    $user = User::where('uuid', 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8')->first();
-                    if (!$user) {
-                        $user = User::first();
-                    }
-                }
             }
+
+            // Try X-User-UUID header
+            if (!$user && $request->header('X-User-UUID')) {
+                $uuid = $request->header('X-User-UUID');
+                $user = User::where('uuid', $uuid)->first();
+            }
+
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User not authenticated. Please login again.',
+                    'data' => null
+                ], 401);
+            }
+
+            // Check if user is superadmin
+            $isSuperadmin = $user->hasRole('superadmin');
 
             // Get store
             if ($storeUuid) {
@@ -346,16 +405,34 @@ class DashboardController extends Controller
             $limit = $request->query('limit', 10);
 
             // Get user
-            $user = auth()->user();
+            $user = null;
+
+            // Try Sanctum auth first
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
+            }
+
+            // Try web session auth
             if (!$user) {
                 $user = auth('web')->user();
-                if (!$user) {
-                    $user = User::where('uuid', 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8')->first();
-                    if (!$user) {
-                        $user = User::first();
-                    }
-                }
             }
+
+            // Try X-User-UUID header
+            if (!$user && $request->header('X-User-UUID')) {
+                $uuid = $request->header('X-User-UUID');
+                $user = User::where('uuid', $uuid)->first();
+            }
+
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User not authenticated. Please login again.',
+                    'data' => null
+                ], 401);
+            }
+
+            // Check if user is superadmin
+            $isSuperadmin = $user->hasRole('superadmin');
 
             // Get store
             if ($storeUuid) {
@@ -423,16 +500,34 @@ class DashboardController extends Controller
             $limit = $request->query('limit', 10);
 
             // Get user
-            $user = auth()->user();
+            $user = null;
+
+            // Try Sanctum auth first
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
+            }
+
+            // Try web session auth
             if (!$user) {
                 $user = auth('web')->user();
-                if (!$user) {
-                    $user = User::where('uuid', 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8')->first();
-                    if (!$user) {
-                        $user = User::first();
-                    }
-                }
             }
+
+            // Try X-User-UUID header
+            if (!$user && $request->header('X-User-UUID')) {
+                $uuid = $request->header('X-User-UUID');
+                $user = User::where('uuid', $uuid)->first();
+            }
+
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User not authenticated. Please login again.',
+                    'data' => null
+                ], 401);
+            }
+
+            // Check if user is superadmin
+            $isSuperadmin = $user->hasRole('superadmin');
 
             // Get store
             if ($storeUuid) {

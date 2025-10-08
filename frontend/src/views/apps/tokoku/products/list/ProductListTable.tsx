@@ -261,18 +261,35 @@ const ProductListTable = () => {
       })
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
-      
+
+      // Get auth headers
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (storedUserData) {
+        const userData = JSON.parse(storedUserData)
+        if (userData.uuid) {
+          headers['X-User-UUID'] = userData.uuid
+        }
+      }
+
       // Add cache busting only when forcing refresh, otherwise allow browser caching
       const cacheBuster = forceRefresh ? `&_t=${Date.now()}` : ''
       const cacheControl = forceRefresh ? 'no-cache' : 'default'
-      
+
       const response = await fetch(`${apiUrl}/public/products?${queryParams.toString()}${cacheBuster}`, {
         credentials: 'include',
         cache: cacheControl as RequestCache,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        }
+        headers
       })
       
       if (!response.ok) {

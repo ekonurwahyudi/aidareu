@@ -58,7 +58,7 @@ const bankOptions = [
   { name: 'Mandiri', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Bank_Mandiri_logo_2016.svg/320px-Bank_Mandiri_logo_2016.svg.png' }
 ]
 
-const BillingCard = ({ open, setOpen, data, onSuccess }: BillingCardProps) => {
+const BillingCard = ({ open, setOpen, data, onSuccess, storeUuid }: { open: boolean; setOpen: (open: boolean) => void; data?: BillingCardData; onSuccess?: () => void; storeUuid?: string | null }) => {
   const [cardData, setCardData] = useState(initialCardData)
   const [loading, setLoading] = useState(false)
 
@@ -77,7 +77,7 @@ const BillingCard = ({ open, setOpen, data, onSuccess }: BillingCardProps) => {
 
     setLoading(true)
     try {
-      const payload = {
+      let payload: Record<string, any> = {
         account_number: cardData.cardNumber,
         account_name: cardData.name,
         bank_name: cardData.bank,
@@ -89,6 +89,32 @@ const BillingCard = ({ open, setOpen, data, onSuccess }: BillingCardProps) => {
         : '/api/public/bank-accounts'
       
       const method = data?.uuid ? 'PUT' : 'POST'
+
+      // Saat membuat rekening baru, sertakan store_uuid dari props atau fallback ke /api/users/me
+      if (!data?.uuid) {
+        let finalStoreUuid = storeUuid || null
+
+        if (!finalStoreUuid) {
+          const userRes = await fetch('/api/users/me', {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            cache: 'no-store'
+          })
+          const userJson = await userRes.json()
+          finalStoreUuid = userJson?.data?.store?.uuid || null
+        }
+
+        if (!finalStoreUuid) {
+          toast.error('Store tidak ditemukan')
+          setLoading(false)
+          return
+        }
+
+        payload = { ...payload, store_uuid: finalStoreUuid }
+      }
       
       const response = await fetch(url, {
         method,

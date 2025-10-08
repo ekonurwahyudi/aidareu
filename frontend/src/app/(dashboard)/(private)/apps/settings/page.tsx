@@ -19,7 +19,7 @@ import UserLeftOverview from '@views/apps/user/view/user-left-overview'
 import UserRight from '@views/apps/user/view/user-right'
 
 // Data Imports
-import { getPricingData } from '@/app/server/actions'
+import { getPricingData, getUserStoreUuid } from '@/app/server/actions'
 
 const OverViewTab = dynamic(() => import('@views/apps/user/view/user-right/overview'))
 const KaryawanTab = dynamic(() => import('@/views/apps/user/view/user-right/karyawan'))
@@ -105,12 +105,12 @@ const SettingsSkeleton = () => (
 )
 
 // Vars
-const tabContentList = (data?: PricingPlanType[]): { [key: string]: ReactElement } => ({
-  overview: <OverViewTab />,
+const tabContentList = (data?: PricingPlanType[], storeUuid?: string | null): { [key: string]: ReactElement } => ({
+  overview: <OverViewTab storeUuid={storeUuid} />,
   security: <KaryawanTab />,
-  'billing-plans': <BillingPlans data={data} />,
+  'billing-plans': <BillingPlans data={data} storeUuid={storeUuid} />,
   notifications: <NotificationsTab />,
-  connections: <ConnectionsTab />
+  connections: <ConnectionsTab storeUuid={storeUuid} />
 })
 
 /**
@@ -133,7 +133,7 @@ const tabContentList = (data?: PricingPlanType[]): { [key: string]: ReactElement
 
 const UserViewTab = async () => {
   // Vars
-  const data = await getPricingData()
+  const [data, storeUuid] = await Promise.all([getPricingData(), getUserStoreUuid()])
 
   return (
     <Suspense fallback={<SettingsSkeleton />}>
@@ -142,7 +142,7 @@ const UserViewTab = async () => {
           <UserLeftOverview />
         </Grid>
         <Grid size={{ xs: 12, lg: 8, md: 7 }}>
-          <UserRight tabContentList={tabContentList(data)} />
+          <UserRight tabContentList={tabContentList(data, storeUuid)} />
         </Grid>
       </Grid>
     </Suspense>

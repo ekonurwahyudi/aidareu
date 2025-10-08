@@ -145,13 +145,30 @@ const CustomerListTable = () => {
         queryParams.append('search', debouncedSearch)
       }
 
+      // Get auth headers
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (storedUserData) {
+        const userData = JSON.parse(storedUserData)
+        if (userData.uuid) {
+          headers['X-User-UUID'] = userData.uuid
+        }
+      }
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
       const response = await fetch(`${apiUrl}/stores/${storeUuid}/customers?${queryParams.toString()}`, {
         credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        }
+        headers
       })
 
       if (!response.ok) {

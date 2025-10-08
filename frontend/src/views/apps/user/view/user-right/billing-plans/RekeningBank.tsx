@@ -43,7 +43,7 @@ const BANK_LOGOS: Record<string, string> = {
   'Mandiri': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Bank_Mandiri_logo_2016.svg/320px-Bank_Mandiri_logo_2016.svg.png'
 }
 
-const RekeningBank = () => {
+function RekeningBank({ storeUuid }: { storeUuid?: string | null }) {
   // States
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [loading, setLoading] = useState(true)
@@ -53,21 +53,83 @@ const RekeningBank = () => {
   const fetchBankAccounts = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/public/bank-accounts', {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      })
-      
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          setBankAccounts(result.data || [])
+
+      // Get user data from localStorage
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      if (!storedUserData) {
+        console.error('No user data found')
+        setLoading(false)
+        return
+      }
+
+      const user = JSON.parse(storedUserData)
+
+      // Build headers for authentication
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (user.uuid) {
+        headers['X-User-UUID'] = user.uuid
+      }
+
+      // Prioritas: gunakan storeUuid dari props
+      if (storeUuid) {
+        const response = await fetch(`/api/public/bank-accounts?store_uuid=${storeUuid}`, {
+          headers,
+          credentials: 'include'
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success) {
+            setBankAccounts(result.data || [])
+          } else {
+            setBankAccounts([])
+          }
+        } else {
+          console.error('Failed to fetch bank accounts')
+          setBankAccounts([])
         }
       } else {
-        console.error('Failed to fetch bank accounts')
+        // Fallback ambil via /api/users/me
+        const userRes = await fetch('/api/users/me', {
+          headers,
+          credentials: 'include',
+          cache: 'no-store'
+        })
+
+        const userJson = await userRes.json()
+
+        if (userJson.status === 'success' && userJson.data?.store) {
+          const resolvedStoreUuid = userJson.data.store.uuid
+
+          const response = await fetch(`/api/public/bank-accounts?store_uuid=${resolvedStoreUuid}`, {
+            headers,
+            credentials: 'include'
+          })
+
+          if (response.ok) {
+            const result = await response.json()
+            if (result.success) {
+              setBankAccounts(result.data || [])
+            } else {
+              setBankAccounts([])
+            }
+          } else {
+            console.error('Failed to fetch bank accounts')
+            setBankAccounts([])
+          }
+        } else {
+          setBankAccounts([])
+        }
       }
     } catch (error) {
       console.error('Error fetching bank accounts:', error)
@@ -82,12 +144,33 @@ const RekeningBank = () => {
     if (!confirm('Apakah Anda yakin ingin menghapus rekening ini?')) return
 
     try {
+      // Get auth credentials
+      const storedUserData = localStorage.getItem('user_data')
+      const authToken = localStorage.getItem('auth_token')
+
+      if (!storedUserData) {
+        toast.error('User data tidak ditemukan')
+        return
+      }
+
+      const user = JSON.parse(storedUserData)
+
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`
+      }
+
+      if (user.uuid) {
+        headers['X-User-UUID'] = user.uuid
+      }
+
       const response = await fetch(`/api/public/bank-accounts/${uuid}`, {
         method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include'
       })
 
@@ -147,7 +230,7 @@ const RekeningBank = () => {
           title="Rekening Bank"
           subheader="Kelola rekening bank untuk penarikan dana dari toko."
           sx={{ pb: 1 }}
-          action={<OpenDialogOnElementClick element={Button} elementProps={addButtonProps} dialog={BillingCard} dialogProps={{ onSuccess: fetchBankAccounts }} />}
+          action={<OpenDialogOnElementClick element={Button} elementProps={addButtonProps} dialog={BillingCard} dialogProps={{ onSuccess: fetchBankAccounts, storeUuid }} />}
         />
         <Divider className="mlb-4" />
         <CardContent className='flex flex-col gap-4'>
@@ -158,7 +241,7 @@ const RekeningBank = () => {
             </div>
           ) : bankAccounts.length === 0 ? (
             <Typography className="text-center py-8" color="textSecondary">
-              Belum ada rekening bank yang terdaftar. Klik "Tambah Rekening" untuk menambah rekening baru.
+              Data belum tersedia, silakan lengkapi di pengaturan toko
             </Typography>
           ) : (
             bankAccounts.map((account, index) => (
@@ -199,7 +282,8 @@ const RekeningBank = () => {
                           uuid: account.uuid,
                           is_primary: account.is_primary
                         },
-                        onSuccess: fetchBankAccounts 
+                        onSuccess: fetchBankAccounts,
+                        storeUuid
                       }}
                     />
                     <Button 
