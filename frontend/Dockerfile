@@ -31,12 +31,19 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# Jalankan build icons secara manual setelah semua file tersedia
+# Create icon directories and run the icon bundling script manually
 RUN mkdir -p src/assets/iconify-icons || true
 RUN touch src/assets/iconify-icons/bundle-icons-css.ts || true
+RUN mkdir -p public/assets/iconify-icons || true
+RUN mkdir -p src/assets/iconify-icons/generated || true
+RUN touch src/assets/iconify-icons/generated-icons.css || true
+
+# Run the icon bundling script manually
+RUN node_modules/.bin/tsx src/assets/iconify-icons/bundle-icons-css.ts || true
+
 # Build application
 RUN npm run build
-
+ 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
 
