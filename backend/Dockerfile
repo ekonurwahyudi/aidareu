@@ -40,7 +40,7 @@ RUN composer dump-autoload --optimize --no-dev
 # Salin konfigurasi Nginx
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
-# Set izin
+# Set izin k
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
