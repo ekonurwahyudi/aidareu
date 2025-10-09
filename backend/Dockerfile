@@ -45,7 +45,7 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Buat script untuk menjalankan Nginx dan PHP-FPM
+# Buat script untuk menjalankadn Nginx dan PHP-FPM
 RUN echo '#!/bin/sh' > /start.sh && \
     echo 'set -e' >> /start.sh && \
     echo 'cd /var/www/html' >> /start.sh && \
