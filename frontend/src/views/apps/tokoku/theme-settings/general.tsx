@@ -23,6 +23,9 @@ import { toast } from 'react-hot-toast'
 // Context Imports
 import { useRBAC } from '@/contexts/rbacContext'
 
+// Utils Imports
+import { getApiUrl, getStorageUrl } from '@/utils/api'
+
 const ImgStyled = styled('img')(({ theme }) => ({
   width: 100,
   height: 100,
@@ -79,7 +82,7 @@ const General = () => {
     try {
       // Add cache busting parameter to prevent caching
       const timestamp = new Date().getTime()
-      const response = await fetch(`http://aidareu.com/api/theme-settings?store_uuid=${uuid}&_t=${timestamp}`, {
+      const response = await fetch(`${getApiUrl()}/theme-settings?store_uuid=${uuid}&_t=${timestamp}`, {
         cache: 'no-store'
       })
       const data = await response.json()
@@ -97,10 +100,10 @@ const General = () => {
         })
 
         if (settings.logo) {
-          setLogoPreview(`http://localhost:8000/storage/${settings.logo}`)
+          setLogoPreview(getStorageUrl(settings.logo))
         }
         if (settings.favicon) {
-          setFaviconPreview(`http://localhost:8000/storage/${settings.favicon}`)
+          setFaviconPreview(getStorageUrl(settings.favicon))
         }
       } else {
         console.log('No settings found or request failed')
@@ -139,7 +142,7 @@ const General = () => {
 
       const authToken = localStorage.getItem('auth_token')
 
-      const response = await fetch('http://localhost:8000/api/theme-settings/general', {
+      const response = await fetch(`${getApiUrl()}/theme-settings/general`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -205,7 +208,7 @@ const General = () => {
       // Get auth token from localStorage
       const authToken = localStorage.getItem('auth_token')
 
-      const response = await fetch('http://localhost:8000/api/theme-settings/general', {
+      const response = await fetch(`${getApiUrl()}/theme-settings/general`, {
         method: 'POST',
         credentials: 'include',
         headers: {

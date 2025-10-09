@@ -19,6 +19,9 @@ import { toast } from 'react-hot-toast'
 // Context Imports
 import { useRBAC } from '@/contexts/rbacContext'
 
+// Utils Imports
+import { getApiUrl, getStorageUrl } from '@/utils/api'
+
 const ImgStyled = styled('img')(({ theme }) => ({
   width: '100%',
   height: 200,
@@ -71,7 +74,7 @@ const Slide = () => {
     try {
       // Add cache busting parameter to prevent caching
       const timestamp = new Date().getTime()
-      const response = await fetch(`http://localhost:8000/api/theme-settings?store_uuid=${uuid}&_t=${timestamp}`, {
+      const response = await fetch(`${getApiUrl()}/theme-settings?store_uuid=${uuid}&_t=${timestamp}`, {
         cache: 'no-store'
       })
       const data = await response.json()
@@ -83,9 +86,9 @@ const Slide = () => {
         console.log('Slides object:', slideData)
 
         setSlidePreviews({
-          slide_1: slideData.slide_1 ? `http://localhost:8000/storage/${slideData.slide_1}` : '',
-          slide_2: slideData.slide_2 ? `http://localhost:8000/storage/${slideData.slide_2}` : '',
-          slide_3: slideData.slide_3 ? `http://localhost:8000/storage/${slideData.slide_3}` : ''
+          slide_1: slideData.slide_1 ? getStorageUrl(slideData.slide_1) : '',
+          slide_2: slideData.slide_2 ? getStorageUrl(slideData.slide_2) : '',
+          slide_3: slideData.slide_3 ? getStorageUrl(slideData.slide_3) : ''
         })
       } else {
         console.log('No slides found')
@@ -126,7 +129,7 @@ const Slide = () => {
       // Get auth token from localStorage
       const authToken = localStorage.getItem('auth_token')
 
-      const response = await fetch('http://localhost:8000/api/theme-settings/slides', {
+      const response = await fetch(`${getApiUrl()}/theme-settings/slides`, {
         method: 'POST',
         credentials: 'include',
         headers: {

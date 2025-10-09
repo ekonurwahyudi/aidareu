@@ -32,6 +32,9 @@ import { toast } from 'react-hot-toast'
 // Context Imports
 import { useRBAC } from '@/contexts/rbacContext'
 
+// Utils Imports
+import { getApiUrl } from '@/utils/api'
+
 interface TestimoniItem {
   uuid: string
   nama: string
@@ -69,7 +72,7 @@ const Testimoni = () => {
     try {
       // Add cache busting parameter to prevent caching
       const timestamp = new Date().getTime()
-      const response = await fetch(`http://localhost:8000/api/theme-settings?store_uuid=${uuid}&_t=${timestamp}`, {
+      const response = await fetch(`${getApiUrl()}/theme-settings?store_uuid=${uuid}&_t=${timestamp}`, {
         cache: 'no-store'
       })
       const data = await response.json()
@@ -142,8 +145,8 @@ const Testimoni = () => {
 
     try {
       const url = editingTestimoni
-        ? `http://localhost:8000/api/theme-settings/testimonial/${editingTestimoni.uuid}`
-        : 'http://localhost:8000/api/theme-settings/testimonial'
+        ? `${getApiUrl()}/theme-settings/testimonial/${editingTestimoni.uuid}`
+        : '${getApiUrl()}/theme-settings/testimonial'
 
       const method = editingTestimoni ? 'PUT' : 'POST'
 
@@ -201,7 +204,7 @@ const Testimoni = () => {
       // Get auth token from localStorage
       const authToken = localStorage.getItem('auth_token')
 
-      const response = await fetch(`http://localhost:8000/api/theme-settings/testimonial/${uuid}`, {
+      const response = await fetch(`${getApiUrl()}/theme-settings/testimonial/${uuid}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {

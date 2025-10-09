@@ -30,6 +30,9 @@ import { toast } from 'react-hot-toast'
 // Context Imports
 import { useRBAC } from '@/contexts/rbacContext'
 
+// Utils Imports
+import { getApiUrl } from '@/utils/api'
+
 interface FaqItem {
   uuid: string
   pertanyaan: string
@@ -63,7 +66,7 @@ const Faq = () => {
     try {
       // Add cache busting parameter to prevent caching
       const timestamp = new Date().getTime()
-      const response = await fetch(`http://localhost:8000/api/theme-settings?store_uuid=${uuid}&_t=${timestamp}`, {
+      const response = await fetch(`${getApiUrl()}/theme-settings?store_uuid=${uuid}&_t=${timestamp}`, {
         cache: 'no-store'
       })
       const data = await response.json()
@@ -130,8 +133,8 @@ const Faq = () => {
 
     try {
       const url = editingFaq
-        ? `http://localhost:8000/api/theme-settings/faq/${editingFaq.uuid}`
-        : 'http://localhost:8000/api/theme-settings/faq'
+        ? `${getApiUrl()}/theme-settings/faq/${editingFaq.uuid}`
+        : '${getApiUrl()}/theme-settings/faq'
 
       const method = editingFaq ? 'PUT' : 'POST'
 
@@ -184,7 +187,7 @@ const Faq = () => {
       // Get auth token from localStorage
       const authToken = localStorage.getItem('auth_token')
 
-      const response = await fetch(`http://localhost:8000/api/theme-settings/faq/${uuid}`, {
+      const response = await fetch(`${getApiUrl()}/theme-settings/faq/${uuid}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {
