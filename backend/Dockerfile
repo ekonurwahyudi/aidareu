@@ -16,7 +16,7 @@ RUN apk add --no-cache \
     nginx \
     $PHPIZE_DEPS
 
-# Install ekstensi PHP
+#rfa Install ekstensi PHP
 RUN docker-php-ext-install pdo pdo_pgsql pgsql mbstring exif pcntl bcmath gd xml
 
 # Install Composer
