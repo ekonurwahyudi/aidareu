@@ -50,12 +50,8 @@ RUN echo '#!/bin/sh' > /start.sh && \
     echo 'set -e' >> /start.sh && \
     echo 'cd /var/www/html' >> /start.sh && \
     echo '' >> /start.sh && \
-    echo '# Buat .env dari .env.example jika belum ada' >> /start.sh && \
-    echo 'if [ ! -f ".env" ]; then' >> /start.sh && \
-    echo '  if [ -f ".env.example" ]; then' >> /start.sh && \
-    echo '    cp .env.example .env' >> /start.sh && \
-    echo '  fi' >> /start.sh && \
-    echo 'fi' >> /start.sh && \
+    echo '# PENTING: Gunakan environment variables dari Docker/Easypanel' >> /start.sh && \
+    echo '# JANGAN buat .env dari .env.example agar env dari Easypanel digunakan' >> /start.sh && \
     echo '' >> /start.sh && \
     echo '# Generate APP_KEY jika belum ada' >> /start.sh && \
     echo 'if [ -z "$APP_KEY" ]; then' >> /start.sh && \
