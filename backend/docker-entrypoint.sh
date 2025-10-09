@@ -3,12 +3,12 @@ set -e
 
 cd /var/www/html
 
-# Buat .env dari .env.example jika belum ada
-if [ ! -f ".env" ]; then
-  if [ -f ".env.example" ]; then
-    cp .env.example .env
-  fi
-fi
+# JANGAN buat .env dari .env.example agar env dari Easypanel digunakan
+# if [ ! -f ".env" ]; then
+#   if [ -f ".env.example" ]; then
+#     cp .env.example .env
+#   fi
+# fi
 
 # Generate APP_KEY jika belum ada
 if [ -z "$APP_KEY" ]; then

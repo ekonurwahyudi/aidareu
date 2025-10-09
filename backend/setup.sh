@@ -21,7 +21,10 @@ check_success "Composer install"
 
 echo "[2] Copying environment file..."
 if [ ! -f .env ]; then
-    cp .env.example .env
+    # Ganti baris:
+    # cp .env.example .env
+    # dengan:
+    echo "⚠️ PERHATIAN: .env tidak dibuat dari .env.example agar env dari Easypanel digunakan"
     echo "✓ Environment file created from .env.example"
 else
     echo "⚠ Environment file already exists, skipping..."
