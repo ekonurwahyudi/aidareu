@@ -1,46 +1,14 @@
-# Git files
+.env
+.env.*
+!.env.example
 .git
 .gitignore
-.gitattributes
-
-# Environment files
-.env
-.env.backup
-.env.production
-
-# IDE
-.idea
-.vscode
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Node modules (if any)
-node_modules/
-
-# Testing
-tests/
-.phpunit.result.cache
-phpunit.xml
-
-# Storage (will be recreated)
+node_modules
+vendor
+storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
-storage/logs/*
-
-# Vendor (will be installed in build)
-/vendor
-
-# Documentation
-README.md
-*.md
-
-# Docker
-Dockerfile
-.dockerignore
-docker-compose.yml
+bootstrap/cache/*
+.DS_Store
+Thumbs.db
