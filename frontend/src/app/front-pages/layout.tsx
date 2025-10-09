@@ -33,15 +33,15 @@ export const metadata = {
 }
 
 const Layout = async ({ children }: ChildrenType) => {
-  // Vars
-  const systemMode = await getSystemMode()
+  // Force light mode for front pages
+  const systemMode = 'light'
 
   return (
     <html id='__next' suppressHydrationWarning>
       <body className='flex is-full min-bs-full flex-auto flex-col'>
-        <InitColorSchemeScript attribute='data' defaultMode={systemMode} />
+        <InitColorSchemeScript attribute='data' defaultMode='light' />
         <Providers direction='ltr'>
-          <BlankLayout systemMode={systemMode}>
+          <BlankLayout systemMode='light'>
             <IntersectionProvider>
               <FrontLayout>
                 {children}
