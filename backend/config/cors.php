@@ -7,11 +7,23 @@ return [
     // Methods allowed
     'allowed_methods' => ['*'],
 
-    // Explicit origins (kept for reference); use patterns to allow subdomains like slug.localhost:3000
-    'allowed_origins' => ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8080', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:8080'],
+    // Explicit origins - Development (port 3002) and Production domains
+    'allowed_origins' => [
+        'http://localhost:3002',
+        'http://127.0.0.1:3002',
+        'https://aidareu.com',
+        'https://www.aidareu.com',
+        'https://api.aidareu.com',
+    ],
 
-    // Allow any subdomain of localhost on any port (e.g., coffee.localhost:3000)
-    'allowed_origins_patterns' => ['/^https?:\/\/([a-z0-9-]+\.)?localhost(:\d+)?$/i', '/^https?:\/\/127\.0\.0\.1(:\d+)?$/i'],
+    // Allow any subdomain of localhost on port 3002 (e.g., coffee.localhost:3002)
+    // Also allow any localhost/127.0.0.1 with any port for development flexibility
+    'allowed_origins_patterns' => [
+        '/^https?:\/\/([a-z0-9-]+\.)?localhost:3002$/i',
+        '/^https?:\/\/127\.0\.0\.1:3002$/i',
+        '/^https?:\/\/([a-z0-9-]+\.)?localhost(:\d+)?$/i',
+        '/^https?:\/\/127\.0\.0\.1(:\d+)?$/i',
+    ],
 
     // Headers
     'allowed_headers' => ['*'],
