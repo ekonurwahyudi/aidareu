@@ -265,14 +265,24 @@ class SettingTokoController extends Controller
     public function updateSlides(Request $request)
     {
         try {
+            \Log::info('Slides upload request received', [
+                'uuid_store' => $request->uuid_store,
+                'has_slide_1' => $request->hasFile('slide_1'),
+                'has_slide_2' => $request->hasFile('slide_2'),
+                'has_slide_3' => $request->hasFile('slide_3'),
+            ]);
+
             $validator = Validator::make($request->all(), [
                 'uuid_store' => 'required|exists:stores,uuid',
-                'slide_1' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:2048',
-                'slide_2' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:2048',
-                'slide_3' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:2048',
+                'slide_1' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
+                'slide_2' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
+                'slide_3' => 'nullable|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
             ]);
 
             if ($validator->fails()) {
+                \Log::error('Slides validation failed', [
+                    'errors' => $validator->errors()
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -286,8 +296,20 @@ class SettingTokoController extends Controller
             for ($i = 1; $i <= 3; $i++) {
                 if ($request->hasFile("slide_$i")) {
                     $slide = $request->file("slide_$i");
+                    \Log::info("Processing slide_$i", [
+                        'original_name' => $slide->getClientOriginalName(),
+                        'size' => $slide->getSize(),
+                        'mime' => $slide->getMimeType()
+                    ]);
+
                     $slidePath = $slide->store('theme/slides', 'public');
                     $data["slide_$i"] = $slidePath;
+
+                    \Log::info("Slide_$i uploaded successfully", [
+                        'path' => $slidePath,
+                        'full_path' => storage_path('app/public/' . $slidePath),
+                        'exists' => file_exists(storage_path('app/public/' . $slidePath))
+                    ]);
                 }
             }
 
@@ -296,10 +318,16 @@ class SettingTokoController extends Controller
                 $data
             );
 
+            \Log::info('Slides saved to database', [
+                'data' => $data,
+                'slides' => $slides->toArray()
+            ]);
+
             // Refresh storage symlink to fix Docker volume sync issues
             if ($request->hasFile('slide_1') || $request->hasFile('slide_2') || $request->hasFile('slide_3')) {
                 try {
                     \Artisan::call('storage:link', ['--force' => true]);
+                    \Log::info('Storage symlink refreshed successfully');
                 } catch (\Exception $e) {
                     \Log::warning('Failed to refresh storage symlink: ' . $e->getMessage());
                 }
@@ -311,6 +339,10 @@ class SettingTokoController extends Controller
                 'data' => $slides
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error updating slides', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error updating slides',

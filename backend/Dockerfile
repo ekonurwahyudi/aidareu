@@ -19,6 +19,9 @@ COPY . /var/www/html
 # Copy Nginx config
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
+# Copy PHP configuration for file uploads
+COPY php.ini /usr/local/etc/php/conf.d/uploads.ini
+
 # EntryPoint untuk install deps dan jalankan artisan opsional
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
