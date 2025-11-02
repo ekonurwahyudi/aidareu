@@ -16,6 +16,9 @@ return [
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
         'http://127.0.0.1:8080',
+        // Railway deployment IPs
+        'http://139.99.101.27:3000',
+        'http://139.99.101.27:8080',
         // Production
         'https://aidareu.com',
         'https://app.aidareu.com',
@@ -27,8 +30,13 @@ return [
         // Development - localhost
         '/^https?:\/\/([a-z0-9-]+\.)?localhost(:\d+)?$/i',
         '/^https?:\/\/127\.0\.0\.1(:\d+)?$/i',
+        // Development - IP addresses
+        '/^https?:\/\/\d+\.\d+\.\d+\.\d+(:\d+)?$/i',
         // Production - aidareu.com subdomains
         '/^https:\/\/([a-z0-9-]+\.)?aidareu\.com$/i',
+        // Deployment platforms
+        '/^https?:\/\/([a-z0-9-]+\.)?railway\.app$/i',
+        '/^https?:\/\/([a-z0-9-]+\.)?vercel\.app$/i',
     ],
 
     // Headers

@@ -1,0 +1,70 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+
+class ForceJsonResponse
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $request->headers->set('Accept', 'application/json');
+
+        // Handle preflight OPTIONS requests
+        if ($request->getMethod() === 'OPTIONS') {
+            $origin = $request->header('Origin');
+
+            if ($this->isAllowedOrigin($origin)) {
+                return response('', 200)
+                    ->header('Access-Control-Allow-Origin', $origin)
+                    ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+                    ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-User-UUID, Accept')
+                    ->header('Access-Control-Allow-Credentials', 'true')
+                    ->header('Access-Control-Max-Age', '86400');
+            }
+        }
+
+        $response = $next($request);
+
+        // Ensure CORS headers are present for API routes
+        if ($request->is('api/*')) {
+            $origin = $request->header('Origin');
+
+            // Check if origin matches allowed patterns
+            if ($this->isAllowedOrigin($origin)) {
+                $response->headers->set('Access-Control-Allow-Origin', $origin);
+                $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+                $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-User-UUID, Accept');
+                $response->headers->set('Access-Control-Allow-Credentials', 'true');
+                $response->headers->set('Access-Control-Max-Age', '86400');
+            }
+        }
+
+        return $response;
+    }
+    
+    private function isAllowedOrigin(?string $origin): bool
+    {
+        if (!$origin) {
+            return false;
+        }
+
+        $allowedPatterns = [
+            '/^https?:\/\/localhost(:\d+)?$/i',
+            '/^https?:\/\/127\.0\.0\.1(:\d+)?$/i',
+            '/^https?:\/\/\d+\.\d+\.\d+\.\d+(:\d+)?$/i', // Allow any IP address
+            '/^https:\/\/([a-z0-9-]+\.)?aidareu\.com$/i',
+            '/^https?:\/\/([a-z0-9-]+\.)?railway\.app$/i', // Railway domains
+            '/^https?:\/\/([a-z0-9-]+\.)?vercel\.app$/i', // Vercel domains
+        ];
+
+        foreach ($allowedPatterns as $pattern) {
+            if (preg_match($pattern, $origin)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
