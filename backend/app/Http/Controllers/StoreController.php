@@ -57,6 +57,82 @@ class StoreController extends Controller
     }
 
     /**
+     * Show single store by UUID
+     */
+    public function show(Request $request, $uuid)
+    {
+        try {
+            $user = null;
+
+            // Try Sanctum auth first
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
+            }
+
+            // Try web session auth
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+
+            // Try X-User-UUID header
+            if (!$user && $request->header('X-User-UUID')) {
+                $userUuid = $request->header('X-User-UUID');
+                $user = User::where('uuid', $userUuid)->first();
+            }
+
+            // Require authentication - no fallback to random users!
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication required. Please login to view your store.'
+                ], 401);
+            }
+
+            $store = Store::where('uuid', $uuid)
+                          ->where('user_id', $user->uuid)
+                          ->first();
+
+            if (!$store) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store not found'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $store->id,
+                    'uuid' => $store->uuid,
+                    'name' => $store->name,
+                    'subdomain' => $store->subdomain,
+                    'domain' => $store->domain,
+                    'phone' => $store->phone,
+                    'category' => $store->category,
+                    'description' => $store->description,
+                    'provinsi' => $store->provinsi,
+                    'kota' => $store->kota,
+                    'kecamatan' => $store->kecamatan,
+                    'province' => $store->provinsi, // Alias for frontend compatibility
+                    'city' => $store->kota,         // Alias for frontend compatibility
+                    'district' => $store->kecamatan, // Alias for frontend compatibility
+                    'is_active' => $store->is_active,
+                    'url' => 'https://' . $store->subdomain . '.aidareu.com',
+                    'created_at' => $store->created_at,
+                    'updated_at' => $store->updated_at
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch store',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Create a new store
      */
     public function store(Request $request)
@@ -231,24 +307,89 @@ class StoreController extends Controller
     public function index(Request $request)
     {
         try {
-            $user = Auth::user();
-            
-            if (!$user) {
-                // Try to get user from session if available
-                $user = auth('web')->user();
-                
-                if (!$user) {
-                    // For development/testing - try to find the specific user by UUID
-                    $targetUuid = 'e4fcfcba-63bc-41ff-a36c-11c6e57d16f8'; // Your login UUID
-                    $user = User::where('uuid', $targetUuid)->first();
-                    
-                    if (!$user) {
-                        // Fallback to first user from database
-                        $user = User::first();
-                    }
+            // Check if querying by domain or subdomain
+            $domain = $request->query('domain');
+            $subdomain = $request->query('subdomain');
+
+            if ($domain) {
+                // Public query by custom domain
+                $store = Store::where('domain', $domain)
+                             ->where('is_active', true)
+                             ->first();
+
+                if (!$store) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Store not found'
+                    ], 404);
                 }
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'uuid' => $store->uuid,
+                        'name' => $store->name,
+                        'subdomain' => $store->subdomain,
+                        'domain' => $store->domain,
+                        'url' => $store->domain
+                            ? 'https://' . $store->domain
+                            : 'https://' . $store->subdomain . '.aidareu.com'
+                    ]
+                ]);
             }
-            
+
+            if ($subdomain) {
+                // Public query by subdomain
+                $store = Store::where('subdomain', $subdomain)
+                             ->where('is_active', true)
+                             ->first();
+
+                if (!$store) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Store not found'
+                    ], 404);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'uuid' => $store->uuid,
+                        'name' => $store->name,
+                        'subdomain' => $store->subdomain,
+                        'domain' => $store->domain
+                    ]
+                ]);
+            }
+
+            // Default: Get user's stores (authenticated)
+            $user = null;
+
+            // Try Sanctum auth first
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user();
+            }
+
+            // Try web session auth
+            if (!$user) {
+                $user = auth('web')->user();
+            }
+
+            // Try X-User-UUID header
+            if (!$user && $request->header('X-User-UUID')) {
+                $userUuid = $request->header('X-User-UUID');
+                $user = User::where('uuid', $userUuid)->first();
+            }
+
+            // Require authentication - no fallback to random users!
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication required. Please login to view your stores.',
+                    'stores' => []
+                ], 401);
+            }
+
             $stores = Store::where('user_id', $user->uuid)
                           ->orderBy('created_at', 'desc')
                           ->get()
@@ -299,48 +440,6 @@ class StoreController extends Controller
     /**
      * Get specific store
      */
-    public function show(Request $request, $uuid)
-    {
-        try {
-            $user = Auth::user();
-            
-            $store = Store::where('uuid', $uuid)
-                ->where('user_id', $user->uuid)
-                ->with(['socialMedia', 'bankAccounts'])
-                ->first();
-
-            if (!$store) {
-                return response()->json([
-                    'message' => 'Store not found'
-                ], 404);
-            }
-
-            return response()->json([
-                'store' => [
-                    'id' => $store->id,
-                    'uuid' => $store->uuid,
-                    'name' => $store->name,
-                    'subdomain' => $store->subdomain,
-                    'phone' => $store->phone,
-                    'category' => $store->category,
-                    'description' => $store->description,
-                    'status' => $store->status,
-                    'is_published' => $store->is_published,
-                    'url' => 'https://' . $store->subdomain . '.aidareu.com',
-                    'social_media' => $store->socialMedia,
-                    'bank_accounts' => $store->bankAccounts,
-                    'created_at' => $store->created_at,
-                    'updated_at' => $store->updated_at
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to get store',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Update store
@@ -516,6 +615,10 @@ class StoreController extends Controller
             'phoneNumber' => 'required|string|min:10|max:15',
             'category' => 'required|string',
             'description' => 'required|string|min:10',
+            // Location
+            'province' => 'required|string',
+            'city' => 'required|string',
+            'district' => 'required|string',
             // Bank Account
             'accountOwner' => 'required|string|min:2|max:255',
             'accountNumber' => 'required|string|min:8|max:20',
@@ -598,13 +701,22 @@ class StoreController extends Controller
                 'phone' => $request->phoneNumber,
                 'category' => $kategoriToko,
                 'description' => $request->description,
+                'province' => $request->province,
+                'city' => $request->city,
+                'district' => $request->district,
                 'user_id' => $user->uuid,
                 'is_active' => true
             ]);
 
             // Create bank account if provided
             if ($request->accountOwner && $request->accountNumber && $request->bankName) {
-                $store->bankAccounts()->create([
+                Log::info('Creating bank account', [
+                    'store_uuid' => $store->uuid,
+                    'account_owner' => $request->accountOwner,
+                    'bank_name' => $request->bankName
+                ]);
+
+                $bankAccount = $store->bankAccounts()->create([
                     'uuid' => Str::uuid(),
                     'account_holder_name' => $request->accountOwner,
                     'account_number' => $request->accountNumber,
@@ -612,11 +724,27 @@ class StoreController extends Controller
                     'is_primary' => true,
                     'is_active' => true
                 ]);
+
+                Log::info('Bank account created', ['bank_account_id' => $bankAccount->id]);
+            } else {
+                Log::warning('Bank account data incomplete', [
+                    'has_owner' => !empty($request->accountOwner),
+                    'has_number' => !empty($request->accountNumber),
+                    'has_bank' => !empty($request->bankName)
+                ]);
             }
 
             // Create social media entry if provided
             if ($request->instagram || $request->facebook || $request->tiktok || $request->youtube) {
-                $store->socialMedia()->create([
+                Log::info('Creating social media', [
+                    'store_uuid' => $store->uuid,
+                    'has_instagram' => !empty($request->instagram),
+                    'has_facebook' => !empty($request->facebook),
+                    'has_tiktok' => !empty($request->tiktok),
+                    'has_youtube' => !empty($request->youtube)
+                ]);
+
+                $socialMedia = $store->socialMedia()->create([
                     'uuid' => Str::uuid(),
                     'instagram_url' => $request->instagram,
                     'facebook_url' => $request->facebook,
@@ -624,9 +752,23 @@ class StoreController extends Controller
                     'youtube_url' => $request->youtube,
                     'is_active' => true
                 ]);
+
+                Log::info('Social media created', ['social_media_id' => $socialMedia->id]);
+            } else {
+                Log::info('No social media data provided');
             }
 
             DB::commit();
+
+            // Reload store with relationships to verify data was saved
+            $store->load(['bankAccounts', 'socialMedia']);
+
+            Log::info('Store setup completed successfully', [
+                'store_id' => $store->id,
+                'store_uuid' => $store->uuid,
+                'bank_accounts_count' => $store->bankAccounts->count(),
+                'social_media_count' => $store->socialMedia->count()
+            ]);
 
             return response()->json([
                 'message' => 'Store setup completed successfully!',
@@ -638,8 +780,13 @@ class StoreController extends Controller
                     'phone' => $store->phone,
                     'category' => $store->category,
                     'description' => $store->description,
+                    'province' => $store->province,
+                    'city' => $store->city,
+                    'district' => $store->district,
                     'is_active' => $store->is_active,
-                    'url' => 'https://' . $store->subdomain . '.aidareu.com'
+                    'url' => 'https://' . $store->subdomain . '.aidareu.com',
+                    'bank_accounts_count' => $store->bankAccounts->count(),
+                    'social_media_count' => $store->socialMedia->count()
                 ]
             ], 201);
 
